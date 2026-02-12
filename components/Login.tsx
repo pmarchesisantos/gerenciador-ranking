@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Trophy, Lock, Mail, ArrowRight, X } from 'lucide-react';
+import { Trophy, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 
 const Login: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [email, setEmail] = useState('');
@@ -29,13 +29,6 @@ const Login: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
-      <button 
-        onClick={onBack}
-        className="absolute top-8 right-8 text-gray-500 hover:text-white transition-colors p-2"
-      >
-        <X size={32} />
-      </button>
-      
       <div className="w-full max-w-md bg-gray-900 border border-emerald-900/30 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-600 to-amber-500"></div>
         
@@ -86,20 +79,31 @@ const Login: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             </div>
           )}
 
-          <button 
-            type="submit"
-            disabled={loading}
-            className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-95 shadow-xl shadow-emerald-900/30 uppercase text-xs tracking-[0.2em]"
-          >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-            ) : (
-              <>
-                Entrar no Painel
-                <ArrowRight size={20} />
-              </>
-            )}
-          </button>
+          <div className="space-y-3 pt-2">
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-95 shadow-xl shadow-emerald-900/30 uppercase text-xs tracking-[0.2em]"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  Entrar no Painel
+                  <ArrowRight size={20} />
+                </>
+              )}
+            </button>
+
+            <button 
+              type="button"
+              onClick={onBack}
+              className="w-full bg-transparent border border-gray-800 text-gray-500 hover:text-white hover:border-gray-600 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all uppercase text-[10px] tracking-widest"
+            >
+              <ArrowLeft size={16} />
+              Voltar para os Rankings
+            </button>
+          </div>
         </form>
 
         <div className="mt-8 text-center">

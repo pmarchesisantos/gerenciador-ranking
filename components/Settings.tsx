@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { useAuth } from '../context/AuthContext';
@@ -57,8 +56,10 @@ const Settings: React.FC = () => {
     }
   };
 
+  const positions = Array.from({ length: 25 }, (_, i) => i + 1);
+
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <header>
         <h2 className="text-3xl font-bold text-white mb-1">Configurações</h2>
         <p className="text-gray-400">Gerencie as regras do ranking e a segurança da sua conta.</p>
@@ -90,20 +91,22 @@ const Settings: React.FC = () => {
               <h4 className="text-amber-500 font-bold mb-1">Regra de Cálculo</h4>
               <p className="text-amber-100/70 text-sm leading-relaxed">
                 A pontuação final da etapa é calculada somando os <strong>Pontos de Posição</strong> + <strong>Pontos de Presença</strong>. 
-                Se a etapa for dobrada (2x), o resultado dessa soma é multiplicado por dois.
+                Se a etapa for dobrada (2x), o resultado dessa soma é multiplicado por dois. Você pode configurar até a 25ª posição.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6">
-              <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Pontos por Posição</h3>
-              <div className="space-y-4">
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(pos => (
-                  <div key={pos} className="flex items-center justify-between">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6">
+              <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Pontos por Posição (1º ao 25º)</h3>
+              <div className="flex flex-col gap-y-3 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
+                {positions.map(pos => (
+                  <div key={pos} className="flex items-center justify-between border-b border-gray-800/50 pb-2">
                     <label className="text-gray-400 font-medium">
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded mr-2 text-xs ${
-                        pos === 1 ? 'bg-amber-500 text-black' : 'bg-gray-800 text-gray-400'
+                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded mr-3 text-[10px] font-black ${
+                        pos === 1 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
+                        pos <= 3 ? 'bg-emerald-600/20 text-emerald-500 border border-emerald-500/30' :
+                        'bg-gray-800 text-gray-500'
                       }`}>
                         {pos}º
                       </span>
@@ -112,7 +115,7 @@ const Settings: React.FC = () => {
                     <div className="relative">
                       <input 
                         type="number"
-                        className="bg-black/50 border border-gray-700 rounded-lg px-4 py-2 w-32 text-right text-emerald-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                        className="bg-black/50 border border-gray-700 rounded-lg px-3 py-2 w-24 text-right text-emerald-400 font-bold focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
                         value={activeRanking.scoringConfig[pos] || 0}
                         onChange={(e) => handleScoreChange(pos, e.target.value)}
                       />
@@ -122,8 +125,8 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6 flex flex-col justify-between">
-              <div>
+            <div className="space-y-8">
+              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6">
                 <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Bônus de Presença</h3>
                 <div className="mt-6 flex items-center justify-between">
                   <label className="text-gray-400 font-medium">Pontos Base (Presença)</label>
@@ -136,8 +139,16 @@ const Settings: React.FC = () => {
                     />
                   </div>
                 </div>
+                <p className="text-xs text-gray-600 italic leading-relaxed">
+                  Estes pontos são somados automaticamente a cada jogador que recebe uma posição na etapa semanal.
+                </p>
               </div>
-              <p className="text-xs text-gray-600 italic">As alterações são salvas automaticamente no banco de dados.</p>
+
+              <div className="bg-emerald-600/5 border border-emerald-600/20 rounded-2xl p-6">
+                <p className="text-xs text-emerald-500/70 font-medium text-center italic">
+                  As alterações são persistidas em tempo real no banco de dados.
+                </p>
+              </div>
             </div>
           </div>
         </div>
