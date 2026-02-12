@@ -97,6 +97,12 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
 
   const activeRanking = house.rankings.find(r => r.id === activeTabId);
 
+  const getNameColor = (rank: number) => {
+    if (rank >= 1 && rank <= 8) return 'text-emerald-400';
+    if (rank === 9 || rank === 10) return 'text-blue-400';
+    return 'text-white';
+  };
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
       <header className="h-20 border-b border-emerald-900/20 px-4 md:px-8 flex items-center justify-between bg-gray-900/50 backdrop-blur-md sticky top-0 z-40">
@@ -172,30 +178,49 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                         <th className="px-6 py-6">Anterior</th>
                         <th className="px-6 py-6">Vitórias</th>
                         <th className="px-6 py-6">Dia</th>
+                        <th className="px-6 py-6 text-amber-500">Valor Acumulado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
-                      {[...activeRanking.players].sort((a,b) => b.totalPoints - a.totalPoints).map((p, i) => (
-                        <tr key={p.id} className="hover:bg-emerald-600/[0.02] transition-colors">
-                          <td className="px-6 py-5">
-                            <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-xs ${
-                              i === 0 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
-                              i === 1 ? 'bg-gray-300 text-black' :
-                              i === 2 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-400'
-                            }`}>
-                              {i + 1}
-                            </span>
-                          </td>
-                          <td className="px-6 py-5 text-white font-bold tracking-tight">{p.name}</td>
-                          <td className="px-6 py-5 text-emerald-400 font-black">{p.totalPoints}</td>
-                          <td className="px-6 py-5 text-gray-600 font-bold text-xs">{p.prevPoints}</td>
-                          <td className="px-6 py-5 text-gray-400 font-bold text-xs">{p.wins}</td>
-                          <td className="px-6 py-5">
-                            <span className="text-amber-500 font-black">+{p.dayPoints}</span>
-                          </td>
-                        </tr>
-                      ))}
+                      {[...activeRanking.players].sort((a,b) => b.totalPoints - a.totalPoints).map((p, i) => {
+                        const rank = i + 1;
+                        const nameColor = getNameColor(rank);
+                        
+                        return (
+                          <tr key={p.id} className="hover:bg-emerald-600/[0.02] transition-colors">
+                            <td className="px-6 py-5">
+                              <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-xs ${
+                                i === 0 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
+                                i === 1 ? 'bg-gray-300 text-black' :
+                                i === 2 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-400'
+                              }`}>
+                                {rank}
+                              </span>
+                            </td>
+                            <td className={`px-6 py-5 font-bold tracking-tight ${nameColor}`}>{p.name}</td>
+                            <td className="px-6 py-5 text-emerald-400 font-black">{p.totalPoints}</td>
+                            <td className="px-6 py-5 text-gray-600 font-bold text-xs">{p.prevPoints}</td>
+                            <td className="px-6 py-5 text-gray-400 font-bold text-xs">{p.wins}</td>
+                            <td className="px-6 py-5">
+                              <span className="text-emerald-500 font-black">+{p.dayPoints}</span>
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className="text-amber-500 font-bold">R$ {p.accumulatedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
+                    <tfoot className="bg-black/30 border-t border-gray-800">
+                      <tr>
+                        <td colSpan={6} className="px-6 py-5 text-right text-[10px] font-black text-gray-600 uppercase tracking-widest">Total Geral Acumulado:</td>
+                        <td className="px-6 py-5">
+                           <span className="text-amber-500 font-black text-lg">
+                             R$ {activeRanking.players.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                           </span>
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </div>
@@ -213,7 +238,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                         </div>
                       </div>
                       {entry.multiplier > 1 && (
-                        <span className="bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full text-[8px] font-black uppercase border border-amber-500/20">DOBRADA</span>
+                        <span className="bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full text-[8px] font-black uppercase border border-amber-500/20">PONTOS 2X</span>
                       )}
                     </div>
                     <div className="flex flex-col gap-2">

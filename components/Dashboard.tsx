@@ -22,11 +22,21 @@ const Dashboard: React.FC = () => {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const totalAccumulated = sortedPlayers.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0);
+
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
     addPlayer(newPlayerName);
     setNewPlayerName('');
+  };
+
+  const getRank = (playerId: string) => sortedPlayers.findIndex(p => p.id === playerId) + 1;
+
+  const getNameColor = (rank: number) => {
+    if (rank >= 1 && rank <= 8) return 'text-emerald-400';
+    if (rank === 9 || rank === 10) return 'text-blue-400';
+    return 'text-white';
   };
 
   const exportCSV = () => {
@@ -113,76 +123,93 @@ const Dashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800 bg-gray-900/50">
-              {filteredPlayers.map((player, index) => (
-                <tr key={player.id} className="hover:bg-emerald-600/[0.03] transition-colors group">
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-xs ${
-                      index === 0 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
-                      index === 1 ? 'bg-gray-300 text-black' :
-                      index === 2 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-400 font-bold'
-                    }`}>
-                      {index + 1}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <input 
-                      className="bg-transparent border-none text-white focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-full font-semibold"
-                      value={player.name}
-                      onChange={(e) => updatePlayer(player.id, { name: e.target.value })}
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <input 
-                      type="number"
-                      className="bg-transparent border-none text-emerald-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-20 font-black"
-                      value={player.totalPoints}
-                      onChange={(e) => updatePlayer(player.id, { totalPoints: Number(e.target.value) })}
-                    />
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 font-mono text-sm">{player.prevPoints}</td>
-                  <td className="px-6 py-4">
-                    <input 
-                      type="number"
-                      className="bg-transparent border-none text-gray-300 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-16"
-                      value={player.attendances}
-                      onChange={(e) => updatePlayer(player.id, { attendances: Number(e.target.value) })}
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <input 
-                      type="number"
-                      className="bg-transparent border-none text-gray-300 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-16"
-                      value={player.wins}
-                      onChange={(e) => updatePlayer(player.id, { wins: Number(e.target.value) })}
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="bg-amber-600/10 text-amber-500 px-2 py-1 rounded text-xs font-black">
-                      +{player.dayPoints}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <span className="text-gray-500 text-xs font-bold">R$</span>
+              {filteredPlayers.map((player) => {
+                const rank = getRank(player.id);
+                const nameColor = getNameColor(rank);
+                
+                return (
+                  <tr key={player.id} className="hover:bg-emerald-600/[0.03] transition-colors group">
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-xs ${
+                        rank === 1 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
+                        rank === 2 ? 'bg-gray-300 text-black' :
+                        rank === 3 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-400 font-bold'
+                      }`}>
+                        {rank}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <input 
+                        className={`bg-transparent border-none focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-full font-bold ${nameColor}`}
+                        value={player.name}
+                        onChange={(e) => updatePlayer(player.id, { name: e.target.value })}
+                      />
+                    </td>
+                    <td className="px-6 py-4">
                       <input 
                         type="number"
-                        className="bg-transparent border-none text-amber-500 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-24 font-bold"
-                        value={player.accumulatedValue}
-                        onChange={(e) => updatePlayer(player.id, { accumulatedValue: Number(e.target.value) })}
+                        className="bg-transparent border-none text-emerald-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-20 font-black"
+                        value={player.totalPoints}
+                        onChange={(e) => updatePlayer(player.id, { totalPoints: Number(e.target.value) })}
                       />
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button 
-                      onClick={() => removePlayer(player.id)}
-                      className="text-gray-600 hover:text-red-500 p-2 rounded-lg hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 font-mono text-sm">{player.prevPoints}</td>
+                    <td className="px-6 py-4">
+                      <input 
+                        type="number"
+                        className="bg-transparent border-none text-gray-300 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-16"
+                        value={player.attendances}
+                        onChange={(e) => updatePlayer(player.id, { attendances: Number(e.target.value) })}
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <input 
+                        type="number"
+                        className="bg-transparent border-none text-gray-300 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-16"
+                        value={player.wins}
+                        onChange={(e) => updatePlayer(player.id, { wins: Number(e.target.value) })}
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="bg-amber-600/10 text-amber-500 px-2 py-1 rounded text-xs font-black">
+                        +{player.dayPoints}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-500 text-xs font-bold">R$</span>
+                        <input 
+                          type="number"
+                          className="bg-transparent border-none text-amber-500 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 -ml-1 w-24 font-bold"
+                          value={player.accumulatedValue}
+                          onChange={(e) => updatePlayer(player.id, { accumulatedValue: Number(e.target.value) })}
+                        />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <button 
+                        onClick={() => removePlayer(player.id)}
+                        className="text-gray-600 hover:text-red-500 p-2 rounded-lg hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
+            <tfoot className="bg-gray-800/50 border-t border-gray-700">
+              <tr>
+                <td colSpan={7} className="px-6 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">Soma Total Acumulada:</td>
+                <td className="px-6 py-5">
+                   <div className="flex items-center gap-1">
+                      <span className="text-amber-500/50 text-xs font-bold">R$</span>
+                      <span className="text-amber-500 font-black text-lg">{totalAccumulated.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                   </div>
+                </td>
+                <td></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
