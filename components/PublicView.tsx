@@ -169,16 +169,17 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
             {subView === 'ranking' ? (
               <div className="bg-gray-900 border border-gray-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left">
+                  <table className="w-full text-left min-w-[1000px]">
                     <thead>
-                      <tr className="bg-gray-800/80 text-gray-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-gray-700">
-                        <th className="px-6 py-6">Posição</th>
-                        <th className="px-6 py-6">Nome</th>
-                        <th className="px-6 py-6 text-emerald-500">Pontos</th>
-                        <th className="px-6 py-6">Anterior</th>
-                        <th className="px-6 py-6">Vitórias</th>
-                        <th className="px-6 py-6">Dia</th>
-                        <th className="px-6 py-6 text-amber-500">Valor Acumulado</th>
+                      <tr className="bg-gray-800 text-gray-400 text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
+                        <th className="px-6 py-6 font-bold">Posição</th>
+                        <th className="px-6 py-6 font-bold">Nome</th>
+                        <th className="px-6 py-6 font-bold text-emerald-500">Pontos Totais</th>
+                        <th className="px-6 py-6 font-bold">Pontos Anterior</th>
+                        <th className="px-6 py-6 font-bold">Presenças</th>
+                        <th className="px-6 py-6 font-bold">Vitórias</th>
+                        <th className="px-6 py-6 font-bold">Pontos no Dia</th>
+                        <th className="px-6 py-6 font-bold text-amber-500">Valor Acumulado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
@@ -190,16 +191,17 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                           <tr key={p.id} className="hover:bg-emerald-600/[0.02] transition-colors">
                             <td className="px-6 py-5">
                               <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-xs ${
-                                i === 0 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
-                                i === 1 ? 'bg-gray-300 text-black' :
-                                i === 2 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-400'
+                                rank === 1 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
+                                rank === 2 ? 'bg-gray-300 text-black' :
+                                rank === 3 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-400 font-bold'
                               }`}>
                                 {rank}
                               </span>
                             </td>
                             <td className={`px-6 py-5 font-bold tracking-tight ${nameColor}`}>{p.name}</td>
                             <td className="px-6 py-5 text-emerald-400 font-black">{p.totalPoints}</td>
-                            <td className="px-6 py-5 text-gray-600 font-bold text-xs">{p.prevPoints}</td>
+                            <td className="px-6 py-5 text-gray-500 font-bold text-xs">{p.prevPoints}</td>
+                            <td className="px-6 py-5 text-gray-400 font-bold text-xs">{p.attendances}</td>
                             <td className="px-6 py-5 text-gray-400 font-bold text-xs">{p.wins}</td>
                             <td className="px-6 py-5">
                               <span className="text-emerald-500 font-black">+{p.dayPoints}</span>
@@ -211,13 +213,16 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                         );
                       })}
                     </tbody>
-                    <tfoot className="bg-black/30 border-t border-gray-800">
+                    <tfoot className="bg-gray-800/50 border-t border-gray-700">
                       <tr>
-                        <td colSpan={6} className="px-6 py-5 text-right text-[10px] font-black text-gray-600 uppercase tracking-widest">Total Geral Acumulado:</td>
+                        <td colSpan={7} className="px-6 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">Soma Total Acumulada:</td>
                         <td className="px-6 py-5">
-                           <span className="text-amber-500 font-black text-lg">
-                             R$ {activeRanking.players.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                           </span>
+                           <div className="flex items-center gap-1">
+                              <span className="text-amber-500/50 text-xs font-bold">R$</span>
+                              <span className="text-amber-500 font-black text-lg">
+                                {activeRanking.players.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </span>
+                           </div>
                         </td>
                       </tr>
                     </tfoot>
@@ -242,7 +247,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                       )}
                     </div>
                     <div className="flex flex-col gap-2">
-                      {entry.results.sort((a,b) => a.position - b.position).slice(0, 5).map(res => (
+                      {entry.results.sort((a,b) => a.position - b.position).slice(0, 8).map(res => (
                         <div key={res.playerId} className="bg-black/30 border border-gray-800/40 px-4 py-3 rounded-2xl flex items-center justify-between">
                           <span className="text-gray-300 text-sm font-bold">{activeRanking.players.find(p => p.id === res.playerId)?.name || '...'}</span>
                           <span className="text-emerald-500 text-xs font-black">+{res.pointsEarned} pts</span>
