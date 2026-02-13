@@ -34,10 +34,22 @@ export interface Ranking {
   history: WeeklyHistoryEntry[];
 }
 
+export interface Contact {
+  name: string;
+  phone: string;
+}
+
+export interface ProfileData {
+  logoUrl?: string;
+  contacts: Contact[];
+  instagramUrl?: string;
+}
+
 export interface PokerHouse {
   id: string;
   name: string;
   rankings: Ranking[];
+  profile?: ProfileData;
 }
 
-export type View = 'dashboard' | 'settings' | 'history';
+export type View = 'dashboard' | 'settings' | 'history' | 'profile';

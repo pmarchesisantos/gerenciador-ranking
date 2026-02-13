@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import Settings from './components/Settings';
 import History from './components/History';
+import ProfileSettings from './components/ProfileSettings';
 import PublicView from './components/PublicView';
 import Login from './components/Login';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
@@ -16,7 +17,6 @@ const AdminLayout: React.FC = () => {
   const { logout, user, isSuperAdmin } = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Se o Master está apenas no Dashboard Global (sem visualizar uma casa específica)
   if (isSuperAdmin && !house.id) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
@@ -37,7 +37,6 @@ const AdminLayout: React.FC = () => {
     );
   }
 
-  // Se o usuário logou mas o Master não autorizou o e-mail dele
   if (unauthorized && !loadingData) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center p-8 text-center space-y-6">
@@ -71,6 +70,7 @@ const AdminLayout: React.FC = () => {
       case 'dashboard': return <Dashboard />;
       case 'settings': return <Settings />;
       case 'history': return <History />;
+      case 'profile': return <ProfileSettings />;
       default: return <Dashboard />;
     }
   };

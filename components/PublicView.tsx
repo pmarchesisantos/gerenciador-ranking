@@ -2,16 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { db, collection, onSnapshot } from '../services/firebase';
-import { Trophy, Calendar, LogIn, ChevronRight, Search, Home } from 'lucide-react';
+import { Trophy, Calendar, LogIn, ChevronRight, Search, Home, Instagram, Phone, User, X, MessageCircle } from 'lucide-react';
 
 const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) => {
-  const { house, loadingData, setActiveRankingId, setViewingHouseId } = useRanking();
+  const { house, loadingData, setViewingHouseId } = useRanking();
   const [allHouses, setAllHouses] = useState<any[]>([]);
   const [activeTabId, setActiveTabId] = useState('');
   const [subView, setSubView] = useState<'ranking' | 'history'>('ranking');
   const [houseSearch, setHouseSearch] = useState('');
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
-  // Busca todas as casas disponíveis no Firestore
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'casas'), (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -26,7 +26,6 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
     }
   }, [house.rankings]);
 
-  // Se o usuário está carregando uma casa específica via URL
   const isViewingSpecificHouse = !!house.id && house.id !== 'house_123';
 
   if (loadingData && isViewingSpecificHouse) {
@@ -38,7 +37,6 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
     );
   }
 
-  // Se a URL é a raiz e não há casa selecionada
   if (!house.id || house.id === 'house_123') {
     const filteredHouses = allHouses.filter(h => h.name?.toLowerCase().includes(houseSearch.toLowerCase()));
     
@@ -78,8 +76,12 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                   className="bg-gray-900 border border-gray-800 hover:border-emerald-500/50 p-8 rounded-[2.5rem] flex items-center justify-between group transition-all cursor-pointer relative"
                 >
                   <div className="flex items-center gap-4 text-left">
-                    <div className="w-14 h-14 bg-gray-800 rounded-2xl flex items-center justify-center group-hover:bg-emerald-600 transition-all">
-                       <Home className="text-gray-400 group-hover:text-black" size={24} />
+                    <div className="w-14 h-14 bg-gray-800 rounded-2xl flex items-center justify-center group-hover:bg-emerald-600 transition-all overflow-hidden border border-gray-700 group-hover:border-emerald-500">
+                       {h.profile?.logoUrl ? (
+                         <img src={h.profile.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                       ) : (
+                         <Home className="text-gray-400 group-hover:text-black" size={24} />
+                       )}
                     </div>
                     <div>
                       <h4 className="text-white font-black text-xl leading-none">{h.name}</h4>
@@ -113,15 +115,26 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
           >
             <Home size={20} />
           </button>
-          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/30 border border-emerald-500/20">
-            <Trophy className="text-white w-6 h-6" />
-          </div>
+          {house.profile?.logoUrl ? (
+            <img src={house.profile.logoUrl} alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg border border-emerald-500/20" />
+          ) : (
+            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/30 border border-emerald-500/20">
+              <Trophy className="text-white w-6 h-6" />
+            </div>
+          )}
           <div>
             <h1 className="font-bold text-xl text-white tracking-tight leading-none truncate max-w-[150px] md:max-w-none">{house.name}</h1>
             <p className="text-emerald-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5">Live Rankings</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsContactModalOpen(true)}
+            className="bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-amber-900/20"
+          >
+            <MessageCircle size={16} />
+            Venha jogar conosco!
+          </button>
           <button 
             onClick={onLoginClick}
             className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-gray-700 transition-all active:scale-95"
@@ -263,6 +276,78 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
           <div className="py-20 text-center text-gray-600 italic">Carregando dados do ranking...</div>
         )}
       </main>
+
+      {/* Modal de Contatos */}
+      {isContactModalOpen && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-[#111827] w-full max-w-md rounded-[2.5rem] border border-emerald-900/30 shadow-2xl relative overflow-hidden flex flex-col">
+             <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500"></div>
+             
+             <div className="p-8 pb-4 flex justify-between items-center">
+                <div>
+                   <h3 className="text-2xl font-black text-white tracking-tight">Vem pro Jogo!</h3>
+                   <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-1">Contatos e Redes Sociais</p>
+                </div>
+                <button onClick={() => setIsContactModalOpen(false)} className="p-2 text-gray-500 hover:text-white transition-colors">
+                   <X size={24} />
+                </button>
+             </div>
+
+             <div className="p-8 pt-4 space-y-6 overflow-y-auto max-h-[70vh]">
+                {house.profile?.contacts && house.profile.contacts.length > 0 ? (
+                  <div className="space-y-3">
+                    <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1">Fale com nossos organizadores</label>
+                    {house.profile.contacts.map((contact, idx) => (
+                      <div key={idx} className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center justify-between group hover:border-emerald-500/50 transition-all">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-emerald-600/10 rounded-xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
+                            <User size={18} />
+                          </div>
+                          <div>
+                            <p className="text-white font-bold text-sm leading-none mb-1">{contact.name}</p>
+                            <p className="text-gray-500 text-xs font-medium">{contact.phone}</p>
+                          </div>
+                        </div>
+                        <a 
+                          href={`https://wa.me/${contact.phone.replace(/\D/g, '')}`} 
+                          target="_blank" 
+                          rel="noreferrer"
+                          className="bg-emerald-600 hover:bg-emerald-500 p-2.5 rounded-xl text-white transition-all transform hover:scale-110 active:scale-95"
+                        >
+                          <Phone size={18} />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-600 text-xs italic text-center py-4">Nenhum contato cadastrado.</p>
+                )}
+
+                {house.profile?.instagramUrl && (
+                  <div className="space-y-3 pt-4 border-t border-gray-800">
+                    <label className="text-[9px] font-black text-pink-500 uppercase tracking-widest ml-1">Siga no Instagram</label>
+                    <a 
+                      href={house.profile.instagramUrl} 
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 rounded-2xl p-4 flex items-center justify-between group transition-all transform hover:scale-[1.02] shadow-xl shadow-pink-900/10"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Instagram className="text-white" size={24} />
+                        <span className="text-white font-black text-sm uppercase tracking-widest">Acessar Perfil</span>
+                      </div>
+                      <ChevronRight className="text-white/50 group-hover:text-white transition-all" size={20} />
+                    </a>
+                  </div>
+                )}
+             </div>
+
+             <div className="p-8 bg-gray-900/50 border-t border-gray-800 text-center">
+                <p className="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em]">© {house.name} • {new Date().getFullYear()}</p>
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

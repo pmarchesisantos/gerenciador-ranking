@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, MoreVertical } from 'lucide-react';
+import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle } from 'lucide-react';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -32,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     { id: 'dashboard', label: 'Dashboard (Ranking)', icon: LayoutDashboard },
     { id: 'settings', label: 'Configurações', icon: Settings },
     { id: 'history', label: 'Histórico Semanal', icon: History },
+    { id: 'profile', label: 'Dados do Perfil', icon: UserCircle },
   ];
 
   const handleHouseSave = () => {
@@ -76,9 +77,13 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       <div className="p-6 border-b border-emerald-900/30 bg-black/20">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-900/20">
-              <Trophy className="text-white w-6 h-6" />
-            </div>
+            {house.profile?.logoUrl ? (
+              <img src={house.profile.logoUrl} alt="Logo" className="w-10 h-10 rounded-lg object-cover shadow-lg border border-emerald-900/30" />
+            ) : (
+              <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-900/20">
+                <Trophy className="text-white w-6 h-6" />
+              </div>
+            )}
             <h1 className="font-black text-xl text-emerald-50 tracking-tighter">PokerRank</h1>
           </div>
           {onClose && (
@@ -228,7 +233,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
       <div className="p-6 border-t border-emerald-900/20 bg-black/10">
         <p className="text-[9px] font-black text-gray-600 text-center uppercase tracking-[0.2em]">
-          PokerRank Master • v1.2
+          PokerRank Master • v1.3
         </p>
       </div>
     </div>

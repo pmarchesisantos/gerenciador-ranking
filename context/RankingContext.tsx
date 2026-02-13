@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { PokerHouse, Ranking, Player, ScoringConfig, WeeklyHistoryEntry, View } from '../types';
+import { PokerHouse, Ranking, Player, ScoringConfig, WeeklyHistoryEntry, View, ProfileData } from '../types';
 import { INITIAL_SCORING_CONFIG, MOCK_HOUSE } from '../services/mockData';
 import { useAuth } from './AuthContext';
 import { 
@@ -30,6 +30,7 @@ interface RankingContextType {
   addWeeklyResult: (results: { playerId: string; position: number }[], multiplier: number) => Promise<void>;
   deleteHistoryEntry: (id: string) => Promise<void>;
   updateHouseName: (name: string) => Promise<void>;
+  updateProfileData: (data: ProfileData) => Promise<void>;
   addRanking: (name: string) => Promise<void>;
   deleteRanking: (id: string) => Promise<void>;
   updateRankingName: (id: string, name: string) => Promise<void>;
@@ -48,7 +49,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [loadingData, setLoadingData] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
 
-  // 1. Roteamento: Detectar ID na URL no carregamento inicial
   useEffect(() => {
     const handleRouteChange = () => {
       const path = window.location.pathname;
@@ -61,12 +61,11 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     window.addEventListener('popstate', handleRouteChange);
-    handleRouteChange(); // Executa no mount
+    handleRouteChange();
 
     return () => window.removeEventListener('popstate', handleRouteChange);
   }, [user]);
 
-  // Função para atualizar a URL ao mudar de casa
   const updateViewingHouseId = (id: string | null) => {
     setViewingHouseId(id);
     if (id) {
@@ -76,7 +75,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
-  // 2. Lógica de Identificação de Tenant (Casa)
   useEffect(() => {
     if (!user && !viewingHouseId) {
       setHouse(MOCK_HOUSE);
@@ -122,7 +120,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (user) resolveHouseAccess();
   }, [user, isSuperAdmin, viewingHouseId]);
 
-  // 3. Lógica de Carregamento Reativo da Casa Escolhida
   useEffect(() => {
     if (!viewingHouseId) return;
 
@@ -136,9 +133,13 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const unsubHouse = onSnapshot(houseDocRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        setHouse(prev => ({ ...prev, id: viewingHouseId, name: data.name }));
+        setHouse(prev => ({ 
+          ...prev, 
+          id: viewingHouseId, 
+          name: data.name,
+          profile: data.profile 
+        }));
       } else {
-        // Se a casa não existir, volta para a home
         if (!user) updateViewingHouseId(null);
       }
     });
@@ -165,10 +166,14 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const activeRanking = house.rankings.find(r => r.id === activeRankingId) || null;
 
-  // Operações do Firestore
   const updateHouseName = async (name: string) => {
     if (!viewingHouseId) return;
     await updateDoc(doc(db, 'casas', viewingHouseId), { name });
+  };
+
+  const updateProfileData = async (profile: ProfileData) => {
+    if (!viewingHouseId) return;
+    await updateDoc(doc(db, 'casas', viewingHouseId), { profile });
   };
 
   const addRanking = async (name: string) => {
@@ -272,7 +277,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <RankingContext.Provider value={{
       house, activeRanking, setActiveRankingId, setViewingHouseId: updateViewingHouseId,
       currentView, setCurrentView, addPlayer, removePlayer, updatePlayer, updateScoringConfig,
-      addWeeklyResult, deleteHistoryEntry, updateHouseName, addRanking, deleteRanking, updateRankingName,
+      addWeeklyResult, deleteHistoryEntry, updateHouseName, updateProfileData, addRanking, deleteRanking, updateRankingName,
       loadingData, unauthorized
     }}>
       {children}
