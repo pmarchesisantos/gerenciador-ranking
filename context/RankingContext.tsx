@@ -68,10 +68,14 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateViewingHouseId = (id: string | null) => {
     setViewingHouseId(id);
-    if (id) {
-      window.history.pushState({}, '', `/c/${id}`);
-    } else {
-      window.history.pushState({}, '', '/');
+    try {
+      if (id) {
+        window.history.pushState({}, '', `/c/${id}`);
+      } else {
+        window.history.pushState({}, '', '/');
+      }
+    } catch (e) {
+      console.warn("Navegação de URL limitada pelo ambiente, mas o estado interno foi atualizado.");
     }
   };
 
@@ -124,9 +128,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!viewingHouseId) return;
 
     setLoadingData(true);
-    setHouse(prev => ({ ...prev, name: 'Sincronizando...', rankings: [] }));
-    setActiveRankingId('');
-
     const houseDocRef = doc(db, 'casas', viewingHouseId);
     const rankingsCollRef = collection(db, 'casas', viewingHouseId, 'rankings');
 

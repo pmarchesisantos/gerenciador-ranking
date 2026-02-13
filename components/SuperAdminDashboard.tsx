@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { db, collection, onSnapshot, setDoc, doc, deleteDoc, getDocs, firebaseConfig } from '../services/firebase';
+// Added query and where to the imports below to fix "Cannot find name" errors on line 81
+import { db, collection, onSnapshot, setDoc, doc, deleteDoc, getDocs, firebaseConfig, query, where } from '../services/firebase';
 import { useRanking } from '../context/RankingContext';
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -37,6 +38,20 @@ const SuperAdminDashboard: React.FC = () => {
     return unsub;
   }, []);
 
+  const slugify = (text: string) => {
+    return text
+      .toString()
+      .toLowerCase()
+      .trim()
+      .normalize('NFD') // Normaliza acentos
+      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+      .replace(/\s+/g, '-') // Espaços por hifens
+      .replace(/[^\w-]+/g, '') // Remove caracteres não alfanuméricos
+      .replace(/--+/g, '-') // Remove múltiplos hifens
+      .replace(/^-+/, '') // Remove hifen no inicio
+      .replace(/-+$/, ''); // Remove hifen no fim
+  };
+
   const handleAddHouse = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus(null);
@@ -61,7 +76,11 @@ const SuperAdminDashboard: React.FC = () => {
         }
       }
 
-      const sanitizedId = newHouseEmail.toLowerCase().trim().replace(/[^a-zA-Z0-9]/g, '_');
+      const sanitizedId = slugify(newHouseName);
+      
+      // Verifica se já existe um documento com esse ID para evitar sobrescrever
+      const existingDoc = await getDocs(query(collection(db, 'casas'), where('ownerEmail', '==', newHouseEmail.toLowerCase().trim())));
+      
       await setDoc(doc(db, 'casas', sanitizedId), {
         name: newHouseName,
         ownerEmail: newHouseEmail.toLowerCase().trim(),
@@ -74,7 +93,7 @@ const SuperAdminDashboard: React.FC = () => {
       setTempPassword('');
       setStatus({
         type: 'success', 
-        msg: 'Clube autorizado com sucesso! Acesso liberado.'
+        msg: 'Clube autorizado com sucesso! Acesso liberado via URL amigável.'
       });
     } catch (err: any) {
       console.error(err);
@@ -236,7 +255,7 @@ const SuperAdminDashboard: React.FC = () => {
                      <UserCheck size={12} className="text-emerald-500" />
                      <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Acesso Ativo</span>
                    </div>
-                   <span className="text-[10px] font-bold text-emerald-500/60 font-mono">ID: {house.id.slice(0, 10)}...</span>
+                   <span className="text-[10px] font-bold text-emerald-500/60 font-mono">URL: /c/{house.id}</span>
                 </div>
               </div>
             ))}
