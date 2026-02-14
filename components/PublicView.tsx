@@ -30,9 +30,9 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
 
   if (loadingData && isViewingSpecificHouse) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-[#0a0a0a] space-y-4">
+      <div className="h-screen flex flex-col items-center justify-center bg-[#0a0a0a] space-y-4 p-6">
         <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-emerald-500 font-bold animate-pulse text-xs tracking-widest uppercase">SINCRONIZANDO RANKINGS...</p>
+        <p className="text-emerald-500 font-bold animate-pulse text-[10px] tracking-widest uppercase text-center">ATUALIZANDO DADOS...</p>
       </div>
     );
   }
@@ -42,53 +42,53 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
     
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
-        <header className="p-8 flex justify-between items-center border-b border-gray-800">
+        <header className="p-6 md:p-8 flex justify-between items-center border-b border-gray-800">
           <div className="flex items-center gap-3">
              <Trophy className="text-emerald-500" />
-             <span className="text-xl font-black text-white tracking-tighter">Rank Manager</span>
+             <span className="text-lg md:text-xl font-black text-white tracking-tighter">Rank Manager</span>
           </div>
-          <button onClick={onLoginClick} className="text-xs font-black text-gray-500 uppercase tracking-widest hover:text-white transition-all flex items-center gap-2">
-            <LogIn size={16} /> Painel Administrativo
+          <button onClick={onLoginClick} className="text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-white transition-all flex items-center gap-2">
+            <LogIn size={16} /> <span className="hidden sm:inline">Administração</span>
           </button>
         </header>
 
-        <main className="flex-1 p-8 max-w-4xl mx-auto w-full space-y-12 flex flex-col justify-center">
+        <main className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full space-y-8 md:space-y-12 flex flex-col justify-center py-12 md:py-24">
            <div className="text-center space-y-4">
-             <h2 className="text-5xl font-black text-white tracking-tight">Visualize seu Ranking</h2>
-             <p className="text-gray-500 font-medium">Selecione o clube de poker abaixo para ver a classificação em tempo real.</p>
+             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight">Visualize seu Ranking</h2>
+             <p className="text-gray-500 text-sm md:text-base font-medium">Acompanhe a classificação em tempo real do seu clube.</p>
            </div>
 
            <div className="relative max-w-lg mx-auto w-full">
               <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-600" size={20} />
               <input 
-                className="w-full bg-gray-900 border border-gray-800 rounded-[2rem] pl-14 pr-6 py-5 text-white font-bold outline-none focus:border-emerald-500 transition-all shadow-2xl"
-                placeholder="Buscar clube por nome..."
+                className="w-full bg-gray-900 border border-gray-800 rounded-full pl-14 pr-6 py-4 md:py-5 text-white font-bold outline-none focus:border-emerald-500 transition-all shadow-2xl"
+                placeholder="Buscar clube..."
                 value={houseSearch}
                 onChange={(e) => setHouseSearch(e.target.value)}
               />
            </div>
 
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {filteredHouses.map(h => (
                 <div 
                   key={h.id}
                   onClick={() => setViewingHouseId(h.slug || h.id)}
-                  className="bg-gray-900 border border-gray-800 hover:border-emerald-500/50 p-8 rounded-[2.5rem] flex items-center justify-between group transition-all cursor-pointer relative"
+                  className="bg-gray-900 border border-gray-800 hover:border-emerald-500/50 p-6 md:p-8 rounded-[2rem] flex items-center justify-between group transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-4 text-left">
-                    <div className="w-14 h-14 bg-gray-800 rounded-2xl flex items-center justify-center group-hover:bg-emerald-600 transition-all overflow-hidden border border-gray-700 group-hover:border-emerald-500">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 transition-all overflow-hidden border border-gray-700">
                        {h.profile?.logoUrl ? (
                          <img src={h.profile.logoUrl} alt="Logo" className="w-full h-full object-cover" />
                        ) : (
-                         <Home className="text-gray-400 group-hover:text-black" size={24} />
+                         <Home className="text-gray-400 group-hover:text-black" size={22} />
                        )}
                     </div>
                     <div>
-                      <h4 className="text-white font-black text-xl leading-none">{h.name}</h4>
-                      <p className="text-[10px] font-black text-gray-600 uppercase tracking-widest mt-2">Acessar Rankings</p>
+                      <h4 className="text-white font-black text-base md:text-lg leading-none">{h.name}</h4>
+                      <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mt-2">Acessar Clube</p>
                     </div>
                   </div>
-                  <ChevronRight className="text-gray-700 group-hover:text-emerald-500 transition-all" />
+                  <ChevronRight className="text-gray-700 group-hover:text-emerald-500 transition-all shrink-0" />
                 </div>
               ))}
            </div>
@@ -99,61 +99,50 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
 
   const activeRanking = house.rankings.find(r => r.id === activeTabId);
 
-  const getNameColor = (rank: number) => {
-    if (rank >= 1 && rank <= 8) return 'text-emerald-400';
-    if (rank === 9 || rank === 10) return 'text-blue-400';
-    return 'text-white';
-  };
-
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
-      <header className="min-h-[80px] h-auto border-b border-emerald-900/20 px-4 md:px-8 py-3 flex items-center justify-between bg-gray-900/50 backdrop-blur-md sticky top-0 z-40">
-        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+      <header className="border-b border-emerald-900/20 px-4 md:px-8 py-4 flex items-center justify-between bg-gray-900/50 backdrop-blur-md sticky top-0 z-40">
+        <div className="flex items-center gap-3 shrink-0">
           <button 
             onClick={() => setViewingHouseId(null)} 
-            className="p-1.5 md:p-2 text-gray-500 hover:text-emerald-500 transition-all"
+            className="p-2 text-gray-500 hover:text-emerald-500 transition-all"
           >
-            <Home size={18} />
+            <Home size={20} />
           </button>
-          {house.profile?.logoUrl ? (
-            <img src={house.profile.logoUrl} alt="Logo" className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl object-cover shadow-lg border border-emerald-500/20" />
-          ) : (
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-600 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/30 border border-emerald-500/20">
-              <Trophy className="text-white w-5 h-5 md:w-6 md:h-6" />
+          <div className="flex items-center gap-3">
+            {house.profile?.logoUrl && (
+              <img src={house.profile.logoUrl} alt="Logo" className="w-8 h-8 rounded-lg object-cover hidden xs:block" />
+            )}
+            <div className="truncate max-w-[120px] xs:max-w-[200px] md:max-w-none">
+              <h1 className="font-bold text-sm md:text-lg text-white tracking-tight leading-none truncate">{house.name}</h1>
+              <p className="text-emerald-500 text-[8px] font-black uppercase tracking-[0.2em] mt-1">Live Rankings</p>
             </div>
-          )}
-          <div className="max-w-[100px] sm:max-w-[200px] md:max-w-none">
-            <h1 className="font-bold text-sm md:text-xl text-white tracking-tight leading-none truncate">{house.name}</h1>
-            <p className="text-emerald-500 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] mt-1">Live Rankings</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 md:gap-3 ml-2">
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => setIsContactModalOpen(true)}
-            title="Venha jogar conosco!"
-            className="bg-amber-500 hover:bg-amber-400 text-black px-3 md:px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-amber-900/20 shrink-0"
+            className="bg-amber-500 text-black p-2.5 rounded-xl transition-all active:scale-95 shadow-lg"
           >
-            <MessageCircle size={16} />
-            <span className="hidden sm:inline">Venha jogar conosco!</span>
+            <MessageCircle size={18} />
           </button>
           <button 
             onClick={onLoginClick}
-            title="Painel Administrativo"
-            className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-gray-700 transition-all active:scale-95 shrink-0"
+            className="bg-gray-800 text-gray-400 p-2.5 rounded-xl border border-gray-700 transition-all active:scale-95"
           >
-            <LogIn size={16} />
-            <span className="hidden xs:inline">Painel</span>
+            <LogIn size={18} />
           </button>
         </div>
       </header>
 
-      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
-        <div className="flex flex-wrap gap-2 p-1.5 bg-gray-900/80 border border-gray-800 rounded-[2rem] shadow-xl overflow-x-auto no-scrollbar">
+      <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+        {/* Rankings Horizontal Scroll */}
+        <div className="flex gap-2 p-1.5 bg-gray-900/80 border border-gray-800 rounded-2xl overflow-x-auto no-scrollbar">
           {house.rankings.map(r => (
             <button
               key={r.id}
               onClick={() => setActiveTabId(r.id)}
-              className={`px-4 md:px-6 py-2 md:py-3 rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
+              className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                 activeTabId === r.id 
                 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' 
                 : 'text-gray-500 hover:text-white hover:bg-gray-800'
@@ -169,43 +158,40 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
             <div className="flex items-center gap-2 border-b border-gray-800">
               <button 
                 onClick={() => setSubView('ranking')}
-                className={`pb-4 px-4 md:px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'ranking' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`pb-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'ranking' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
               >
-                Ranking Geral
+                Ranking
               </button>
               <button 
                 onClick={() => setSubView('history')}
-                className={`pb-4 px-4 md:px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'history' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`pb-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'history' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
               >
                 Histórico
               </button>
             </div>
 
             {subView === 'ranking' ? (
-              <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl">
+              <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl relative">
                 <div className="overflow-x-auto custom-scrollbar">
-                  <table className="w-full text-left min-w-[1000px]">
+                  <table className="w-full text-left min-w-[900px]">
                     <thead>
-                      <tr className="bg-gray-800 text-gray-400 text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
-                        <th className="px-6 py-6 font-bold">Posição</th>
-                        <th className="px-6 py-6 font-bold">Nome</th>
-                        <th className="px-6 py-6 font-bold text-emerald-500">Pontos Totais</th>
-                        <th className="px-6 py-6 font-bold">Pontos Anterior</th>
-                        <th className="px-6 py-6 font-bold">Presenças</th>
-                        <th className="px-6 py-6 font-bold">Vitórias</th>
-                        <th className="px-6 py-6 font-bold">Pontos no Dia</th>
-                        <th className="px-6 py-6 font-bold text-amber-500">Valor Acumulado</th>
+                      <tr className="bg-gray-800 text-gray-500 text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
+                        <th className="px-6 py-6 font-black">Pos.</th>
+                        <th className="px-6 py-6 font-black">Nome do Jogador</th>
+                        <th className="px-6 py-6 font-black text-center text-emerald-500">Pts Totais</th>
+                        <th className="px-6 py-6 font-black text-center">Pres.</th>
+                        <th className="px-6 py-6 font-black text-center">Vit.</th>
+                        <th className="px-6 py-6 font-black text-center">Dia</th>
+                        <th className="px-6 py-6 font-black text-right text-amber-500">Acumulado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
                       {[...activeRanking.players].sort((a,b) => b.totalPoints - a.totalPoints).map((p, i) => {
                         const rank = i + 1;
-                        const nameColor = getNameColor(rank);
-                        
                         return (
                           <tr key={p.id} className="hover:bg-emerald-600/[0.02] transition-colors">
                             <td className="px-6 py-5">
-                              <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-black text-xs ${
+                              <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-black text-[10px] ${
                                 rank === 1 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
                                 rank === 2 ? 'bg-gray-300 text-black' :
                                 rank === 3 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-400 font-bold'
@@ -213,59 +199,41 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                                 {rank}
                               </span>
                             </td>
-                            <td className={`px-6 py-5 font-bold tracking-tight ${nameColor}`}>{p.name}</td>
-                            <td className="px-6 py-5 text-emerald-400 font-black">{p.totalPoints}</td>
-                            <td className="px-6 py-5 text-gray-500 font-bold text-xs">{p.prevPoints}</td>
-                            <td className="px-6 py-5 text-gray-400 font-bold text-xs">{p.attendances}</td>
-                            <td className="px-6 py-5 text-gray-400 font-bold text-xs">{p.wins}</td>
-                            <td className="px-6 py-5">
-                              <span className="text-emerald-500 font-black">+{p.dayPoints}</span>
+                            <td className="px-6 py-5 font-bold tracking-tight text-white text-sm">{p.name}</td>
+                            <td className="px-6 py-5 text-emerald-400 font-black text-center">{p.totalPoints}</td>
+                            <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.attendances}</td>
+                            <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.wins}</td>
+                            <td className="px-6 py-5 text-center">
+                              <span className="text-emerald-500 font-black text-xs">+{p.dayPoints}</span>
                             </td>
-                            <td className="px-6 py-5">
-                              <span className="text-amber-500 font-bold">R$ {p.accumulatedValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                            <td className="px-6 py-5 text-right font-black text-amber-500 text-sm">
+                              R$ {p.accumulatedValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                             </td>
                           </tr>
                         );
                       })}
                     </tbody>
-                    <tfoot className="bg-gray-800/50 border-t border-gray-700">
-                      <tr>
-                        <td colSpan={7} className="px-6 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">Soma Total Acumulada:</td>
-                        <td className="px-6 py-5">
-                           <div className="flex items-center gap-1">
-                              <span className="text-amber-500/50 text-xs font-bold">R$</span>
-                              <span className="text-amber-500 font-black text-lg">
-                                {activeRanking.players.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
-                           </div>
-                        </td>
-                      </tr>
-                    </tfoot>
                   </table>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 {activeRanking.history.map(entry => (
-                  <div key={entry.id} className="bg-gray-900 border border-gray-800 rounded-3xl p-6 flex flex-col gap-6 hover:border-emerald-900/40 transition-all">
+                  <div key={entry.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-emerald-600/10 text-emerald-500 p-3 rounded-2xl border border-emerald-900/20">
-                          <Calendar size={20} />
-                        </div>
-                        <div>
-                          <h4 className="text-white font-black">{new Date(entry.date).toLocaleDateString('pt-BR')}</h4>
-                        </div>
+                      <div className="flex items-center gap-3">
+                        <Calendar size={18} className="text-emerald-500" />
+                        <h4 className="text-white font-black text-sm">{new Date(entry.date).toLocaleDateString('pt-BR')}</h4>
                       </div>
                       {entry.multiplier > 1 && (
-                        <span className="bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full text-[8px] font-black uppercase border border-amber-500/20">PONTOS 2X</span>
+                        <span className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-amber-500/20">2X</span>
                       )}
                     </div>
-                    <div className="flex flex-col gap-2">
-                      {entry.results.sort((a,b) => a.position - b.position).slice(0, 8).map(res => (
-                        <div key={res.playerId} className="bg-black/30 border border-gray-800/40 px-4 py-3 rounded-2xl flex items-center justify-between">
-                          <span className="text-gray-300 text-sm font-bold">{activeRanking.players.find(p => p.id === res.playerId)?.name || '...'}</span>
-                          <span className="text-emerald-500 text-xs font-black">+{res.pointsEarned} pts</span>
+                    <div className="space-y-1.5">
+                      {entry.results.sort((a,b) => a.position - b.position).slice(0, 5).map(res => (
+                        <div key={res.playerId} className="bg-black/30 border border-gray-800/40 px-4 py-2.5 rounded-xl flex items-center justify-between">
+                          <span className="text-gray-300 text-[11px] font-bold">{activeRanking.players.find(p => p.id === res.playerId)?.name || '...'}</span>
+                          <span className="text-emerald-500 text-[10px] font-black">{res.position}º (+{res.pointsEarned} pts)</span>
                         </div>
                       ))}
                     </div>
@@ -275,77 +243,58 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
             )}
           </div>
         ) : (
-          <div className="py-20 text-center text-gray-600 italic">Carregando dados do ranking...</div>
+          <div className="py-20 text-center text-gray-600 italic">Nenhum dado para exibir...</div>
         )}
       </main>
 
-      {/* Modal de Contatos */}
+      {/* Modal Contatos */}
       {isContactModalOpen && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <div className="bg-[#111827] w-full max-w-md rounded-[2.5rem] border border-emerald-900/30 shadow-2xl relative overflow-hidden flex flex-col">
-             <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500"></div>
-             
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-[#111827] w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] border-t sm:border border-emerald-900/30 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
              <div className="p-8 pb-4 flex justify-between items-center">
                 <div>
                    <h3 className="text-2xl font-black text-white tracking-tight">Vem pro Jogo!</h3>
-                   <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-1">Contatos e Redes Sociais</p>
+                   <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Contatos Oficiais</p>
                 </div>
-                <button onClick={() => setIsContactModalOpen(false)} className="p-2 text-gray-500 hover:text-white transition-colors">
+                <button onClick={() => setIsContactModalOpen(false)} className="p-2.5 text-gray-500 hover:text-white transition-colors">
                    <X size={24} />
                 </button>
              </div>
-
-             <div className="p-8 pt-4 space-y-6 overflow-y-auto max-h-[70vh]">
-                {house.profile?.contacts && house.profile.contacts.length > 0 ? (
-                  <div className="space-y-3">
-                    <label className="text-[9px] font-black text-emerald-500 uppercase tracking-widest ml-1">Fale com nossos organizadores</label>
-                    {house.profile.contacts.map((contact, idx) => (
-                      <div key={idx} className="bg-gray-900 border border-gray-800 rounded-2xl p-4 flex items-center justify-between group hover:border-emerald-500/50 transition-all">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-emerald-600/10 rounded-xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-                            <User size={18} />
-                          </div>
-                          <div>
-                            <p className="text-white font-bold text-sm leading-none mb-1">{contact.name}</p>
-                            <p className="text-gray-500 text-xs font-medium">{contact.phone}</p>
-                          </div>
-                        </div>
-                        <a 
-                          href={`https://wa.me/${contact.phone.replace(/\D/g, '')}`} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="bg-emerald-600 hover:bg-emerald-500 p-2.5 rounded-xl text-white transition-all transform hover:scale-110 active:scale-95"
-                        >
-                          <Phone size={18} />
-                        </a>
+             <div className="p-8 pt-4 space-y-4 overflow-y-auto">
+                {house.profile?.contacts?.map((contact, idx) => (
+                  <a 
+                    key={idx}
+                    href={`https://wa.me/${contact.phone.replace(/\D/g, '')}`} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex items-center justify-between group hover:border-emerald-500 transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-emerald-600/10 rounded-xl flex items-center justify-center text-emerald-500 shrink-0">
+                        <Phone size={20} />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-600 text-xs italic text-center py-4">Nenhum contato cadastrado.</p>
-                )}
-
+                      <div>
+                        <p className="text-white font-bold text-sm mb-0.5">{contact.name}</p>
+                        <p className="text-gray-500 text-[10px] font-bold">{contact.phone}</p>
+                      </div>
+                    </div>
+                    <ChevronRight size={18} className="text-gray-700 group-hover:text-emerald-500" />
+                  </a>
+                ))}
                 {house.profile?.instagramUrl && (
-                  <div className="space-y-3 pt-4 border-t border-gray-800">
-                    <label className="text-[9px] font-black text-pink-500 uppercase tracking-widest ml-1">Siga no Instagram</label>
-                    <a 
-                      href={house.profile.instagramUrl} 
-                      target="_blank" 
-                      rel="noreferrer"
-                      className="bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 rounded-2xl p-4 flex items-center justify-between group transition-all transform hover:scale-[1.02] shadow-xl shadow-pink-900/10"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Instagram className="text-white" size={24} />
-                        <span className="text-white font-black text-sm uppercase tracking-widest">Acessar Perfil</span>
-                      </div>
-                      <ChevronRight className="text-white/50 group-hover:text-white transition-all" size={20} />
-                    </a>
-                  </div>
+                  <a 
+                    href={house.profile.instagramUrl} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-5 flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <Instagram className="text-white" size={24} />
+                      <span className="text-white font-black text-xs uppercase tracking-widest">Siga no Instagram</span>
+                    </div>
+                    <ChevronRight className="text-white/50 group-hover:text-white" size={20} />
+                  </a>
                 )}
-             </div>
-
-             <div className="p-8 bg-gray-900/50 border-t border-gray-800 text-center">
-                <p className="text-[9px] font-black text-gray-600 uppercase tracking-[0.2em]">© {house.name} • {new Date().getFullYear()}</p>
              </div>
           </div>
         </div>

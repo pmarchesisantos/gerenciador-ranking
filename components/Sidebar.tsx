@@ -67,59 +67,49 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
   const handleDeleteRanking = (e: React.MouseEvent, id: string, name: string) => {
     e.stopPropagation();
-    if (window.confirm(`ATENÇÃO: Deseja realmente excluir o ranking "${name}"? Todos os jogadores e o histórico deste ranking específico serão apagados permanentemente.`)) {
+    if (window.confirm(`ATENÇÃO: Deseja realmente excluir o ranking "${name}"?`)) {
       deleteRanking(id);
     }
   };
 
   return (
-    <div className="w-72 bg-[#111827] h-screen border-r border-emerald-900/30 flex flex-col sticky top-0 z-50 shrink-0 shadow-2xl">
-      <div className="p-6 border-b border-emerald-900/30 bg-black/20">
+    <div className="w-72 bg-[#111827] h-screen border-r border-emerald-900/30 flex flex-col z-50 shrink-0 shadow-2xl relative">
+      <div className="p-6 border-b border-emerald-900/30 bg-black/20 shrink-0">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            {house.profile?.logoUrl ? (
-              <img src={house.profile.logoUrl} alt="Logo" className="w-10 h-10 rounded-lg object-cover shadow-lg border border-emerald-900/30" />
-            ) : (
-              <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-900/20">
-                <Trophy className="text-white w-6 h-6" />
-              </div>
-            )}
-            <h1 className="font-black text-xl text-emerald-50 tracking-tighter">Rank Manager</h1>
+            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/20 shrink-0">
+              <Trophy className="text-white w-6 h-6" />
+            </div>
+            <h1 className="font-black text-xl text-emerald-50 tracking-tighter truncate">Rank Manager</h1>
           </div>
-          {onClose && (
-            <button 
-              onClick={onClose}
-              className="p-2 text-gray-500 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
-            >
-              <ChevronLeft size={20} />
-            </button>
-          )}
+          <button 
+            onClick={onClose}
+            className="lg:hidden p-2 text-gray-500 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
+          >
+            <ChevronLeft size={20} />
+          </button>
         </div>
         
         <div className="space-y-1">
           <label className="text-[10px] font-black text-emerald-500/60 uppercase tracking-[0.2em] ml-1">Sua Casa de Poker</label>
-          <div className="group relative">
-            {isEditingHouse ? (
-              <div className="flex items-center gap-2">
-                <input 
-                  autoFocus
-                  className="w-full px-3 py-2 bg-black/40 rounded-xl border border-emerald-500 text-sm font-bold text-white outline-none"
-                  value={tempHouseName}
-                  onChange={(e) => setTempHouseName(e.target.value)}
-                  onBlur={handleHouseSave}
-                  onKeyDown={(e) => e.key === 'Enter' && handleHouseSave()}
-                />
-              </div>
-            ) : (
-              <div 
-                onClick={() => setIsEditingHouse(true)}
-                className="px-4 py-3 bg-emerald-950/20 rounded-xl border border-emerald-900/30 text-sm font-black text-emerald-50 cursor-pointer hover:border-emerald-500 transition-all flex justify-between items-center group"
-              >
-                <span className="truncate">{house.name || 'Definir Nome'}</span>
-                <Edit2 size={12} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            )}
-          </div>
+          {isEditingHouse ? (
+            <input 
+              autoFocus
+              className="w-full px-3 py-2 bg-black/40 rounded-xl border border-emerald-500 text-sm font-bold text-white outline-none"
+              value={tempHouseName}
+              onChange={(e) => setTempHouseName(e.target.value)}
+              onBlur={handleHouseSave}
+              onKeyDown={(e) => e.key === 'Enter' && handleHouseSave()}
+            />
+          ) : (
+            <div 
+              onClick={() => setIsEditingHouse(true)}
+              className="px-4 py-3 bg-emerald-950/20 rounded-xl border border-emerald-900/30 text-sm font-black text-emerald-50 cursor-pointer hover:border-emerald-500 transition-all flex justify-between items-center group"
+            >
+              <span className="truncate">{house.name || 'Definir Nome'}</span>
+              <Edit2 size={12} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -130,97 +120,68 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             <button 
               onClick={() => setIsCreating(true)}
               className="p-1.5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-lg transition-all"
-              title="Novo Ranking"
             >
               <Plus size={14} />
             </button>
           </div>
           
           {isCreating && (
-            <form onSubmit={handleCreateRanking} className="mb-3 animate-in slide-in-from-top-2">
+            <form onSubmit={handleCreateRanking} className="mb-3">
               <div className="flex items-center gap-1 p-1 bg-emerald-600/10 rounded-xl border border-emerald-500/50">
                 <input 
                   autoFocus
-                  placeholder="Nome do ranking..."
                   className="flex-1 bg-transparent border-none text-white text-xs font-bold outline-none px-2 py-2"
                   value={newRankName}
                   onChange={(e) => setNewRankName(e.target.value)}
                 />
-                <button type="submit" className="p-1.5 text-emerald-500 hover:bg-emerald-600 hover:text-white rounded-lg transition-all">
-                  <Check size={14} />
-                </button>
-                <button type="button" onClick={() => setIsCreating(false)} className="p-1.5 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-all">
-                  <X size={14} />
-                </button>
+                <button type="submit" className="p-1.5 text-emerald-500"><Check size={14} /></button>
+                <button type="button" onClick={() => setIsCreating(false)} className="p-1.5 text-red-500"><X size={14} /></button>
               </div>
             </form>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             {house.rankings.map(r => (
-              <div key={r.id} className="group relative">
+              <div key={r.id} className="relative group">
                 {editingRankingId === r.id ? (
                   <div className="flex items-center gap-1 p-1 bg-gray-800 rounded-xl border border-emerald-500/50">
-                    <input 
-                      autoFocus
-                      className="flex-1 bg-transparent border-none text-white text-xs font-bold outline-none px-2 py-1"
-                      value={tempRankingName}
-                      onChange={(e) => setTempRankingName(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSaveRankingName(e, r.id)}
-                    />
-                    <button onClick={(e) => handleSaveRankingName(e, r.id)} className="p-1.5 text-emerald-500 hover:bg-emerald-500/10 rounded-lg">
-                      <Check size={14} />
-                    </button>
+                    <input autoFocus className="flex-1 bg-transparent text-white text-xs font-bold outline-none px-2 py-1" value={tempRankingName} onChange={(e) => setTempRankingName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveRankingName(e, r.id)} />
+                    <button onClick={(e) => handleSaveRankingName(e, r.id)} className="p-1.5 text-emerald-500"><Check size={14} /></button>
                   </div>
                 ) : (
                   <div className="relative group">
                     <button
                       onClick={() => setActiveRankingId(r.id)}
-                      className={`w-full text-left pl-4 pr-12 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all relative overflow-hidden ${
+                      className={`w-full text-left pl-4 pr-14 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative overflow-hidden truncate ${
                         activeRanking?.id === r.id 
-                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' 
-                        : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
+                        ? 'bg-emerald-600 text-white shadow-lg' 
+                        : 'text-gray-500 hover:bg-gray-800'
                       }`}
                     >
-                      <span className="truncate block pr-4">{r.name}</span>
+                      {r.name}
                     </button>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button 
-                        onClick={(e) => handleStartEditRanking(e, r.id, r.name)}
-                        className={`p-1.5 rounded-lg transition-colors ${activeRanking?.id === r.id ? 'hover:bg-white/10 text-white' : 'hover:bg-gray-700 text-gray-500'}`}
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      <button 
-                        onClick={(e) => handleDeleteRanking(e, r.id, r.name)}
-                        className={`p-1.5 rounded-lg transition-colors ${activeRanking?.id === r.id ? 'hover:bg-red-500 text-white' : 'hover:bg-red-500/10 text-red-500'}`}
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                      <button onClick={(e) => handleStartEditRanking(e, r.id, r.name)} className="p-1.5 text-white/40 hover:text-white"><Edit2 size={12} /></button>
+                      <button onClick={(e) => handleDeleteRanking(e, r.id, r.name)} className="p-1.5 text-red-500/40 hover:text-red-500"><Trash2 size={12} /></button>
                     </div>
                   </div>
                 )}
               </div>
             ))}
-            {house.rankings.length === 0 && !isCreating && (
-              <div className="text-center py-8 border border-dashed border-gray-800 rounded-2xl">
-                <p className="text-[10px] font-black text-gray-700 uppercase tracking-widest">Nenhum ranking</p>
-              </div>
-            )}
           </div>
         </section>
 
         <section>
-          <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block ml-2">Navegação</label>
-          <div className="space-y-1.5">
+          <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block ml-2">Menu Principal</label>
+          <div className="space-y-1">
             {menuItems.map(item => (
               <button
                 key={item.id}
                 onClick={() => setCurrentView(item.id as any)}
-                className={`w-full text-left px-4 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
+                className={`w-full text-left px-4 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
                   currentView === item.id 
-                  ? 'bg-amber-600/10 text-amber-500 border border-amber-600/30' 
-                  : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'
+                  ? 'bg-amber-600/10 text-amber-500 border border-amber-600/20' 
+                  : 'text-gray-500 hover:bg-gray-800'
                 }`}
               >
                 <item.icon size={18} className={currentView === item.id ? 'text-amber-500' : 'text-gray-600'} />
@@ -231,10 +192,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         </section>
       </div>
 
-      <div className="p-6 border-t border-emerald-900/20 bg-black/10">
-        <p className="text-[9px] font-black text-gray-600 text-center uppercase tracking-[0.2em]">
-          Rank Manager • v1.3
-        </p>
+      <div className="p-6 border-t border-emerald-900/10 bg-black/10 shrink-0">
+        <p className="text-[9px] font-black text-gray-700 text-center uppercase tracking-[0.2em]">Rank Manager • 2024</p>
       </div>
     </div>
   );
