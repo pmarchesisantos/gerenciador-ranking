@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { X, Search, ChevronRight, Wallet, Coins, Check, UserPlus, Trash2, Trophy, Loader2, Info } from 'lucide-react';
+import { X, Search, ChevronRight, Wallet, Check, UserPlus, Trash2, Trophy, Loader2, Info, DollarSign } from 'lucide-react';
 import { GameCategory, Player } from '../types';
 
 interface AddResultModalProps {
@@ -24,11 +24,11 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const [multiplier, setMultiplier] = useState(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showPrizeTooltip, setShowPrizeTooltip] = useState(false);
   
   const [selectedPlayers, setSelectedPlayers] = useState<PlayerEntry[]>([]);
 
   useEffect(() => {
-    // Bloqueia scroll externo
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
@@ -104,6 +104,27 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     return Math.ceil(netHouseValue);
   }, [postRakeValue, rankingPrizeValue]);
 
+  // Lógica de Premiação Sugerida (Faixas de Porcentagem)
+  const prizeSuggestions = useMemo(() => {
+    const count = selectedPlayers.length;
+    if (count === 0) return [];
+    
+    let percentages: number[] = [];
+    if (count >= 1 && count <= 5) percentages = [65, 35];
+    else if (count >= 6 && count <= 17) percentages = [50, 30, 20];
+    else if (count >= 18 && count <= 26) percentages = [44, 28, 18, 10];
+    else if (count >= 27 && count <= 35) percentages = [36, 26, 19, 12, 7];
+    else if (count >= 36 && count <= 53) percentages = [31.5, 21, 15, 11.5, 9, 7, 5];
+    else if (count >= 54 && count <= 62) percentages = [29, 19, 14, 10, 8, 6.5, 5.5, 4.5, 3.5];
+    else if (count >= 63 && count <= 80) percentages = [26, 18.5, 13.5, 9.5, 7.8, 6.3, 5, 4.10, 3.5, 2.9];
+    else percentages = [26, 18.5, 13.5, 9.5, 7.8, 6.3, 5, 4.10, 3.5, 2.9]; // Padrão acima de 80
+
+    return percentages.map(p => ({
+      percent: p,
+      value: (totalEventNetValue * p) / 100
+    }));
+  }, [selectedPlayers.length, totalEventNetValue]);
+
   const handleSave = async () => {
     const validResults = selectedPlayers
       .filter(p => p.position > 0)
@@ -139,7 +160,15 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-300 overflow-hidden">
-      <div className="bg-[#0b0f1a] w-full max-w-7xl rounded-t-[1.5rem] md:rounded-[2rem] border-t md:border border-emerald-900/30 shadow-2xl flex flex-col h-[98dvh] md:h-auto md:max-h-[92vh] overflow-hidden">
+      {/* Camada para fechar tooltip ao clicar fora */}
+      {showPrizeTooltip && (
+        <div 
+          className="fixed inset-0 z-[110]" 
+          onClick={() => setShowPrizeTooltip(false)}
+        />
+      )}
+
+      <div className="bg-[#0b0f1a] w-full max-w-7xl rounded-t-[1.5rem] md:rounded-[2rem] border-t md:border border-emerald-900/30 shadow-2xl flex flex-col h-[98dvh] md:h-auto md:max-h-[92vh] overflow-hidden z-[120]">
         
         {/* Header */}
         <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/40 shrink-0">
@@ -178,7 +207,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                  onChange={(e) => setSearchTerm(e.target.value)}
                />
                {searchSuggestions.length > 0 && (
-                 <div className="absolute top-full left-0 w-full mt-1 bg-gray-900 border border-emerald-500/30 rounded-lg shadow-2xl z-[110] overflow-hidden">
+                 <div className="absolute top-full left-0 w-full mt-1 bg-gray-900 border border-emerald-500/30 rounded-lg shadow-2xl z-[130] overflow-hidden">
                    {searchSuggestions.map(p => (
                      <button
                        key={p.id}
@@ -209,7 +238,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           </div>
         </div>
 
-        {/* ÁREA DE JOGADORES - TABELA UNIFICADA */}
+        {/* ÁREA DE JOGADORES */}
         <div className="flex-1 overflow-x-auto overflow-y-auto bg-[#080b14] custom-scrollbar">
           {selectedPlayers.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-gray-700 py-10 opacity-30">
@@ -305,17 +334,18 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           )}
         </div>
 
-        {/* Rodapé Compacto */}
+        {/* Rodapé Com Tooltips e Fechamento Externo */}
         <div className="px-4 py-3 md:px-8 md:py-5 border-t border-gray-800 bg-[#0f1422] shrink-0">
           <div className="flex flex-row justify-between items-center gap-4">
              <div className="flex items-center gap-4 md:gap-12">
+                
+                {/* VALOR TOTAL COM INFO TOOLTIP */}
                 <div className="flex flex-col relative group">
                    <div className="flex items-center gap-1.5 mb-1">
                       <p className="text-[7px] md:text-[9px] font-black text-gray-600 uppercase tracking-widest">Valor Total</p>
                       <div className="relative cursor-help">
                         <Info size={10} className="text-gray-600 hover:text-emerald-500 transition-colors" />
                         
-                        {/* TOOLTIP DESKTOP/MOBILE */}
                         <div className="absolute bottom-full left-0 mb-2 w-48 bg-gray-900 border border-emerald-500/30 rounded-xl p-3 shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
                            <div className="space-y-2">
                               <div className="flex justify-between items-center">
@@ -337,8 +367,43 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                    </div>
                    <span className="text-[11px] md:text-xl font-black text-emerald-500">R$ {totalEventNetValue.toFixed(0)}</span>
                 </div>
-                <div className="flex flex-col border-l border-gray-800 pl-4 md:pl-12">
-                   <p className="text-[7px] md:text-[9px] font-black text-gray-600 uppercase tracking-widest mb-1">Ranking</p>
+                
+                {/* RANKING COM CIFRÃO TOOLTIP (FECHA AO CLICAR FORA) */}
+                <div className="flex flex-col border-l border-gray-800 pl-4 md:pl-12 relative">
+                   <div className="flex items-center gap-1.5 mb-1">
+                      <p className="text-[7px] md:text-[9px] font-black text-gray-600 uppercase tracking-widest">Ranking</p>
+                      <div className="relative z-[140]">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowPrizeTooltip(!showPrizeTooltip);
+                          }}
+                          className={`transition-colors p-0.5 rounded ${showPrizeTooltip ? 'text-amber-500 bg-amber-500/10' : 'text-gray-600 hover:text-amber-500'}`}
+                        >
+                          <DollarSign size={10} />
+                        </button>
+                        
+                        {showPrizeTooltip && (
+                          <div 
+                            className="absolute bottom-full left-0 mb-3 w-56 md:w-64 bg-gray-900 border border-amber-500/30 rounded-xl p-4 shadow-2xl animate-in zoom-in-95"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                             <h4 className="text-[8px] font-black text-amber-500 uppercase tracking-widest mb-3 border-b border-gray-800 pb-2">Sugestão de Premiação</h4>
+                             <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                                {prizeSuggestions.length > 0 ? prizeSuggestions.map((p, idx) => (
+                                  <div key={idx} className="flex justify-between items-center text-[10px]">
+                                     <span className="font-black text-gray-500">{idx + 1}º ({p.percent}%):</span>
+                                     <span className="font-bold text-white tracking-tight">R$ {p.value.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</span>
+                                  </div>
+                                )) : (
+                                  <p className="text-[9px] text-gray-600 italic">Adicione jogadores para ver a sugestão.</p>
+                                )}
+                             </div>
+                             <div className="absolute -bottom-1 left-3 w-2 h-2 bg-gray-900 border-r border-b border-amber-500/30 rotate-45"></div>
+                          </div>
+                        )}
+                      </div>
+                   </div>
                    <span className="text-[11px] md:text-xl font-black text-amber-500">R$ {rankingPrizeValue.toFixed(0)}</span>
                 </div>
              </div>
@@ -351,8 +416,8 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                 >
                   {isSaving ? <Loader2 size={16} className="animate-spin" /> : (
                     <>
-                      <span>Finalizar Etapa</span> 
-                      <ChevronRight size={16} />
+                      <span>Finalizar</span> 
+                      <ChevronRight size={16} className="hidden xs:block" />
                     </>
                   )}
                 </button>
