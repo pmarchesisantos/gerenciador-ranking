@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { auth } from '../services/firebase';
 import { 
@@ -19,7 +20,7 @@ interface AuthContextType {
 }
 
 // DEFINIÇÃO DO SEU E-MAIL DE ADMINISTRADOR MESTRE
-const SUPER_ADMIN_EMAIL = 'admin@pokerrank.com';
+const SUPER_ADMIN_EMAIL = 'admin@gmail.com';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

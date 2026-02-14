@@ -1,18 +1,23 @@
+
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { useAuth } from '../context/AuthContext';
-import { Save, Info, Key, ShieldCheck, Settings as SettingsIcon, AlertCircle, CheckCircle } from 'lucide-react';
+import { Save, Info, Key, ShieldCheck, Settings as SettingsIcon, AlertCircle, CheckCircle, Wallet, Plus, Trash2, Edit2, Percent, Trophy } from 'lucide-react';
+import { GameCategory } from '../types';
 
 const Settings: React.FC = () => {
-  const { activeRanking, updateScoringConfig } = useRanking();
+  const { activeRanking, updateScoringConfig, updateGameCategories } = useRanking();
   const { updateUserPassword } = useAuth();
-  const [activeTab, setActiveTab] = useState<'scoring' | 'security'>('scoring');
+  const [activeTab, setActiveTab] = useState<'scoring' | 'security' | 'values'>('scoring');
   
-  // State para troca de senha
+  // State for password change
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pwdStatus, setPwdStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // State for categories management
+  const [editingCategory, setEditingCategory] = useState<Partial<GameCategory> | null>(null);
 
   if (!activeRanking) return <div className="p-8 text-gray-500">Selecione um ranking...</div>;
 
@@ -56,34 +61,70 @@ const Settings: React.FC = () => {
     }
   };
 
+  const handleSaveCategory = async () => {
+    if (!editingCategory || !editingCategory.name) return;
+    
+    const currentCategories = activeRanking.gameCategories || [];
+    let updatedCategories;
+    
+    if (editingCategory.id) {
+      updatedCategories = currentCategories.map(c => c.id === editingCategory.id ? (editingCategory as GameCategory) : c);
+    } else {
+      const newCategory = {
+        ...editingCategory,
+        id: Date.now().toString(),
+        rake: editingCategory.rake || 0,
+        rankingPercent: editingCategory.rankingPercent || 0
+      } as GameCategory;
+      updatedCategories = [...currentCategories, newCategory];
+    }
+    
+    await updateGameCategories(updatedCategories);
+    setEditingCategory(null);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (confirm('Deseja excluir esta categoria?')) {
+      const updatedCategories = (activeRanking.gameCategories || []).filter(c => c.id !== id);
+      await updateGameCategories(updatedCategories);
+    }
+  };
+
   const positions = Array.from({ length: 25 }, (_, i) => i + 1);
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8">
       <header>
         <h2 className="text-3xl font-bold text-white mb-1">Configurações</h2>
-        <p className="text-gray-400">Gerencie as regras do ranking e a segurança da sua conta.</p>
+        <p className="text-gray-400 text-sm">Gerencie as regras do ranking, valores e a segurança da sua conta.</p>
       </header>
 
       {/* Tabs Navigation */}
-      <div className="flex gap-4 border-b border-gray-800">
+      <div className="flex gap-4 border-b border-gray-800 overflow-x-auto no-scrollbar">
         <button 
           onClick={() => setActiveTab('scoring')}
-          className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'scoring' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'scoring' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
         >
           <SettingsIcon size={16} />
           Pontuação
         </button>
         <button 
+          onClick={() => setActiveTab('values')}
+          className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'values' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
+        >
+          <Wallet size={16} />
+          Parametrização de Valores
+        </button>
+        <button 
           onClick={() => setActiveTab('security')}
-          className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'security' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'security' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
         >
           <Key size={16} />
           Segurança
         </button>
       </div>
 
-      {activeTab === 'scoring' ? (
+      {activeTab === 'scoring' && (
         <div className="animate-in fade-in duration-300 space-y-8">
           <div className="bg-amber-600/10 border border-amber-600/30 rounded-2xl p-6 flex gap-4 items-start">
             <Info className="text-amber-500 mt-1 shrink-0" />
@@ -143,16 +184,162 @@ const Settings: React.FC = () => {
                   Estes pontos são somados automaticamente a cada jogador que recebe uma posição na etapa semanal.
                 </p>
               </div>
-
-              <div className="bg-emerald-600/5 border border-emerald-600/20 rounded-2xl p-6">
-                <p className="text-xs text-emerald-500/70 font-medium text-center italic">
-                  As alterações são persistidas em tempo real no banco de dados.
-                </p>
-              </div>
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'values' && (
+        <div className="animate-in fade-in duration-300 space-y-8">
+           <div className="flex justify-between items-center">
+             <h3 className="text-xl font-bold text-white">Categorias de Jogos</h3>
+             <button 
+               onClick={() => setEditingCategory({ name: '', buyIn: 0, reBuy: 0, reBuyDuplo: 0, addOn: 0, rake: 0, rankingPercent: 0 })}
+               className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+             >
+               <Plus size={16} /> Nova Categoria
+             </button>
+           </div>
+
+           {editingCategory && (
+             <div className="bg-gray-900 border border-emerald-500/50 rounded-3xl p-8 space-y-6 animate-in zoom-in-95">
+                <h4 className="text-lg font-black text-white uppercase tracking-widest">{editingCategory.id ? 'Editar' : 'Nova'} Categoria</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nome da Categoria</label>
+                     <input 
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        placeholder="Ex: Jogo de Segunda"
+                        value={editingCategory.name}
+                        onChange={(e) => setEditingCategory({...editingCategory, name: e.target.value})}
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Buy-in (R$)</label>
+                     <input 
+                        type="number"
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        value={editingCategory.buyIn}
+                        onChange={(e) => setEditingCategory({...editingCategory, buyIn: Number(e.target.value)})}
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Re-buy (R$)</label>
+                     <input 
+                        type="number"
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        value={editingCategory.reBuy}
+                        onChange={(e) => setEditingCategory({...editingCategory, reBuy: Number(e.target.value)})}
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Re-buy Duplo (R$)</label>
+                     <input 
+                        type="number"
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        value={editingCategory.reBuyDuplo}
+                        onChange={(e) => setEditingCategory({...editingCategory, reBuyDuplo: Number(e.target.value)})}
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Add-on (R$)</label>
+                     <input 
+                        type="number"
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        value={editingCategory.addOn}
+                        onChange={(e) => setEditingCategory({...editingCategory, addOn: Number(e.target.value)})}
+                     />
+                   </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">RAKE (%)</label>
+                     <div className="relative">
+                       <Percent className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+                       <input 
+                          type="number"
+                          className="w-full bg-black/40 border border-gray-800 rounded-xl pl-12 pr-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                          placeholder="Ex: 10"
+                          value={editingCategory.rake}
+                          onChange={(e) => setEditingCategory({...editingCategory, rake: Number(e.target.value)})}
+                       />
+                     </div>
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">% Ranking</label>
+                     <div className="relative">
+                       <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+                       <input 
+                          type="number"
+                          className="w-full bg-black/40 border border-gray-800 rounded-xl pl-12 pr-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                          placeholder="Ex: 20"
+                          value={editingCategory.rankingPercent}
+                          onChange={(e) => setEditingCategory({...editingCategory, rankingPercent: Number(e.target.value)})}
+                       />
+                     </div>
+                   </div>
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
+                   <button onClick={() => setEditingCategory(null)} className="px-6 py-3 text-gray-500 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-all">Cancelar</button>
+                   <button onClick={handleSaveCategory} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all">Salvar Categoria</button>
+                </div>
+             </div>
+           )}
+
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+             {(activeRanking.gameCategories || []).map(cat => (
+               <div key={cat.id} className="bg-gray-900 border border-gray-800 rounded-3xl p-6 space-y-4 hover:border-emerald-500/30 transition-all group">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="text-white font-black text-lg tracking-tight">{cat.name}</h4>
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">Parametrização Ativa</p>
+                        {cat.rake > 0 && (
+                          <span className="text-amber-500 text-[9px] font-black uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Rake: {cat.rake}%</span>
+                        )}
+                        {cat.rankingPercent > 0 && (
+                          <span className="text-blue-500 text-[9px] font-black uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">Rank: {cat.rankingPercent}%</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                      <button onClick={() => setEditingCategory(cat)} className="p-2 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-all"><Edit2 size={14} /></button>
+                      <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 size={14} /></button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-2">
+                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800">
+                      <p className="text-[8px] font-black text-gray-600 uppercase mb-1">Buy-in</p>
+                      <p className="text-white font-bold text-sm">R$ {cat.buyIn.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800">
+                      <p className="text-[8px] font-black text-gray-600 uppercase mb-1">Re-buy</p>
+                      <p className="text-white font-bold text-sm">R$ {cat.reBuy.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800">
+                      <p className="text-[8px] font-black text-gray-600 uppercase mb-1">Re-buy Duplo</p>
+                      <p className="text-white font-bold text-sm">R$ {cat.reBuyDuplo.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800">
+                      <p className="text-[8px] font-black text-gray-600 uppercase mb-1">Add-on</p>
+                      <p className="text-white font-bold text-sm">R$ {cat.addOn.toFixed(2)}</p>
+                    </div>
+                  </div>
+               </div>
+             ))}
+             {(!activeRanking.gameCategories || activeRanking.gameCategories.length === 0) && (
+               <div className="col-span-full py-16 border-2 border-dashed border-gray-800 rounded-[2.5rem] flex flex-col items-center justify-center text-gray-600 space-y-4">
+                  <Wallet size={40} className="text-gray-800" />
+                  <p className="font-bold uppercase text-[10px] tracking-widest">Nenhuma categoria configurada para este ranking.</p>
+               </div>
+             )}
+           </div>
+        </div>
+      )}
+
+      {activeTab === 'security' && (
         <div className="animate-in slide-in-from-right-4 duration-300 max-w-2xl">
           <div className="bg-gray-900 border border-gray-800 rounded-[2.5rem] p-10 space-y-8 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500"></div>
@@ -175,7 +362,7 @@ const Settings: React.FC = () => {
                   <input 
                     type="password"
                     required
-                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all"
+                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
                     placeholder="Mínimo 6 caracteres"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -190,7 +377,7 @@ const Settings: React.FC = () => {
                   <input 
                     type="password"
                     required
-                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all"
+                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
                     placeholder="Repita a senha"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}

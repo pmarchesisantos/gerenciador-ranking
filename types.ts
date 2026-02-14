@@ -15,14 +15,31 @@ export interface ScoringConfig {
   baseAttendance: number;
 }
 
+export interface GameCategory {
+  id: string;
+  name: string;
+  buyIn: number;
+  reBuy: number;
+  reBuyDuplo: number;
+  addOn: number;
+  rake: number;
+  rankingPercent: number;
+}
+
 export interface WeeklyHistoryEntry {
   id: string;
   date: string;
   multiplier: number;
+  categoryId?: string;
   results: {
     playerId: string;
     position: number;
     pointsEarned: number;
+    rebuys?: number;
+    doubleRebuys?: number;
+    addons?: number;
+    totalValue?: number;
+    paid?: boolean;
   }[];
 }
 
@@ -32,6 +49,7 @@ export interface Ranking {
   players: Player[];
   scoringConfig: ScoringConfig;
   history: WeeklyHistoryEntry[];
+  gameCategories?: GameCategory[];
 }
 
 export interface Contact {

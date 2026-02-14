@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useRanking } from '../context/RankingContext';
-import { Calendar, Trash2, Trophy, Users, ChevronRight } from 'lucide-react';
+import { Calendar, Trash2, Trophy, Users, ChevronRight, CheckCircle, AlertCircle } from 'lucide-react';
 
 const History: React.FC = () => {
   const { activeRanking, deleteHistoryEntry } = useRanking();
@@ -74,7 +74,16 @@ const History: React.FC = () => {
                             }`}>
                               {res.position}º
                             </div>
-                            <p className="text-gray-200 font-bold text-sm tracking-tight">{playerName}</p>
+                            <div className="flex items-center gap-2">
+                               <p className="text-gray-200 font-bold text-sm tracking-tight">{playerName}</p>
+                               {res.paid ? (
+                                 // Fix: Moved title to span to avoid TS error on Lucide component
+                                 <span title="Pago"><CheckCircle size={14} className="text-emerald-500" /></span>
+                               ) : (
+                                 // Fix: Moved title to span to avoid TS error on Lucide component
+                                 <span title="Pendente"><AlertCircle size={14} className="text-amber-500" /></span>
+                               )}
+                            </div>
                           </div>
                           <div className="text-right">
                             <p className="text-emerald-500 font-black text-sm tracking-tight">+{res.pointsEarned} <span className="text-[10px] text-gray-600 uppercase">pts</span></p>

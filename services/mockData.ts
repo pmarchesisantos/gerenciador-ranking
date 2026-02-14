@@ -23,7 +23,6 @@ const mockPlayers = [
   { id: '4', name: 'Ana Oliveira', totalPoints: 320, prevPoints: 300, attendances: 15, wins: 0, dayPoints: 0, accumulatedValue: 0 },
 ];
 
-// Added missing required 'slug' property to the MOCK_HOUSE definition
 export const MOCK_HOUSE: PokerHouse = {
   id: 'house_123',
   slug: 'royal-flush-club',
@@ -34,7 +33,10 @@ export const MOCK_HOUSE: PokerHouse = {
       name: 'Ranking de Segunda',
       players: [...mockPlayers],
       scoringConfig: { ...INITIAL_SCORING_CONFIG },
-      history: []
+      history: [],
+      gameCategories: [
+        { id: 'cat_1', name: 'Torneio Padrão', buyIn: 50, reBuy: 50, reBuyDuplo: 100, addOn: 50, rake: 10, rankingPercent: 10 }
+      ]
     },
     {
       id: 'rank_thu',
@@ -43,7 +45,10 @@ export const MOCK_HOUSE: PokerHouse = {
         { id: '5', name: 'Carlos Reis', totalPoints: 120, prevPoints: 100, attendances: 5, wins: 1, dayPoints: 0, accumulatedValue: 50.00 }
       ],
       scoringConfig: { ...INITIAL_SCORING_CONFIG },
-      history: []
+      history: [],
+      gameCategories: [
+        { id: 'cat_2', name: 'High Roller', buyIn: 200, reBuy: 200, reBuyDuplo: 400, addOn: 200, rake: 10, rankingPercent: 5 }
+      ]
     }
   ]
 };
