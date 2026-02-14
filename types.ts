@@ -47,6 +47,7 @@ export interface ProfileData {
 
 export interface PokerHouse {
   id: string;
+  slug: string;
   name: string;
   rankings: Ranking[];
   profile?: ProfileData;

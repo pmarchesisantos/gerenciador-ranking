@@ -18,7 +18,7 @@ const Login: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       await login(email, password);
     } catch (err: any) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('E-mail ou senha incorretos. Verifique se seu acesso foi liberado pelo administrador master.');
+        setError('E-mail ou senha incorretos. Verifique se seu acesso foi liberado pelo administrador.');
       } else {
         setError('Erro ao tentar entrar. Tente novamente mais tarde.');
       }
@@ -51,7 +51,7 @@ const Login: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 type="email"
                 required
                 className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
-                placeholder="Ex: clube@pokerrank.com"
+                placeholder="Ex: clube@rankmanager.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -109,7 +109,7 @@ const Login: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         <div className="mt-8 text-center">
           <p className="text-gray-600 text-[9px] font-bold uppercase tracking-widest leading-relaxed">
             Seu clube ainda não tem acesso? <br/>
-            Entre em contato com o suporte Master.
+            Entre em contato com o suporte técnico.
           </p>
         </div>
       </div>

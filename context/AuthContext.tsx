@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { auth, db, doc, getDoc } from '../services/firebase';
+import { auth } from '../services/firebase';
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
@@ -19,6 +18,7 @@ interface AuthContextType {
   updateUserPassword: (newPassword: string) => Promise<void>;
 }
 
+// DEFINIÇÃO DO SEU E-MAIL DE ADMINISTRADOR MESTRE
 const SUPER_ADMIN_EMAIL = 'admin@pokerrank.com';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,7 +41,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     await signOut(auth);
-    // Limpar storage se necessário para evitar persistência indesejada de estados de teste
     localStorage.clear();
   };
 
@@ -53,9 +52,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Verificação robusta e insensível a caixa para o e-mail Master
+  // VERIFICAÇÃO DE PODERES
   const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-  const isAdmin = !!user;
+  const isAdmin = !!user; // Qualquer um logado é considerado um admin de clube (ou super admin)
 
   return (
     <AuthContext.Provider value={{ user, loading, isAdmin, isSuperAdmin, login, logout, updateUserPassword }}>

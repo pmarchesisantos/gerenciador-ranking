@@ -1,16 +1,27 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { Save, Plus, Trash2, Instagram, Phone, User, Image as ImageIcon, CheckCircle, Upload, X } from 'lucide-react';
+import { Save, Plus, Trash2, Instagram, Phone, User, Image as ImageIcon, CheckCircle, Upload, X, Link, Globe } from 'lucide-react';
 
 const ProfileSettings: React.FC = () => {
-  const { house, updateProfileData } = useRanking();
+  const { house, updateProfileData, updateHouseSlug } = useRanking();
   const [logoUrl, setLogoUrl] = useState(house.profile?.logoUrl || '');
   const [instagramUrl, setInstagramUrl] = useState(house.profile?.instagramUrl || '');
+  const [houseSlug, setHouseSlug] = useState(house.slug || '');
   const [contacts, setContacts] = useState(house.profile?.contacts || [{ name: '', phone: '' }]);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sincronizar estados quando o house carregar
+  useEffect(() => {
+    if (house.id) {
+      setLogoUrl(house.profile?.logoUrl || '');
+      setInstagramUrl(house.profile?.instagramUrl || '');
+      setHouseSlug(house.slug || house.id);
+      setContacts(house.profile?.contacts || [{ name: '', phone: '' }]);
+    }
+  }, [house.id]);
 
   const handleAddContact = () => {
     setContacts([...contacts, { name: '', phone: '' }]);
@@ -29,7 +40,7 @@ const ProfileSettings: React.FC = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 1024 * 1024) { // Limite de 1MB para Base64 no Firestore
+      if (file.size > 1024 * 1024) {
         alert("A imagem é muito grande. Por favor, escolha uma imagem com menos de 1MB.");
         return;
       }
@@ -49,6 +60,11 @@ const ProfileSettings: React.FC = () => {
     setIsSaving(true);
     setSaved(false);
     try {
+      // Atualizar Slug se mudou
+      if (houseSlug !== house.slug) {
+        await updateHouseSlug(houseSlug);
+      }
+
       await updateProfileData({
         logoUrl,
         instagramUrl,
@@ -111,14 +127,6 @@ const ProfileSettings: React.FC = () => {
                   value={logoUrl.startsWith('data:') ? '' : logoUrl}
                   onChange={(e) => setLogoUrl(e.target.value)}
                />
-               {logoUrl && (
-                 <button 
-                  onClick={() => setLogoUrl('')}
-                  className="text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1 mt-2 mx-auto hover:text-red-400"
-                 >
-                   <X size={12} /> Remover Logo
-                 </button>
-               )}
              </div>
              
              <p className="text-[9px] text-gray-600 font-bold uppercase tracking-tight leading-relaxed">
@@ -128,6 +136,37 @@ const ProfileSettings: React.FC = () => {
         </div>
 
         <div className="md:col-span-2 space-y-6">
+          {/* Endereço URL Personalizado */}
+          <div className="bg-gray-900 border border-gray-800 rounded-[2.5rem] p-8 space-y-6 relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-4 opacity-5">
+                <Globe size={80} />
+             </div>
+             <h3 className="text-lg font-black text-white flex items-center gap-2 border-b border-gray-800 pb-4">
+                <Link className="text-amber-500" size={18} /> Endereço do Ranking (URL)
+             </h3>
+             <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">URL Personalizada</label>
+                  <div className="flex items-center bg-black/40 border border-gray-800 rounded-2xl overflow-hidden focus-within:border-emerald-500 transition-all">
+                     <span className="pl-4 py-4 text-gray-600 font-bold text-xs">/c/</span>
+                     <input 
+                        type="text"
+                        placeholder="nome-do-seu-clube"
+                        className="flex-1 bg-transparent border-none py-4 px-1 text-white font-bold outline-none"
+                        value={houseSlug}
+                        onChange={(e) => setHouseSlug(e.target.value)}
+                     />
+                  </div>
+                </div>
+                <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                   <p className="text-[10px] text-amber-500/80 leading-relaxed">
+                     <strong>Dica:</strong> Use um nome curto e fácil de lembrar. Seus jogadores acessarão o ranking através do link: <br/>
+                     <code className="text-amber-500 font-black mt-1 block">rankmanager.com/c/{houseSlug || 'seu-clube'}</code>
+                   </p>
+                </div>
+             </div>
+          </div>
+
           <div className="bg-gray-900 border border-gray-800 rounded-[2.5rem] p-8 space-y-6">
              <div className="flex justify-between items-center border-b border-gray-800 pb-4">
                 <h3 className="text-lg font-black text-white flex items-center gap-2">

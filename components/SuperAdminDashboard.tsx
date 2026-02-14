@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-// Added query and where to the imports below to fix "Cannot find name" errors on line 81
 import { db, collection, onSnapshot, setDoc, doc, deleteDoc, getDocs, firebaseConfig, query, where } from '../services/firebase';
 import { useRanking } from '../context/RankingContext';
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -10,6 +9,7 @@ import { Trophy, Plus, Mail, Shield, Trash2, Home, UserCheck, Info, ExternalLink
 interface HouseRecord {
   id: string;
   name: string;
+  slug: string;
   ownerEmail: string;
   tempPassword?: string;
   createdAt: string;
@@ -43,13 +43,13 @@ const SuperAdminDashboard: React.FC = () => {
       .toString()
       .toLowerCase()
       .trim()
-      .normalize('NFD') // Normaliza acentos
-      .replace(/[\u0300-\u036f]/g, '') // Remove acentos
-      .replace(/\s+/g, '-') // Espaços por hifens
-      .replace(/[^\w-]+/g, '') // Remove caracteres não alfanuméricos
-      .replace(/--+/g, '-') // Remove múltiplos hifens
-      .replace(/^-+/, '') // Remove hifen no inicio
-      .replace(/-+$/, ''); // Remove hifen no fim
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/[^\w-]+/g, '')
+      .replace(/--+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
   };
 
   const handleAddHouse = async (e: React.FormEvent) => {
@@ -76,13 +76,13 @@ const SuperAdminDashboard: React.FC = () => {
         }
       }
 
-      const sanitizedId = slugify(newHouseName);
+      const sanitizedSlug = slugify(newHouseName);
+      // O ID do documento pode ser randômico ou baseado no slug original
+      const docId = sanitizedSlug + '-' + Math.random().toString(36).substr(2, 4);
       
-      // Verifica se já existe um documento com esse ID para evitar sobrescrever
-      const existingDoc = await getDocs(query(collection(db, 'casas'), where('ownerEmail', '==', newHouseEmail.toLowerCase().trim())));
-      
-      await setDoc(doc(db, 'casas', sanitizedId), {
+      await setDoc(doc(db, 'casas', docId), {
         name: newHouseName,
+        slug: sanitizedSlug,
         ownerEmail: newHouseEmail.toLowerCase().trim(),
         tempPassword: tempPassword,
         createdAt: new Date().toISOString()
@@ -135,7 +135,7 @@ const SuperAdminDashboard: React.FC = () => {
         <div>
           <div className="flex items-center gap-3 mb-2 text-amber-500">
             <Shield size={20} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Master Dashboard</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Painel de Administração</span>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter">Gerenciamento Global</h1>
           <p className="text-gray-500 mt-2 max-w-2xl">
@@ -225,18 +225,18 @@ const SuperAdminDashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {loading ? (
               <div className="col-span-full py-20 text-center text-gray-600">Carregando clubes...</div>
-            ) : houses.map(house => (
-              <div key={house.id} className="bg-gray-900 border border-gray-800 rounded-3xl p-6 group transition-all hover:border-emerald-500/30 relative shadow-lg">
+            ) : houses.map(houseRecord => (
+              <div key={houseRecord.id} className="bg-gray-900 border border-gray-800 rounded-3xl p-6 group transition-all hover:border-emerald-500/30 relative shadow-lg">
                 <div className="absolute top-6 right-6 flex gap-2">
                   <button 
-                    onClick={() => setViewingHouseId(house.id)} 
+                    onClick={() => setViewingHouseId(houseRecord.slug || houseRecord.id)} 
                     className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 transition-all hover:text-white flex items-center gap-2 px-3 text-[10px] font-black uppercase tracking-widest"
                     title="Simular Acesso"
                   >
                     <Eye size={14}/> Testar Painel
                   </button>
                   <button 
-                    onClick={() => handleDeleteHouse(house.id)} 
+                    onClick={() => handleDeleteHouse(houseRecord.id)} 
                     className="p-2 bg-red-500/10 text-red-500 rounded-xl hover:bg-red-500 transition-all hover:text-white"
                     title="Remover Acesso"
                   >
@@ -248,14 +248,14 @@ const SuperAdminDashboard: React.FC = () => {
                     <Trophy className="text-emerald-500" size={24} />
                   </div>
                 </div>
-                <h3 className="text-white font-black text-lg mb-1">{house.name}</h3>
-                <p className="text-gray-500 text-xs mb-4 font-medium">{house.ownerEmail}</p>
+                <h3 className="text-white font-black text-lg mb-1">{houseRecord.name}</h3>
+                <p className="text-gray-500 text-xs mb-4 font-medium">{houseRecord.ownerEmail}</p>
                 <div className="bg-black/40 rounded-xl p-3 border border-gray-800 flex items-center justify-between">
                    <div className="flex items-center gap-2">
                      <UserCheck size={12} className="text-emerald-500" />
                      <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Acesso Ativo</span>
                    </div>
-                   <span className="text-[10px] font-bold text-emerald-500/60 font-mono">URL: /c/{house.id}</span>
+                   <span className="text-[10px] font-bold text-emerald-500/60 font-mono">URL: /c/{houseRecord.slug || houseRecord.id}</span>
                 </div>
               </div>
             ))}

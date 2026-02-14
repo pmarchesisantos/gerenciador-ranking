@@ -84,7 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 <Trophy className="text-white w-6 h-6" />
               </div>
             )}
-            <h1 className="font-black text-xl text-emerald-50 tracking-tighter">PokerRank</h1>
+            <h1 className="font-black text-xl text-emerald-50 tracking-tighter">Rank Manager</h1>
           </div>
           {onClose && (
             <button 
@@ -233,7 +233,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
       <div className="p-6 border-t border-emerald-900/20 bg-black/10">
         <p className="text-[9px] font-black text-gray-600 text-center uppercase tracking-[0.2em]">
-          PokerRank Master • v1.3
+          Rank Manager • v1.3
         </p>
       </div>
     </div>

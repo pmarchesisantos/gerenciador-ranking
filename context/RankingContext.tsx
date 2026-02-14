@@ -30,6 +30,7 @@ interface RankingContextType {
   addWeeklyResult: (results: { playerId: string; position: number }[], multiplier: number) => Promise<void>;
   deleteHistoryEntry: (id: string) => Promise<void>;
   updateHouseName: (name: string) => Promise<void>;
+  updateHouseSlug: (slug: string) => Promise<void>;
   updateProfileData: (data: ProfileData) => Promise<void>;
   addRanking: (name: string) => Promise<void>;
   deleteRanking: (id: string) => Promise<void>;
@@ -42,9 +43,10 @@ const RankingContext = createContext<RankingContextType | undefined>(undefined);
 
 export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isSuperAdmin } = useAuth();
-  const [house, setHouse] = useState<PokerHouse>({ id: '', name: '', rankings: [] });
+  const [house, setHouse] = useState<PokerHouse>({ id: '', slug: '', name: '', rankings: [] });
   const [activeRankingId, setActiveRankingId] = useState<string>('');
   const [viewingHouseId, setViewingHouseId] = useState<string | null>(null);
+  const [resolvedHouseDocId, setResolvedHouseDocId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [loadingData, setLoadingData] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
@@ -59,10 +61,8 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setViewingHouseId(null);
       }
     };
-
     window.addEventListener('popstate', handleRouteChange);
     handleRouteChange();
-
     return () => window.removeEventListener('popstate', handleRouteChange);
   }, [user]);
 
@@ -74,14 +74,47 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       } else {
         window.history.pushState({}, '', '/');
       }
-    } catch (e) {
-      console.warn("Navegação de URL limitada pelo ambiente, mas o estado interno foi atualizado.");
-    }
+    } catch (e) {}
   };
+
+  // Resolver o viewingHouseId (que pode ser um slug) para um ID de documento real
+  useEffect(() => {
+    if (!viewingHouseId) {
+      setResolvedHouseDocId(null);
+      return;
+    }
+
+    const resolveId = async () => {
+      setLoadingData(true);
+      try {
+        // 1. Tenta buscar por ID direto (compatibilidade)
+        const directDoc = await getDocs(query(collection(db, 'casas'), where('__name__', '==', viewingHouseId)));
+        if (!directDoc.empty) {
+          setResolvedHouseDocId(viewingHouseId);
+          return;
+        }
+
+        // 2. Busca pelo campo 'slug'
+        const q = query(collection(db, 'casas'), where('slug', '==', viewingHouseId));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          setResolvedHouseDocId(snap.docs[0].id);
+        } else {
+          setResolvedHouseDocId(null);
+          if (!user) updateViewingHouseId(null);
+        }
+      } catch (e) {
+        console.error("Erro ao resolver slug:", e);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    resolveId();
+  }, [viewingHouseId, user]);
 
   useEffect(() => {
     if (!user && !viewingHouseId) {
-      setHouse(MOCK_HOUSE);
+      setHouse({ ...MOCK_HOUSE, slug: MOCK_HOUSE.id });
       if (MOCK_HOUSE.rankings.length > 0) setActiveRankingId(MOCK_HOUSE.rankings[0].id);
       setLoadingData(false);
       setUnauthorized(false);
@@ -90,33 +123,30 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     if (!user && viewingHouseId) return;
 
-    if (isSuperAdmin && !viewingHouseId) {
-      setHouse({ id: '', name: '', rankings: [] });
-      setLoadingData(false);
-      setUnauthorized(false);
-      return;
-    }
-
     const resolveHouseAccess = async () => {
-      if (viewingHouseId) return;
-      setLoadingData(true);
       setUnauthorized(false);
+      if (viewingHouseId || (isSuperAdmin && !viewingHouseId)) {
+        setLoadingData(false);
+        return;
+      }
       
+      setLoadingData(true);
       try {
         const email = user?.email?.toLowerCase().trim();
         if (!email) return;
+
         const q = query(collection(db, 'casas'), where('ownerEmail', '==', email));
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
           const houseDoc = querySnapshot.docs[0];
-          updateViewingHouseId(houseDoc.id);
+          // Preferimos o slug para a URL se ele existir
+          updateViewingHouseId(houseDoc.data().slug || houseDoc.id);
         } else {
-          if (!isSuperAdmin) setUnauthorized(true);
+          setHouse({ id: '', slug: '', name: 'Sem Clube Vinculado', rankings: [] });
           setLoadingData(false);
         }
       } catch (err) {
-        console.error("Erro ao validar acesso:", err);
         setLoadingData(false);
       }
     };
@@ -125,35 +155,35 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, [user, isSuperAdmin, viewingHouseId]);
 
   useEffect(() => {
-    if (!viewingHouseId) return;
+    if (!resolvedHouseDocId) {
+      if (user && !viewingHouseId) {
+        setHouse({ id: '', slug: '', name: isSuperAdmin ? '' : 'Sem Clube Vinculado', rankings: [] });
+        setActiveRankingId('');
+      }
+      return;
+    }
 
     setLoadingData(true);
-    const houseDocRef = doc(db, 'casas', viewingHouseId);
-    const rankingsCollRef = collection(db, 'casas', viewingHouseId, 'rankings');
+    const houseDocRef = doc(db, 'casas', resolvedHouseDocId);
+    const rankingsCollRef = collection(db, 'casas', resolvedHouseDocId, 'rankings');
 
     const unsubHouse = onSnapshot(houseDocRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
         setHouse(prev => ({ 
           ...prev, 
-          id: viewingHouseId, 
+          id: resolvedHouseDocId, 
+          slug: data.slug || resolvedHouseDocId,
           name: data.name,
           profile: data.profile 
         }));
-      } else {
-        if (!user) updateViewingHouseId(null);
       }
     });
 
     const unsubRankings = onSnapshot(rankingsCollRef, (snapshot) => {
-      const rankingsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Ranking[];
-      
+      const rankingsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Ranking[];
       setHouse(prev => ({ ...prev, rankings: rankingsData }));
-      
-      if (rankingsData.length > 0 && !activeRankingId) {
+      if (rankingsData.length > 0 && (!activeRankingId || !rankingsData.find(r => r.id === activeRankingId))) {
         setActiveRankingId(rankingsData[0].id);
       }
       setLoadingData(false);
@@ -163,23 +193,31 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       unsubHouse();
       unsubRankings();
     };
-  }, [viewingHouseId]);
+  }, [resolvedHouseDocId, user, isSuperAdmin]);
 
   const activeRanking = house.rankings.find(r => r.id === activeRankingId) || null;
 
   const updateHouseName = async (name: string) => {
-    if (!viewingHouseId) return;
-    await updateDoc(doc(db, 'casas', viewingHouseId), { name });
+    if (!resolvedHouseDocId) return;
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId), { name });
+  };
+
+  const updateHouseSlug = async (slug: string) => {
+    if (!resolvedHouseDocId) return;
+    // Sanitização básica
+    const sanitizedSlug = slug.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId), { slug: sanitizedSlug });
+    updateViewingHouseId(sanitizedSlug);
   };
 
   const updateProfileData = async (profile: ProfileData) => {
-    if (!viewingHouseId) return;
-    await updateDoc(doc(db, 'casas', viewingHouseId), { profile });
+    if (!resolvedHouseDocId) return;
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId), { profile });
   };
 
   const addRanking = async (name: string) => {
-    if (!viewingHouseId) return;
-    const rankingsCollRef = collection(db, 'casas', viewingHouseId, 'rankings');
+    if (!resolvedHouseDocId) return;
+    const rankingsCollRef = collection(db, 'casas', resolvedHouseDocId, 'rankings');
     const newRank = {
       name, players: [],
       scoringConfig: { ...INITIAL_SCORING_CONFIG },
@@ -190,95 +228,108 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const deleteRanking = async (id: string) => {
-    if (!viewingHouseId) return;
-    await deleteDoc(doc(db, 'casas', viewingHouseId, 'rankings', id));
+    if (!resolvedHouseDocId) return;
+    await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id));
     if (activeRankingId === id) setActiveRankingId(house.rankings.find(r => r.id !== id)?.id || '');
   };
 
   const updateRankingName = async (id: string, name: string) => {
-    if (!viewingHouseId) return;
-    await updateDoc(doc(db, 'casas', viewingHouseId, 'rankings', id), { name });
+    if (!resolvedHouseDocId) return;
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id), { name });
   };
 
   const addPlayer = async (name: string) => {
-    if (!activeRanking || !viewingHouseId) return;
+    if (!activeRanking || !resolvedHouseDocId) return;
     const newPlayer: Player = {
       id: Math.random().toString(36).substr(2, 9),
       name, totalPoints: 0, prevPoints: 0, attendances: 0, wins: 0, dayPoints: 0, accumulatedValue: 0
     };
     const updatedPlayers = [...activeRanking.players, newPlayer];
-    await updateDoc(doc(db, 'casas', viewingHouseId, 'rankings', activeRanking.id), { players: updatedPlayers });
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers });
   };
 
   const removePlayer = async (id: string) => {
-    if (!activeRanking || !viewingHouseId) return;
+    if (!activeRanking || !resolvedHouseDocId) return;
     const updatedPlayers = activeRanking.players.filter(p => p.id !== id);
-    await updateDoc(doc(db, 'casas', viewingHouseId, 'rankings', activeRanking.id), { players: updatedPlayers });
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers });
   };
 
   const updatePlayer = async (id: string, updates: Partial<Player>) => {
-    if (!activeRanking || !viewingHouseId) return;
+    if (!activeRanking || !resolvedHouseDocId) return;
     const updatedPlayers = activeRanking.players.map(p => p.id === id ? { ...p, ...updates } : p);
-    await updateDoc(doc(db, 'casas', viewingHouseId, 'rankings', activeRanking.id), { players: updatedPlayers });
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers });
   };
 
   const updateScoringConfig = async (config: ScoringConfig) => {
-    if (!activeRanking || !viewingHouseId) return;
-    await updateDoc(doc(db, 'casas', viewingHouseId, 'rankings', activeRanking.id), { scoringConfig: config });
+    if (!activeRanking || !resolvedHouseDocId) return;
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { scoringConfig: config });
   };
 
   const addWeeklyResult = async (results: { playerId: string; position: number }[], multiplier: number) => {
-    if (!activeRanking || !viewingHouseId) return;
+    if (!activeRanking || !resolvedHouseDocId) return;
+    const historyResults = results.map(r => {
+      const positionPoints = activeRanking.scoringConfig[r.position] || 0;
+      const pointsEarned = (positionPoints + activeRanking.scoringConfig.baseAttendance) * multiplier;
+      return { ...r, pointsEarned };
+    });
     const newHistoryEntry: WeeklyHistoryEntry = {
       id: Date.now().toString(),
       date: new Date().toISOString(),
       multiplier,
-      results: results.map(res => {
-        const points = (activeRanking.scoringConfig[res.position] || 0) + activeRanking.scoringConfig.baseAttendance;
-        return { playerId: res.playerId, position: res.position, pointsEarned: points * multiplier };
-      })
+      results: historyResults
     };
-    const updatedPlayers = activeRanking.players.map(p => {
-      const result = newHistoryEntry.results.find(res => res.playerId === p.id);
+    const updatedPlayers = activeRanking.players.map(player => {
+      const result = historyResults.find(r => r.playerId === player.id);
       if (result) {
+        const points = result.pointsEarned;
         return {
-          ...p, prevPoints: p.totalPoints, totalPoints: p.totalPoints + result.pointsEarned,
-          attendances: p.attendances + 1, wins: p.wins + (result.position === 1 ? 1 : 0), dayPoints: result.pointsEarned
+          ...player,
+          prevPoints: player.totalPoints,
+          totalPoints: player.totalPoints + points,
+          attendances: player.attendances + 1,
+          wins: result.position === 1 ? player.wins + 1 : player.wins,
+          dayPoints: points
         };
       }
-      return { ...p, dayPoints: 0 };
+      return { ...player, dayPoints: 0 };
     });
-    await updateDoc(doc(db, 'casas', viewingHouseId, 'rankings', activeRanking.id), {
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), {
       players: updatedPlayers,
       history: [newHistoryEntry, ...activeRanking.history]
     });
   };
 
-  const deleteHistoryEntry = async (historyId: string) => {
-    if (!activeRanking || !viewingHouseId) return;
-    const entry = activeRanking.history.find(h => h.id === historyId);
-    if (!entry) return;
-    const updatedPlayers = activeRanking.players.map(p => {
-      const result = entry.results.find(res => res.playerId === p.id);
+  const deleteHistoryEntry = async (entryId: string) => {
+    if (!activeRanking || !resolvedHouseDocId) return;
+    const entryToDelete = activeRanking.history.find(h => h.id === entryId);
+    if (!entryToDelete) return;
+    const updatedPlayers = activeRanking.players.map(player => {
+      const result = entryToDelete.results.find(r => r.playerId === player.id);
       if (result) {
+        const points = result.pointsEarned;
         return {
-          ...p, totalPoints: Math.max(0, p.totalPoints - result.pointsEarned),
-          attendances: Math.max(0, p.attendances - 1), wins: Math.max(0, p.wins - (result.position === 1 ? 1 : 0)), dayPoints: 0
+          ...player,
+          totalPoints: Math.max(0, player.totalPoints - points),
+          attendances: Math.max(0, player.attendances - 1),
+          wins: result.position === 1 ? Math.max(0, player.wins - 1) : player.wins,
+          dayPoints: 0
         };
       }
-      return p;
+      return player;
     });
-    await updateDoc(doc(db, 'casas', viewingHouseId, 'rankings', activeRanking.id), {
+    const updatedHistory = activeRanking.history.filter(h => h.id !== entryId);
+    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), {
       players: updatedPlayers,
-      history: activeRanking.history.filter(h => h.id !== historyId)
+      history: updatedHistory
     });
   };
 
   return (
-    <RankingContext.Provider value={{
+    <RankingContext.Provider value={{ 
       house, activeRanking, setActiveRankingId, setViewingHouseId: updateViewingHouseId,
-      currentView, setCurrentView, addPlayer, removePlayer, updatePlayer, updateScoringConfig,
-      addWeeklyResult, deleteHistoryEntry, updateHouseName, updateProfileData, addRanking, deleteRanking, updateRankingName,
+      currentView, setCurrentView, addPlayer, removePlayer, updatePlayer,
+      updateScoringConfig, addWeeklyResult, deleteHistoryEntry, updateHouseName, updateHouseSlug,
+      updateProfileData, addRanking, deleteRanking, updateRankingName,
       loadingData, unauthorized
     }}>
       {children}
@@ -288,6 +339,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
 export const useRanking = () => {
   const context = useContext(RankingContext);
-  if (context === undefined) throw new Error('useRanking must be used within a RankingProvider');
+  if (!context) throw new Error("useRanking must be used within RankingProvider");
   return context;
 };

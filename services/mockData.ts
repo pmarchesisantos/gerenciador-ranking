@@ -23,8 +23,10 @@ const mockPlayers = [
   { id: '4', name: 'Ana Oliveira', totalPoints: 320, prevPoints: 300, attendances: 15, wins: 0, dayPoints: 0, accumulatedValue: 0 },
 ];
 
+// Added missing required 'slug' property to the MOCK_HOUSE definition
 export const MOCK_HOUSE: PokerHouse = {
   id: 'house_123',
+  slug: 'royal-flush-club',
   name: 'Royal Flush Club',
   rankings: [
     {

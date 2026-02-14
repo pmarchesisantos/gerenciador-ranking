@@ -45,7 +45,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
         <header className="p-8 flex justify-between items-center border-b border-gray-800">
           <div className="flex items-center gap-3">
              <Trophy className="text-emerald-500" />
-             <span className="text-xl font-black text-white tracking-tighter">PokerRank Master</span>
+             <span className="text-xl font-black text-white tracking-tighter">Rank Manager</span>
           </div>
           <button onClick={onLoginClick} className="text-xs font-black text-gray-500 uppercase tracking-widest hover:text-white transition-all flex items-center gap-2">
             <LogIn size={16} /> Painel Administrativo
@@ -107,51 +107,53 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
-      <header className="h-20 border-b border-emerald-900/20 px-4 md:px-8 flex items-center justify-between bg-gray-900/50 backdrop-blur-md sticky top-0 z-40">
-        <div className="flex items-center gap-4">
+      <header className="min-h-[80px] h-auto border-b border-emerald-900/20 px-4 md:px-8 py-3 flex items-center justify-between bg-gray-900/50 backdrop-blur-md sticky top-0 z-40">
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
           <button 
             onClick={() => setViewingHouseId(null)} 
-            className="p-2 text-gray-500 hover:text-emerald-500 transition-all"
+            className="p-1.5 md:p-2 text-gray-500 hover:text-emerald-500 transition-all"
           >
-            <Home size={20} />
+            <Home size={18} />
           </button>
           {house.profile?.logoUrl ? (
-            <img src={house.profile.logoUrl} alt="Logo" className="w-10 h-10 rounded-xl object-cover shadow-lg border border-emerald-500/20" />
+            <img src={house.profile.logoUrl} alt="Logo" className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl object-cover shadow-lg border border-emerald-500/20" />
           ) : (
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/30 border border-emerald-500/20">
-              <Trophy className="text-white w-6 h-6" />
+            <div className="w-8 h-8 md:w-10 md:h-10 bg-emerald-600 rounded-lg md:rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/30 border border-emerald-500/20">
+              <Trophy className="text-white w-5 h-5 md:w-6 md:h-6" />
             </div>
           )}
-          <div>
-            <h1 className="font-bold text-xl text-white tracking-tight leading-none truncate max-w-[150px] md:max-w-none">{house.name}</h1>
-            <p className="text-emerald-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1.5">Live Rankings</p>
+          <div className="max-w-[100px] sm:max-w-[200px] md:max-w-none">
+            <h1 className="font-bold text-sm md:text-xl text-white tracking-tight leading-none truncate">{house.name}</h1>
+            <p className="text-emerald-500 text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] mt-1">Live Rankings</p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3 ml-2">
           <button 
             onClick={() => setIsContactModalOpen(true)}
-            className="bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-amber-900/20"
+            title="Venha jogar conosco!"
+            className="bg-amber-500 hover:bg-amber-400 text-black px-3 md:px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-amber-900/20 shrink-0"
           >
             <MessageCircle size={16} />
-            Venha jogar conosco!
+            <span className="hidden sm:inline">Venha jogar conosco!</span>
           </button>
           <button 
             onClick={onLoginClick}
-            className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-gray-700 transition-all active:scale-95"
+            title="Painel Administrativo"
+            className="bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 md:px-4 py-2 rounded-lg text-[10px] md:text-xs font-bold uppercase tracking-widest flex items-center gap-2 border border-gray-700 transition-all active:scale-95 shrink-0"
           >
             <LogIn size={16} />
-            Painel
+            <span className="hidden xs:inline">Painel</span>
           </button>
         </div>
       </header>
 
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-8">
-        <div className="flex flex-wrap gap-2 p-1.5 bg-gray-900/80 border border-gray-800 rounded-[2rem] shadow-xl">
+        <div className="flex flex-wrap gap-2 p-1.5 bg-gray-900/80 border border-gray-800 rounded-[2rem] shadow-xl overflow-x-auto no-scrollbar">
           {house.rankings.map(r => (
             <button
               key={r.id}
               onClick={() => setActiveTabId(r.id)}
-              className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+              className={`px-4 md:px-6 py-2 md:py-3 rounded-2xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                 activeTabId === r.id 
                 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' 
                 : 'text-gray-500 hover:text-white hover:bg-gray-800'
@@ -167,21 +169,21 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
             <div className="flex items-center gap-2 border-b border-gray-800">
               <button 
                 onClick={() => setSubView('ranking')}
-                className={`pb-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'ranking' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`pb-4 px-4 md:px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'ranking' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
               >
                 Ranking Geral
               </button>
               <button 
                 onClick={() => setSubView('history')}
-                className={`pb-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'history' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
+                className={`pb-4 px-4 md:px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'history' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
               >
                 Histórico
               </button>
             </div>
 
             {subView === 'ranking' ? (
-              <div className="bg-gray-900 border border-gray-800 rounded-[2.5rem] overflow-hidden shadow-2xl">
-                <div className="overflow-x-auto">
+              <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl">
+                <div className="overflow-x-auto custom-scrollbar">
                   <table className="w-full text-left min-w-[1000px]">
                     <thead>
                       <tr className="bg-gray-800 text-gray-400 text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
