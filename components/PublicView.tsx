@@ -72,7 +72,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
               {filteredHouses.map(h => (
                 <div 
                   key={h.id}
-                  onClick={() => setViewingHouseId(h.id)}
+                  onClick={() => setViewingHouseId(h.slug || h.id)}
                   className="bg-gray-900 border border-gray-800 hover:border-emerald-500/50 p-8 rounded-[2.5rem] flex items-center justify-between group transition-all cursor-pointer relative"
                 >
                   <div className="flex items-center gap-4 text-left">
