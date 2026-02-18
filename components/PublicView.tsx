@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { db, collection, onSnapshot } from '../services/firebase';
-import { Trophy, Calendar, LogIn, ChevronRight, Search, Home, Instagram, Phone, User, X, MessageCircle } from 'lucide-react';
+import { Trophy, Calendar, LogIn, ChevronRight, Search, Home, Instagram, Phone, X, MessageCircle } from 'lucide-react';
 
 const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) => {
   const { house, loadingData, setViewingHouseId } = useRanking();
@@ -22,9 +22,12 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
 
   useEffect(() => {
     if (house.rankings.length > 0) {
-      setActiveTabId(house.rankings[0].id);
+      const currentActive = house.rankings.find(r => r.id === activeTabId);
+      if (!currentActive) {
+        setActiveTabId(house.rankings[0].id);
+      }
     }
-  }, [house.rankings]);
+  }, [house.rankings, activeTabId]);
 
   const isViewingSpecificHouse = !!house.id && house.id !== 'house_123';
 
@@ -176,7 +179,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                   <table className="w-full text-left min-w-[900px]">
                     <thead>
                       <tr className="bg-gray-800 text-gray-500 text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
-                        <th className="px-6 py-6 font-black">Pos.</th>
+                        <th className="px-6 py-6 font-black">Pos..</th>
                         <th className="px-6 py-6 font-black">Nome do Jogador</th>
                         <th className="px-6 py-6 font-black text-center text-emerald-500">Pts Totais</th>
                         <th className="px-6 py-6 font-black text-center">Pres.</th>
@@ -229,11 +232,21 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                         <span className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-amber-500/20">2X</span>
                       )}
                     </div>
-                    <div className="space-y-1.5">
-                      {entry.results.sort((a,b) => a.position - b.position).slice(0, 5).map(res => (
-                        <div key={res.playerId} className="bg-black/30 border border-gray-800/40 px-4 py-2.5 rounded-xl flex items-center justify-between">
-                          <span className="text-gray-300 text-[11px] font-bold">{activeRanking.players.find(p => p.id === res.playerId)?.name || '...'}</span>
-                          <span className="text-emerald-500 text-[10px] font-black">{res.position}º (+{res.pointsEarned} pts)</span>
+                    {/* Exibição de todos os participantes da etapa no Histórico Público */}
+                    <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
+                      {entry.results.sort((a,b) => a.position - b.position).map(res => (
+                        <div key={res.playerId} className="bg-black/30 border border-gray-800/40 px-4 py-2.5 rounded-xl flex items-center justify-between group hover:bg-emerald-600/[0.05] transition-colors">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-black ${
+                                res.position === 1 ? 'bg-amber-500 text-black' : 
+                                res.position === 2 ? 'bg-gray-300 text-black' :
+                                res.position === 3 ? 'bg-amber-700 text-white' : 'bg-gray-800 text-gray-500'
+                            }`}>
+                              {res.position}º
+                            </span>
+                            <span className="text-gray-300 text-[11px] font-bold">{activeRanking.players.find(p => p.id === res.playerId)?.name || 'Removido'}</span>
+                          </div>
+                          <span className="text-emerald-500 text-[10px] font-black">+{res.pointsEarned} <span className="text-gray-600 text-[8px] uppercase">pts</span></span>
                         </div>
                       ))}
                     </div>

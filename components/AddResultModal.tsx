@@ -104,20 +104,30 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     return Math.ceil(netHouseValue);
   }, [postRakeValue, rankingPrizeValue]);
 
-  // Lógica de Premiação Sugerida (Faixas de Porcentagem)
+  // Lógica de Premiação Sugerida (Conforme Tiers solicitados)
   const prizeSuggestions = useMemo(() => {
     const count = selectedPlayers.length;
     if (count === 0) return [];
     
     let percentages: number[] = [];
-    if (count >= 1 && count <= 5) percentages = [65, 35];
-    else if (count >= 6 && count <= 17) percentages = [50, 30, 20];
-    else if (count >= 18 && count <= 26) percentages = [44, 28, 18, 10];
-    else if (count >= 27 && count <= 35) percentages = [36, 26, 19, 12, 7];
-    else if (count >= 36 && count <= 53) percentages = [31.5, 21, 15, 11.5, 9, 7, 5];
-    else if (count >= 54 && count <= 62) percentages = [29, 19, 14, 10, 8, 6.5, 5.5, 4.5, 3.5];
-    else if (count >= 63 && count <= 80) percentages = [26, 18.5, 13.5, 9.5, 7.8, 6.3, 5, 4.10, 3.5, 2.9];
-    else percentages = [26, 18.5, 13.5, 9.5, 7.8, 6.3, 5, 4.10, 3.5, 2.9]; // Padrão acima de 80
+    if (count >= 1 && count <= 5) {
+      percentages = [65, 35];
+    } else if (count >= 6 && count <= 17) {
+      percentages = [50, 30, 20];
+    } else if (count >= 18 && count <= 26) {
+      percentages = [44, 28, 18, 10];
+    } else if (count >= 27 && count <= 35) {
+      percentages = [36, 26, 19, 12, 7];
+    } else if (count >= 36 && count <= 53) {
+      percentages = [31.5, 21, 15, 11.5, 9, 7, 5];
+    } else if (count >= 54 && count <= 62) {
+      percentages = [29, 19, 14, 10, 8, 6.5, 5.5, 4.5, 3.5];
+    } else if (count >= 63 && count <= 80) {
+      percentages = [26, 18.5, 13.5, 9.5, 7.8, 6.3, 5, 4.10, 3.5, 2.9];
+    } else {
+      // Padrão para mais de 80 jogadores (usando o último tier fornecido)
+      percentages = [26, 18.5, 13.5, 9.5, 7.8, 6.3, 5, 4.10, 3.5, 2.9];
+    }
 
     return percentages.map(p => ({
       percent: p,
@@ -160,7 +170,8 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-300 overflow-hidden">
-      {/* Camada para fechar tooltip ao clicar fora */}
+      
+      {/* Camada Invisível para Fechar Tooltip de Premiação */}
       {showPrizeTooltip && (
         <div 
           className="fixed inset-0 z-[110]" 
@@ -368,7 +379,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                    <span className="text-[11px] md:text-xl font-black text-emerald-500">R$ {totalEventNetValue.toFixed(0)}</span>
                 </div>
                 
-                {/* RANKING COM CIFRÃO TOOLTIP (FECHA AO CLICAR FORA) */}
+                {/* RANKING COM CIFRÃO TOOLTIP (Sugestão de Premiação) */}
                 <div className="flex flex-col border-l border-gray-800 pl-4 md:pl-12 relative">
                    <div className="flex items-center gap-1.5 mb-1">
                       <p className="text-[7px] md:text-[9px] font-black text-gray-600 uppercase tracking-widest">Ranking</p>
