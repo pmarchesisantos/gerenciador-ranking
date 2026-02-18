@@ -52,7 +52,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [loadingData, setLoadingData] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
 
-  // Monitoramento de rota (Slug na URL)
   useEffect(() => {
     const handleRouteChange = () => {
       const path = window.location.pathname;
@@ -79,7 +78,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     } catch (e) {}
   };
 
-  // Resolução de ID por Slug
   useEffect(() => {
     if (!viewingHouseId) {
       setResolvedHouseDocId(null);
@@ -111,7 +109,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     resolveId();
   }, [viewingHouseId, user]);
 
-  // Gerenciamento de Acesso do Usuário
   useEffect(() => {
     if (!user && !viewingHouseId) {
       setHouse({ ...MOCK_HOUSE, slug: MOCK_HOUSE.id });
@@ -152,7 +149,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (user) resolveHouseAccess();
   }, [user, isSuperAdmin, viewingHouseId]);
 
-  // Sincronização em tempo real (Firestore)
   useEffect(() => {
     if (!resolvedHouseDocId) {
       if (user && !viewingHouseId) {
@@ -199,9 +195,6 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [resolvedHouseDocId, user, isSuperAdmin]);
 
-  // LÓGICA DE SELEÇÃO DE RANKING ATIVO (Corrigida)
-  // Esta lógica garante que o ranking não mude sozinho quando dados são alterados,
-  // apenas quando um ranking deixa de existir ou quando nada está selecionado.
   useEffect(() => {
     if (house.rankings.length > 0) {
       const exists = house.rankings.find(r => r.id === activeRankingId);
@@ -339,23 +332,40 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const history = activeRanking.history || [];
     const entryToDelete = history.find(h => h.id === entryId);
     if (!entryToDelete) return;
+
+    const updatedHistory = history.filter(h => h.id !== entryId);
+    const newLatestEntry = updatedHistory.length > 0 ? updatedHistory[0] : null;
+
     const updatedPlayers = (activeRanking.players || []).map(player => {
-      const result = entryToDelete.results.find(r => r.playerId === player.id);
-      if (result) {
-        const points = result.pointsEarned;
-        const totalVal = result.totalValue || 0;
-        return {
-          ...player,
-          totalPoints: Math.max(0, player.totalPoints - points),
-          attendances: Math.max(0, player.attendances - 1),
-          wins: result.position === 1 ? Math.max(0, player.wins - 1) : player.wins,
-          dayPoints: 0,
-          accumulatedValue: Math.max(0, (player.accumulatedValue || 0) - totalVal)
+      let playerState = { ...player };
+      const resultToDelete = entryToDelete.results.find(r => r.playerId === player.id);
+      
+      if (resultToDelete) {
+        const points = resultToDelete.pointsEarned;
+        const totalVal = resultToDelete.totalValue || 0;
+        playerState = {
+          ...playerState,
+          totalPoints: Math.max(0, playerState.totalPoints - points),
+          attendances: Math.max(0, playerState.attendances - 1),
+          wins: resultToDelete.position === 1 ? Math.max(0, playerState.wins - 1) : playerState.wins,
+          accumulatedValue: Math.max(0, (playerState.accumulatedValue || 0) - totalVal)
         };
       }
-      return player;
+
+      // Restaura o estado da coluna "Ant." e "Dia" com base na nova etapa mais recente
+      if (newLatestEntry) {
+        const prevResult = newLatestEntry.results.find(r => r.playerId === player.id);
+        playerState.dayPoints = prevResult ? prevResult.pointsEarned : 0;
+        // prevPoints é o que o jogador tinha antes da nova etapa atual
+        playerState.prevPoints = playerState.totalPoints - playerState.dayPoints;
+      } else {
+        playerState.dayPoints = 0;
+        playerState.prevPoints = playerState.totalPoints;
+      }
+
+      return playerState;
     });
-    const updatedHistory = history.filter(h => h.id !== entryId);
+
     await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), {
       players: updatedPlayers,
       history: updatedHistory

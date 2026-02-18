@@ -55,15 +55,15 @@ const History: React.FC = () => {
                     {isLatest && (
                       <button 
                         onClick={() => {
-                          if(window.confirm('APAGAR ETAPA: Deseja realmente excluir esta atualização? Os pontos e valores serão subtraídos dos jogadores e o ranking voltará ao estado anterior.')) {
+                          if(window.confirm('VOLTAR ETAPA: Deseja realmente excluir esta atualização? Todas as pontuações (posição + presença) e valores acumulados serão removidos, e o ranking voltará EXATAMENTE ao estado anterior.')) {
                             deleteHistoryEntry(entry.id);
                           }
                         }}
                         className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-red-500/20 shadow-lg"
-                        title="Apagar e reverter última etapa"
+                        title="Voltar e desfazer última etapa"
                       >
                         <RefreshCcw size={14} />
-                        <span>Apagar</span>
+                        <span>Voltar</span>
                       </button>
                     )}
                   </div>
