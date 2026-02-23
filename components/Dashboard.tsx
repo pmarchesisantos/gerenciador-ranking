@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { Trash2, UserPlus, Download, Search } from 'lucide-react';
+import { Trash2, UserPlus, Download, Search, PlayCircle } from 'lucide-react';
 import AddResultModal from './AddResultModal';
 
 const Dashboard: React.FC = () => {
@@ -9,6 +9,14 @@ const Dashboard: React.FC = () => {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [hasDraft, setHasDraft] = useState(false);
+
+  useEffect(() => {
+    if (activeRanking) {
+      const draft = localStorage.getItem(`draft_${activeRanking.id}`);
+      setHasDraft(!!draft);
+    }
+  }, [activeRanking, isAddModalOpen]);
 
   if (!activeRanking) return (
     <div className="h-full flex items-center justify-center p-8 text-gray-500 text-center">
@@ -61,7 +69,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 tracking-tight">{activeRanking.name}</h2>
@@ -69,9 +77,22 @@ const Dashboard: React.FC = () => {
         </div>
         <button 
           onClick={() => setIsAddModalOpen(true)}
-          className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-lg shadow-emerald-900/20"
+          className={`w-full md:w-auto px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-lg ${
+            hasDraft 
+            ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/20 animate-pulse' 
+            : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20'
+          }`}
         >
-          Adicionar Resultado
+          {hasDraft ? (
+            <>
+              <PlayCircle size={18} />
+              Continuar Lançamento
+            </>
+          ) : (
+            <>
+              Adicionar Resultado
+            </>
+          )}
         </button>
       </div>
 
@@ -211,10 +232,6 @@ const Dashboard: React.FC = () => {
               </tr>
             </tfoot>
           </table>
-        </div>
-        {/* Scroll helper indicator */}
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 p-1 bg-emerald-500/20 text-emerald-500 rounded-l-md lg:hidden animate-pulse pointer-events-none">
-           <Search size={14} className="rotate-90" />
         </div>
       </div>
 
