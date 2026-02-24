@@ -10,13 +10,11 @@ const Settings: React.FC = () => {
   const { updateUserPassword } = useAuth();
   const [activeTab, setActiveTab] = useState<'scoring' | 'security' | 'values'>('scoring');
   
-  // State for password change
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pwdStatus, setPwdStatus] = useState<{type: 'success' | 'error', msg: string} | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  // State for categories management
   const [editingCategory, setEditingCategory] = useState<Partial<GameCategory> | null>(null);
 
   if (!activeRanking) return <div className="p-8 text-gray-500">Selecione um ranking...</div>;
@@ -38,7 +36,6 @@ const Settings: React.FC = () => {
   const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwdStatus(null);
-
     if (newPassword.length < 6) {
       setPwdStatus({type: 'error', msg: 'A senha deve ter pelo menos 6 caracteres.'});
       return;
@@ -47,7 +44,6 @@ const Settings: React.FC = () => {
       setPwdStatus({type: 'error', msg: 'As senhas não coincidem.'});
       return;
     }
-
     setIsUpdating(true);
     try {
       await updateUserPassword(newPassword);
@@ -55,7 +51,7 @@ const Settings: React.FC = () => {
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      setPwdStatus({type: 'error', msg: 'Erro ao atualizar. Você pode precisar deslogar e logar novamente por segurança.'});
+      setPwdStatus({type: 'error', msg: 'Erro ao atualizar.'});
     } finally {
       setIsUpdating(false);
     }
@@ -63,10 +59,8 @@ const Settings: React.FC = () => {
 
   const handleSaveCategory = async () => {
     if (!editingCategory || !editingCategory.name) return;
-    
     const currentCategories = activeRanking.gameCategories || [];
     let updatedCategories;
-    
     if (editingCategory.id) {
       updatedCategories = currentCategories.map(c => c.id === editingCategory.id ? (editingCategory as GameCategory) : c);
     } else {
@@ -78,7 +72,6 @@ const Settings: React.FC = () => {
       } as GameCategory;
       updatedCategories = [...currentCategories, newCategory];
     }
-    
     await updateGameCategories(updatedCategories);
     setEditingCategory(null);
   };
@@ -90,6 +83,13 @@ const Settings: React.FC = () => {
     }
   };
 
+  // Helper Senior para inputs numéricos: Seleção automática e bloqueio de scroll
+  const inputNumericProps = {
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
+    onWheel: (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(),
+    inputMode: "numeric" as const,
+  };
+
   const positions = Array.from({ length: 25 }, (_, i) => i + 1);
 
   return (
@@ -99,28 +99,24 @@ const Settings: React.FC = () => {
         <p className="text-gray-400 text-sm">Gerencie as regras do ranking, valores e a segurança da sua conta.</p>
       </header>
 
-      {/* Tabs Navigation */}
       <div className="flex gap-4 border-b border-gray-800 overflow-x-auto no-scrollbar">
         <button 
           onClick={() => setActiveTab('scoring')}
           className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'scoring' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
         >
-          <SettingsIcon size={16} />
-          Pontuação
+          <SettingsIcon size={16} /> Pontuação
         </button>
         <button 
           onClick={() => setActiveTab('values')}
           className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'values' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
         >
-          <Wallet size={16} />
-          Parametrização de Valores
+          <Wallet size={16} /> Parametrização de Valores
         </button>
         <button 
           onClick={() => setActiveTab('security')}
           className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'security' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
         >
-          <Key size={16} />
-          Segurança
+          <Key size={16} /> Segurança
         </button>
       </div>
 
@@ -132,14 +128,13 @@ const Settings: React.FC = () => {
               <h4 className="text-amber-500 font-bold mb-1">Regra de Cálculo</h4>
               <p className="text-amber-100/70 text-sm leading-relaxed">
                 A pontuação final da etapa é calculada somando os <strong>Pontos de Posição</strong> + <strong>Pontos de Presença</strong>. 
-                Se a etapa for dobrada (2x), o resultado dessa soma é multiplicado por dois. Você pode configurar até a 25ª posição.
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6">
-              <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Pontos por Posição (1º ao 25º)</h3>
+              <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Pontos por Posição</h3>
               <div className="flex flex-col gap-y-3 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
                 {positions.map(pos => (
                   <div key={pos} className="flex items-center justify-between border-b border-gray-800/50 pb-2">
@@ -153,36 +148,29 @@ const Settings: React.FC = () => {
                       </span>
                       Lugar
                     </label>
-                    <div className="relative">
-                      <input 
-                        type="number"
-                        className="bg-black/50 border border-gray-700 rounded-lg px-3 py-2 w-24 text-right text-emerald-400 font-bold focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all"
-                        value={activeRanking.scoringConfig[pos] || 0}
-                        onChange={(e) => handleScoreChange(pos, e.target.value)}
-                      />
-                    </div>
+                    <input 
+                      type="number"
+                      {...inputNumericProps}
+                      className="bg-black/50 border border-gray-700 rounded-lg px-3 py-2 w-24 text-right text-emerald-400 font-bold focus:border-emerald-500 outline-none"
+                      value={activeRanking.scoringConfig[pos] || 0}
+                      onChange={(e) => handleScoreChange(pos, e.target.value)}
+                    />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="space-y-8">
-              <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6">
-                <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Bônus de Presença</h3>
-                <div className="mt-6 flex items-center justify-between">
-                  <label className="text-gray-400 font-medium">Pontos Base (Presença)</label>
-                  <div className="relative">
-                    <input 
-                      type="number"
-                      className="bg-black/50 border border-gray-700 rounded-lg px-4 py-2 w-32 text-right text-emerald-400 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
-                      value={activeRanking.scoringConfig.baseAttendance}
-                      onChange={(e) => handleBaseChange(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <p className="text-xs text-gray-600 italic leading-relaxed">
-                  Estes pontos são somados automaticamente a cada jogador que recebe uma posição na etapa semanal.
-                </p>
+            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6 h-fit">
+              <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Bônus de Presença</h3>
+              <div className="mt-6 flex items-center justify-between">
+                <label className="text-gray-400 font-medium text-sm">Pontos Base</label>
+                <input 
+                  type="number"
+                  {...inputNumericProps}
+                  className="bg-black/50 border border-gray-700 rounded-lg px-4 py-2 w-32 text-right text-emerald-400 focus:border-emerald-500 outline-none"
+                  value={activeRanking.scoringConfig.baseAttendance}
+                  onChange={(e) => handleBaseChange(e.target.value)}
+                />
               </div>
             </div>
           </div>
@@ -206,9 +194,9 @@ const Settings: React.FC = () => {
                 <h4 className="text-lg font-black text-white uppercase tracking-widest">{editingCategory.id ? 'Editar' : 'Nova'} Categoria</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nome da Categoria</label>
+                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nome</label>
                      <input 
-                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
                         placeholder="Ex: Jogo de Segunda"
                         value={editingCategory.name}
                         onChange={(e) => setEditingCategory({...editingCategory, name: e.target.value})}
@@ -217,8 +205,8 @@ const Settings: React.FC = () => {
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Buy-in (R$)</label>
                      <input 
-                        type="number"
-                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        type="number" {...inputNumericProps}
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
                         value={editingCategory.buyIn}
                         onChange={(e) => setEditingCategory({...editingCategory, buyIn: Number(e.target.value)})}
                      />
@@ -226,8 +214,8 @@ const Settings: React.FC = () => {
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Re-buy (R$)</label>
                      <input 
-                        type="number"
-                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        type="number" {...inputNumericProps}
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
                         value={editingCategory.reBuy}
                         onChange={(e) => setEditingCategory({...editingCategory, reBuy: Number(e.target.value)})}
                      />
@@ -235,8 +223,8 @@ const Settings: React.FC = () => {
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Re-buy Duplo (R$)</label>
                      <input 
-                        type="number"
-                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        type="number" {...inputNumericProps}
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
                         value={editingCategory.reBuyDuplo}
                         onChange={(e) => setEditingCategory({...editingCategory, reBuyDuplo: Number(e.target.value)})}
                      />
@@ -244,165 +232,60 @@ const Settings: React.FC = () => {
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Add-on (R$)</label>
                      <input 
-                        type="number"
-                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        type="number" {...inputNumericProps}
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
                         value={editingCategory.addOn}
                         onChange={(e) => setEditingCategory({...editingCategory, addOn: Number(e.target.value)})}
                      />
                    </div>
                 </div>
-                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">RAKE (%)</label>
-                     <div className="relative">
-                       <Percent className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
-                       <input 
-                          type="number"
-                          className="w-full bg-black/40 border border-gray-800 rounded-xl pl-12 pr-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                          placeholder="Ex: 10"
-                          value={editingCategory.rake}
-                          onChange={(e) => setEditingCategory({...editingCategory, rake: Number(e.target.value)})}
-                       />
-                     </div>
+                     <input 
+                        type="number" {...inputNumericProps}
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
+                        value={editingCategory.rake}
+                        onChange={(e) => setEditingCategory({...editingCategory, rake: Number(e.target.value)})}
+                     />
                    </div>
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">% Ranking</label>
-                     <div className="relative">
-                       <Trophy className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
-                       <input 
-                          type="number"
-                          className="w-full bg-black/40 border border-gray-800 rounded-xl pl-12 pr-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-all"
-                          placeholder="Ex: 20"
-                          value={editingCategory.rankingPercent}
-                          onChange={(e) => setEditingCategory({...editingCategory, rankingPercent: Number(e.target.value)})}
-                       />
-                     </div>
+                     <input 
+                        type="number" {...inputNumericProps}
+                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
+                        value={editingCategory.rankingPercent}
+                        onChange={(e) => setEditingCategory({...editingCategory, rankingPercent: Number(e.target.value)})}
+                     />
                    </div>
                 </div>
-
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
-                   <button onClick={() => setEditingCategory(null)} className="px-6 py-3 text-gray-500 font-bold uppercase text-[10px] tracking-widest hover:text-white transition-all">Cancelar</button>
-                   <button onClick={handleSaveCategory} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all">Salvar Categoria</button>
+                   <button onClick={() => setEditingCategory(null)} className="px-6 py-3 text-gray-500 font-bold uppercase text-[10px]">Cancelar</button>
+                   <button onClick={handleSaveCategory} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px]">Salvar</button>
                 </div>
              </div>
            )}
 
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {(activeRanking.gameCategories || []).map(cat => (
-               <div key={cat.id} className="bg-gray-900 border border-gray-800 rounded-3xl p-6 space-y-4 hover:border-emerald-500/30 transition-all group">
+               <div key={cat.id} className="bg-gray-900 border border-gray-800 rounded-3xl p-6 space-y-4 group transition-all">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="text-white font-black text-lg tracking-tight">{cat.name}</h4>
-                      <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">Parametrização Ativa</p>
-                        {cat.rake > 0 && (
-                          <span className="text-amber-500 text-[9px] font-black uppercase tracking-widest bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">Rake: {cat.rake}%</span>
-                        )}
-                        {cat.rankingPercent > 0 && (
-                          <span className="text-blue-500 text-[9px] font-black uppercase tracking-widest bg-blue-500/10 px-2 py-0.5 rounded-full border border-blue-500/20">Rank: {cat.rankingPercent}%</span>
-                        )}
-                      </div>
+                      <h4 className="text-white font-black text-lg">{cat.name}</h4>
+                      <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mt-1">Rake: {cat.rake}% | Rank: {cat.rankingPercent}%</p>
                     </div>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => setEditingCategory(cat)} className="p-2 text-gray-500 hover:text-white hover:bg-gray-800 rounded-lg transition-all"><Edit2 size={14} /></button>
-                      <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"><Trash2 size={14} /></button>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100">
+                      <button onClick={() => setEditingCategory(cat)} className="p-2 text-gray-500 hover:text-white"><Edit2 size={14} /></button>
+                      <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-gray-500 hover:text-red-500"><Trash2 size={14} /></button>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800">
-                      <p className="text-[8px] font-black text-gray-600 uppercase mb-1">Buy-in</p>
-                      <p className="text-white font-bold text-sm">R$ {cat.buyIn.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800">
-                      <p className="text-[8px] font-black text-gray-600 uppercase mb-1">Re-buy</p>
-                      <p className="text-white font-bold text-sm">R$ {cat.reBuy.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800">
-                      <p className="text-[8px] font-black text-gray-600 uppercase mb-1">Re-buy Duplo</p>
-                      <p className="text-white font-bold text-sm">R$ {cat.reBuyDuplo.toFixed(2)}</p>
-                    </div>
-                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800">
-                      <p className="text-[8px] font-black text-gray-600 uppercase mb-1">Add-on</p>
-                      <p className="text-white font-bold text-sm">R$ {cat.addOn.toFixed(2)}</p>
-                    </div>
+                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800 text-[11px]"><p className="text-gray-600 mb-1">Buy-in</p>R$ {cat.buyIn.toFixed(2)}</div>
+                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800 text-[11px]"><p className="text-gray-600 mb-1">Re-buy</p>R$ {cat.reBuy.toFixed(2)}</div>
                   </div>
                </div>
              ))}
-             {(!activeRanking.gameCategories || activeRanking.gameCategories.length === 0) && (
-               <div className="col-span-full py-16 border-2 border-dashed border-gray-800 rounded-[2.5rem] flex flex-col items-center justify-center text-gray-600 space-y-4">
-                  <Wallet size={40} className="text-gray-800" />
-                  <p className="font-bold uppercase text-[10px] tracking-widest">Nenhuma categoria configurada para este ranking.</p>
-               </div>
-             )}
            </div>
-        </div>
-      )}
-
-      {activeTab === 'security' && (
-        <div className="animate-in slide-in-from-right-4 duration-300 max-w-2xl">
-          <div className="bg-gray-900 border border-gray-800 rounded-[2.5rem] p-10 space-y-8 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500"></div>
-            
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-                <ShieldCheck size={32} />
-              </div>
-              <div>
-                <h3 className="text-xl font-black text-white">Alterar Senha de Acesso</h3>
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Proteja sua conta</p>
-              </div>
-            </div>
-
-            <form onSubmit={handlePasswordUpdate} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nova Senha</label>
-                <div className="relative">
-                  <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={18} />
-                  <input 
-                    type="password"
-                    required
-                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
-                    placeholder="Mínimo 6 caracteres"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
-                <div className="relative">
-                  <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={18} />
-                  <input 
-                    type="password"
-                    required
-                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
-                    placeholder="Repita a senha"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {pwdStatus && (
-                <div className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-3 animate-in zoom-in-95 ${
-                  pwdStatus.type === 'success' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'
-                }`}>
-                  {pwdStatus.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-                  <span>{pwdStatus.msg}</span>
-                </div>
-              )}
-
-              <button 
-                type="submit"
-                disabled={isUpdating}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-900/20 uppercase text-xs tracking-widest"
-              >
-                {isUpdating ? 'Processando...' : 'Atualizar Senha'}
-              </button>
-            </form>
-          </div>
         </div>
       )}
     </div>

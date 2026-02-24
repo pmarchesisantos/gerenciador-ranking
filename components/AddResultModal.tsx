@@ -1,8 +1,8 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { X, Search, ChevronRight, Wallet, Check, UserPlus, Trash2, Trophy, Loader2, Info, DollarSign, AlertTriangle, Save } from 'lucide-react';
-import { GameCategory, Player } from '../types';
+import { Player } from '../types';
 
 interface AddResultModalProps {
   onClose: () => void;
@@ -14,10 +14,23 @@ interface PlayerEntry {
   position: number;
   rebuys: number;
   doubleRebuys: number;
-  addons: number;
+  addons: number; 
   paid: boolean;
-  isNew?: boolean; // Flag para identificar novo jogador
+  isNew?: boolean; 
 }
+
+const ITM_PERCENTAGES: Record<number, number[]> = {
+  1: [100],
+  2: [65, 35],
+  3: [50, 30, 20],
+  4: [44, 28, 18, 10],
+  5: [36, 26, 19, 12, 7],
+  6: [33, 21, 15, 11, 9, 7],
+  7: [31.5, 21, 15, 11.5, 9, 7, 5],
+  8: [30, 19.5, 14, 10.5, 8.5, 7, 5.5, 5],
+  9: [29, 19, 14, 10, 8, 6.5, 5.5, 4.5, 3.5],
+  10: [26, 18.5, 13.5, 9.5, 7.8, 6.3, 5, 4.1, 3.5, 2.9]
+};
 
 const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const { activeRanking, addWeeklyResult } = useRanking();
@@ -25,12 +38,33 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const [multiplier, setMultiplier] = useState(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showFinancialTooltip, setShowFinancialTooltip] = useState(false);
   const [showPrizeTooltip, setShowPrizeTooltip] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   
   const [selectedPlayers, setSelectedPlayers] = useState<PlayerEntry[]>([]);
+  const [customPaidPlaces, setCustomPaidPlaces] = useState<number | ''>('');
 
-  // Carregar Rascunho se existir
+  const financialRef = useRef<HTMLDivElement>(null);
+  const prizeRef = useRef<HTMLDivElement>(null);
+
+  // Helper de normalização (Senior approach)
+  const normalizeStr = (str: string) => 
+    str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (financialRef.current && !financialRef.current.contains(event.target as Node)) {
+        setShowFinancialTooltip(false);
+      }
+      if (prizeRef.current && !prizeRef.current.contains(event.target as Node)) {
+        setShowPrizeTooltip(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   useEffect(() => {
     if (activeRanking) {
       const savedDraft = localStorage.getItem(`draft_${activeRanking.id}`);
@@ -40,30 +74,20 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           setSelectedPlayers(parsed.selectedPlayers || []);
           setMultiplier(parsed.multiplier || 1);
           setSelectedCategoryId(parsed.selectedCategoryId || '');
-        } catch (e) {
-          console.error("Erro ao carregar rascunho");
-        }
+        } catch (e) { console.error(e); }
       }
     }
   }, [activeRanking]);
 
-  // Salvar rascunho automaticamente a cada mudança
   useEffect(() => {
     if (activeRanking && selectedPlayers.length > 0) {
-      const draftData = {
-        selectedPlayers,
-        multiplier,
-        selectedCategoryId
-      };
-      localStorage.setItem(`draft_${activeRanking.id}`, JSON.stringify(draftData));
+      localStorage.setItem(`draft_${activeRanking.id}`, JSON.stringify({ selectedPlayers, multiplier, selectedCategoryId }));
     }
   }, [selectedPlayers, multiplier, selectedCategoryId, activeRanking]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    return () => { document.body.style.overflow = 'unset'; };
   }, []);
 
   if (!activeRanking) return null;
@@ -71,446 +95,243 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const categories = activeRanking.gameCategories || [];
   const selectedCategory = categories.find(c => c.id === selectedCategoryId);
 
-  const searchSuggestions = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) return [];
-    
-    // Sugestões de jogadores existentes
-    const existing = (activeRanking.players || []).filter(p => 
-      p.name.toLowerCase().includes(term) &&
-      !selectedPlayers.some(sp => sp.playerId === p.id)
-    ).slice(0, 5);
-
-    return existing;
-  }, [searchTerm, activeRanking.players, selectedPlayers]);
-
-  // Verifica se o termo pesquisado é um nome novo
-  const isNewPlayerName = useMemo(() => {
-    const term = searchTerm.trim();
-    if (term.length < 2) return false;
-    const exists = activeRanking.players.some(p => p.name.toLowerCase() === term.toLowerCase());
-    const alreadySelected = selectedPlayers.some(p => p.name.toLowerCase() === term.toLowerCase());
-    return !exists && !alreadySelected;
-  }, [searchTerm, activeRanking.players, selectedPlayers]);
+  const sortedSelectedPlayers = useMemo(() => {
+    return [...selectedPlayers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  }, [selectedPlayers]);
 
   const addPlayerToStage = (player: Player) => {
-    const newEntry: PlayerEntry = {
-      playerId: player.id,
-      name: player.name,
-      position: 0,
-      rebuys: 0,
-      doubleRebuys: 0,
-      addons: 0,
-      paid: false
-    };
-    setSelectedPlayers(prev => [newEntry, ...prev]);
+    if (selectedPlayers.some(p => p.playerId === player.id)) return;
+    setSelectedPlayers(prev => [{ playerId: player.id, name: player.name, position: 0, rebuys: 0, doubleRebuys: 0, addons: 0, paid: false }, ...prev]);
     setSearchTerm('');
   };
 
   const addNewPlayerToStage = () => {
-    const term = searchTerm.trim();
-    const newEntry: PlayerEntry = {
-      playerId: `temp-${Date.now()}`,
-      name: term,
-      position: 0,
-      rebuys: 0,
-      doubleRebuys: 0,
-      addons: 0,
-      paid: false,
-      isNew: true
-    };
-    setSelectedPlayers(prev => [newEntry, ...prev]);
+    setSelectedPlayers(prev => [{ playerId: `temp-${Date.now()}`, name: searchTerm.trim(), position: 0, rebuys: 0, doubleRebuys: 0, addons: 0, paid: false, isNew: true }, ...prev]);
     setSearchTerm('');
   };
 
-  const removePlayerFromStage = (playerId: string) => {
-    setSelectedPlayers(prev => prev.filter(p => p.playerId !== playerId));
-  };
-
   const handleEntryChange = (playerId: string, field: keyof PlayerEntry, value: any) => {
-    setSelectedPlayers(prev => prev.map(p => 
-      p.playerId === playerId ? { ...p, [field]: value } : p
-    ));
+    setSelectedPlayers(prev => prev.map(p => p.playerId === playerId ? { ...p, [field]: value } : p));
   };
 
-  const calculatePlayerGrossTotal = (entry: PlayerEntry, category: GameCategory | undefined) => {
-    if (!category) return 0;
-    return category.buyIn + 
-           (entry.rebuys * category.reBuy) + 
-           (entry.doubleRebuys * category.reBuyDuplo) + 
-           (entry.addons * category.addOn);
+  const inputNumericProps = {
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
+    onWheel: (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(),
+    inputMode: "numeric" as const,
   };
 
-  const totalEventGrossValue = useMemo(() => {
-    return selectedPlayers.reduce((acc, p) => acc + calculatePlayerGrossTotal(p, selectedCategory), 0);
-  }, [selectedPlayers, selectedCategory]);
+  const formatCurrency = (val: number) => {
+    return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
 
-  const rakeAmountCollected = useMemo(() => {
+  const calculatePlayerGross = (entry: PlayerEntry) => {
     if (!selectedCategory) return 0;
-    return totalEventGrossValue * ((selectedCategory.rake || 0) / 100);
-  }, [totalEventGrossValue, selectedCategory]);
+    const addonTotal = (entry.addons > 0) ? selectedCategory.addOn : 0;
+    return selectedCategory.buyIn + (entry.rebuys * selectedCategory.reBuy) + (entry.doubleRebuys * selectedCategory.reBuyDuplo) + addonTotal;
+  };
 
-  const postRakeValue = useMemo(() => {
-    return totalEventGrossValue - rakeAmountCollected;
-  }, [totalEventGrossValue, rakeAmountCollected]);
-
-  const rankingPrizeValue = useMemo(() => {
-    if (!selectedCategory) return 0;
-    const rawRankingValue = postRakeValue * ((selectedCategory.rankingPercent || 0) / 100);
-    return Math.floor(rawRankingValue);
-  }, [postRakeValue, selectedCategory]);
-
-  const totalEventNetValue = useMemo(() => {
-    const netHouseValue = postRakeValue - rankingPrizeValue;
-    return Math.ceil(netHouseValue);
-  }, [postRakeValue, rankingPrizeValue]);
+  const totalBruto = useMemo(() => selectedPlayers.reduce((acc, p) => acc + calculatePlayerGross(p), 0), [selectedPlayers, selectedCategory]);
+  const valorRake = useMemo(() => totalBruto * ((selectedCategory?.rake || 0) / 100), [totalBruto, selectedCategory]);
+  const valorPosRake = totalBruto - valorRake;
+  const valorRanking = useMemo(() => valorPosRake * ((selectedCategory?.rankingPercent || 0) / 100), [valorPosRake, selectedCategory]);
+  const valorLiquido = totalBruto - valorRake - valorRanking;
 
   const prizeSuggestions = useMemo(() => {
-    const count = selectedPlayers.length;
-    if (count === 0) return [];
-    
-    let percentages: number[] = [];
-    if (count >= 1 && count <= 5) percentages = [65, 35];
-    else if (count >= 6 && count <= 17) percentages = [50, 30, 20];
-    else if (count >= 18 && count <= 26) percentages = [44, 28, 18, 10];
-    else if (count >= 27 && count <= 35) percentages = [36, 26, 19, 12, 7];
-    else if (count >= 36 && count <= 53) percentages = [31.5, 21, 15, 11.5, 9, 7, 5];
-    else if (count >= 54 && count <= 62) percentages = [29, 19, 14, 10, 8, 6.5, 5.5, 4.5, 3.5];
-    else if (count >= 63 && count <= 80) percentages = [26, 18.5, 13.5, 9.5, 7.8, 6.3, 5, 4.10, 3.5, 2.9];
-    else percentages = [26, 18.5, 13.5, 9.5, 7.8, 6.3, 5, 4.10, 3.5, 2.9];
-
-    return percentages.map(p => ({
-      percent: p,
-      value: (totalEventNetValue * p) / 100
-    }));
-  }, [selectedPlayers.length, totalEventNetValue]);
+    const playerCount = selectedPlayers.length;
+    if (playerCount === 0) return [];
+    let placesToPay = customPaidPlaces !== '' ? Number(customPaidPlaces) : 0;
+    if (placesToPay === 0) {
+      if (playerCount >= 1 && playerCount <= 5) placesToPay = 2;
+      else if (playerCount >= 6 && playerCount <= 17) placesToPay = 3;
+      else if (playerCount >= 18 && playerCount <= 26) placesToPay = 4;
+      else if (playerCount >= 27 && playerCount <= 35) placesToPay = 5;
+      else if (playerCount >= 36 && playerCount <= 53) placesToPay = 7;
+      else if (playerCount >= 54 && playerCount <= 62) placesToPay = 9;
+      else placesToPay = 10;
+    }
+    const effectivePlaces = Math.min(Math.max(placesToPay, 1), 10);
+    const percentages = ITM_PERCENTAGES[effectivePlaces] || [100];
+    return percentages.map(p => ({ percent: p, value: (valorLiquido * p) / 100 }));
+  }, [selectedPlayers.length, valorLiquido, customPaidPlaces]);
 
   const handleSave = async () => {
-    const validResults = selectedPlayers
-      .filter(p => p.position > 0)
-      .map(p => {
-        const totalToAccumulate = p.position === 1 ? rankingPrizeValue : 0;
-        return { 
-          playerId: p.playerId, 
-          playerName: p.name, // Para criação se for novo
-          isNew: p.isNew,
-          position: p.position,
-          rebuys: p.rebuys,
-          doubleRebuys: p.doubleRebuys,
-          addons: p.addons,
-          paid: p.paid,
-          totalValue: totalToAccumulate
-        };
-      });
-    
-    if (validResults.length === 0) {
-      alert('Defina a posição de ao menos um jogador.');
-      return;
-    }
-
+    const valid = selectedPlayers.filter(p => p.position > 0).map(p => ({ 
+      ...p, playerName: p.name, totalValue: p.position === 1 ? valorRanking : 0 
+    }));
+    if (valid.length === 0) return alert('Defina a posição de ao menos um jogador.');
     setIsSaving(true);
     try {
-      await addWeeklyResult(validResults, multiplier, selectedCategoryId);
-      localStorage.removeItem(`draft_${activeRanking.id}`); // Limpar rascunho ao finalizar
+      await addWeeklyResult(valid, multiplier, selectedCategoryId);
+      localStorage.removeItem(`draft_${activeRanking.id}`);
       onClose();
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao salvar.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDiscardDraft = () => {
-    localStorage.removeItem(`draft_${activeRanking.id}`);
-    onClose();
-  };
-
-  const handleContinueLater = () => {
-    onClose();
+    } catch (err) { alert('Erro ao salvar'); } finally { setIsSaving(false); }
   };
 
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-300 overflow-hidden">
-      
-      {showPrizeTooltip && (
-        <div className="fixed inset-0 z-[110]" onClick={() => setShowPrizeTooltip(false)} />
-      )}
-
-      <div className="bg-[#0b0f1a] w-full max-w-7xl rounded-t-[1.5rem] md:rounded-[2rem] border-t md:border border-emerald-900/30 shadow-2xl flex flex-col h-[98dvh] md:h-auto md:max-h-[92vh] overflow-hidden z-[120]">
+      <div className="bg-[#0b0f1a] w-full max-w-7xl rounded-t-[1.5rem] md:rounded-[2rem] border-t md:border border-emerald-900/30 shadow-2xl flex flex-col h-[98dvh] md:h-auto md:max-h-[92vh] overflow-hidden">
         
-        {/* Header */}
         <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/40 shrink-0">
           <div className="flex items-center gap-2">
             <Wallet className="text-emerald-500 hidden xs:block" size={16} />
             <h3 className="text-xs md:text-lg font-black text-white uppercase tracking-widest">Lançamento de Resultados</h3>
           </div>
-          <button onClick={() => setShowExitConfirm(true)} className="p-2 text-gray-500 hover:text-white rounded-full transition-all">
-            <X size={20} />
-          </button>
+          <button onClick={() => setShowExitConfirm(true)} className="p-2 text-gray-500 hover:text-white transition-all"><X size={20} /></button>
         </div>
 
-        {/* Busca e Categoria */}
         <div className="p-2 md:p-4 border-b border-gray-800 bg-black/40 shrink-0">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-            
             <div className="md:col-span-3">
-               <select 
-                 className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-gray-200 outline-none focus:border-emerald-500 text-[10px] md:text-xs font-bold"
-                 value={selectedCategoryId}
-                 onChange={(e) => setSelectedCategoryId(e.target.value)}
-               >
+               <select className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-gray-200 text-xs font-bold outline-none focus:border-emerald-500" value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)}>
                  <option value="">Escolher Categoria...</option>
-                 {categories.map(c => (
-                   <option key={c.id} value={c.id}>{c.name}</option>
-                 ))}
+                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                </select>
             </div>
-
             <div className="md:col-span-7 relative">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
-               <input 
-                 className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-gray-200 focus:border-emerald-500 outline-none text-[10px] md:text-xs font-bold"
-                 placeholder="Pesquisar ou digitar novo nome..."
-                 value={searchTerm}
-                 onChange={(e) => setSearchTerm(e.target.value)}
-               />
-               
-               {(searchSuggestions.length > 0 || isNewPlayerName) && (
+               <input className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-gray-200 text-xs font-bold outline-none" placeholder="Buscar jogador..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+               {searchTerm.length > 1 && (
                  <div className="absolute top-full left-0 w-full mt-1 bg-gray-900 border border-emerald-500/30 rounded-lg shadow-2xl z-[130] overflow-hidden">
-                   {searchSuggestions.map(p => (
-                     <button
-                       key={p.id}
-                       onClick={() => addPlayerToStage(p)}
-                       className="w-full flex items-center justify-between px-4 py-3 hover:bg-emerald-600/10 text-left border-b border-gray-800 last:border-none group"
-                     >
-                       <span className="text-white font-bold text-xs">{p.name}</span>
-                       <UserPlus size={14} className="text-gray-700 group-hover:text-emerald-500 transition-colors" />
-                     </button>
+                   {activeRanking.players.filter(p => normalizeStr(p.name).includes(normalizeStr(searchTerm))).slice(0, 5).map(p => (
+                     <button key={p.id} onClick={() => addPlayerToStage(p)} className="w-full px-4 py-3 text-left hover:bg-emerald-600/10 border-b border-gray-800 text-white font-bold text-xs">{p.name}</button>
                    ))}
-                   {isNewPlayerName && (
-                     <button
-                       onClick={addNewPlayerToStage}
-                       className="w-full flex items-center justify-between px-4 py-4 bg-emerald-600/10 hover:bg-emerald-600/20 text-left border-t border-emerald-500/20"
-                     >
-                       <div className="flex flex-col">
-                         <span className="text-emerald-500 font-black text-[10px] uppercase tracking-widest">Novo Jogador</span>
-                         <span className="text-white font-bold text-xs">{searchTerm}</span>
-                       </div>
-                       <div className="bg-emerald-600 text-white p-1.5 rounded-lg">
-                         <UserPlus size={14} />
-                       </div>
-                     </button>
+                   {!activeRanking.players.some(p => normalizeStr(p.name) === normalizeStr(searchTerm)) && (
+                     <button onClick={addNewPlayerToStage} className="w-full px-4 py-3 text-left bg-emerald-600/10 text-emerald-500 font-black text-[10px] uppercase">Novo: {searchTerm}</button>
                    )}
                  </div>
                )}
             </div>
-
             <div className="md:col-span-2 flex bg-gray-900 p-0.5 rounded-lg border border-gray-800">
-              {[1, 2].map(m => (
-                <button
-                  key={m}
-                  onClick={() => setMultiplier(m)}
-                  className={`flex-1 py-1 rounded-md text-[10px] font-black transition-all ${
-                    multiplier === m ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-600'
-                  }`}
-                >
-                  {m}X
-                </button>
-              ))}
+              {[1, 2].map(m => <button key={m} onClick={() => setMultiplier(m)} className={`flex-1 py-1 rounded-md text-[10px] font-black ${multiplier === m ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-600'}`}>{m}X</button>)}
             </div>
           </div>
         </div>
 
-        {/* Tabela de Jogadores */}
-        <div className="flex-1 overflow-x-auto overflow-y-auto bg-[#080b14] custom-scrollbar">
-          {selectedPlayers.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-700 py-10 opacity-30">
-               <UserPlus size={40} className="mb-2" />
-               <p className="text-[10px] font-black uppercase tracking-widest text-center px-8">A lista está vazia. Adicione jogadores acima.</p>
-            </div>
-          ) : (
-            <table className="w-full text-left min-w-[1000px]">
-              <thead className="sticky top-0 bg-[#080b14] z-20 shadow-sm">
-                <tr className="text-[10px] md:text-[11px] font-black text-gray-500 uppercase tracking-widest border-b border-gray-800">
-                  <th className="px-4 md:px-8 py-4">Nome do Jogador</th>
-                  <th className="px-2 py-4 text-center w-24">Posição</th>
-                  <th className="px-2 py-4 text-center w-28">Re-buy</th>
-                  <th className="px-2 py-4 text-center w-28">Re-buy Duplo</th>
-                  <th className="px-2 py-4 text-center w-28">Add-on</th>
-                  <th className="px-2 py-4 text-center w-20">Pago</th>
-                  <th className="px-4 py-4 text-right">Bruto</th>
-                  <th className="px-4 py-4 w-16"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/40">
-                {selectedPlayers.map(p => (
-                  <tr key={p.playerId} className="hover:bg-emerald-600/[0.03] group transition-colors animate-in slide-in-from-top-2 duration-300">
-                    <td className="px-4 md:px-8 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[10px] ${p.position > 0 ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-600'}`}>
-                          {p.position > 0 ? (p.position === 1 ? <Trophy size={14} className="text-amber-500" /> : p.position) : p.name.charAt(0)}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-white font-bold text-xs truncate">{p.name}</span>
-                          {p.isNew && <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Recém Adicionado</span>}
-                        </div>
+        <div className="flex-1 overflow-auto bg-[#080b14] custom-scrollbar">
+          <table className="w-full text-left min-w-[1000px]">
+            <thead className="sticky top-0 bg-[#080b14] z-20 border-b border-gray-800">
+              <tr className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                <th className="px-8 py-4">Jogador</th>
+                <th className="px-2 py-4 text-center w-24">Posição</th>
+                <th className="px-2 py-4 text-center w-28">Re-buy</th>
+                <th className="px-2 py-4 text-center w-28">Re-buy Duplo</th>
+                <th className="px-2 py-4 text-center w-28">Add-on</th>
+                <th className="px-2 py-4 text-center w-20">Pago</th>
+                <th className="px-4 py-4 text-right">Bruto</th>
+                <th className="px-4 py-4 w-16"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-800/40">
+              {sortedSelectedPlayers.map(p => (
+                <tr key={p.playerId} className="hover:bg-emerald-600/[0.03] group transition-colors">
+                  <td className="px-8 py-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[10px] ${p.position === 1 ? 'bg-amber-500 text-black' : p.position > 1 ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-500'}`}>
+                        {p.position === 1 ? <Trophy size={14} /> : p.position || p.name[0]}
                       </div>
-                    </td>
-                    <td className="px-2 py-3">
-                      <input 
-                        type="number" 
-                        inputMode="numeric"
-                        className="w-full bg-black/40 border border-gray-800 rounded-lg py-2.5 text-center text-emerald-400 font-black text-xs focus:border-emerald-500 outline-none" 
-                        value={p.position || ''} 
-                        onChange={(e) => handleEntryChange(p.playerId, 'position', Number(e.target.value))} 
-                      />
-                    </td>
-                    <td className="px-2 py-3">
-                      <input 
-                        type="number" 
-                        inputMode="numeric"
-                        className="w-full bg-black/40 border border-gray-800 rounded-lg py-2.5 text-center text-white text-xs focus:border-emerald-500 outline-none" 
-                        value={p.rebuys || ''} 
-                        onChange={(e) => handleEntryChange(p.playerId, 'rebuys', Number(e.target.value))} 
-                      />
-                    </td>
-                    <td className="px-2 py-3">
-                      <input 
-                        type="number" 
-                        inputMode="numeric"
-                        className="w-full bg-black/40 border border-gray-800 rounded-lg py-2.5 text-center text-white text-xs focus:border-emerald-500 outline-none" 
-                        value={p.doubleRebuys || ''} 
-                        onChange={(e) => handleEntryChange(p.playerId, 'doubleRebuys', Number(e.target.value))} 
-                      />
-                    </td>
-                    <td className="px-2 py-3">
-                      <input 
-                        type="number" 
-                        inputMode="numeric"
-                        className="w-full bg-black/40 border border-gray-800 rounded-lg py-2.5 text-center text-white text-xs focus:border-emerald-500 outline-none" 
-                        value={p.addons || ''} 
-                        onChange={(e) => handleEntryChange(p.playerId, 'addons', Number(e.target.value))} 
-                      />
-                    </td>
-                    <td className="px-2 py-3 text-center">
-                      <button 
-                        onClick={() => handleEntryChange(p.playerId, 'paid', !p.paid)} 
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.paid ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent'}`}
-                      >
-                        <Check size={16} />
-                      </button>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                       <span className={`font-black text-xs ${calculatePlayerGrossTotal(p, selectedCategory) > 0 ? 'text-amber-500' : 'text-gray-800'}`}>
-                         R$ {calculatePlayerGrossTotal(p, selectedCategory).toFixed(0)}
-                       </span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <button 
-                        onClick={() => removePlayerFromStage(p.playerId)} 
-                        className="text-gray-700 hover:text-red-500 p-2 transition-all opacity-40 hover:opacity-100"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                      <span className="text-white font-bold text-xs">{p.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-emerald-400 font-black text-xs outline-none" value={p.position || ''} onChange={(e) => handleEntryChange(p.playerId, 'position', Number(e.target.value))} /></td>
+                  <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" value={p.rebuys || ''} onChange={(e) => handleEntryChange(p.playerId, 'rebuys', Number(e.target.value))} /></td>
+                  <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" value={p.doubleRebuys || ''} onChange={(e) => handleEntryChange(p.playerId, 'doubleRebuys', Number(e.target.value))} /></td>
+                  <td className="px-2 py-3 text-center">
+                    <button onClick={() => handleEntryChange(p.playerId, 'addons', p.addons > 0 ? 0 : 1)} className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.addons > 0 ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent'}`}><Check size={16} /></button>
+                  </td>
+                  <td className="px-2 py-3 text-center">
+                    <button onClick={() => handleEntryChange(p.playerId, 'paid', !p.paid)} className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.paid ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent'}`}><Check size={16} /></button>
+                  </td>
+                  <td className="px-4 py-3 text-right text-amber-500 font-black text-xs">R$ {formatCurrency(calculatePlayerGross(p))}</td>
+                  <td className="px-4 py-3 text-center"><button onClick={() => setSelectedPlayers(prev => prev.filter(x => x.playerId !== p.playerId))} className="text-gray-700 hover:text-red-500 transition-all opacity-40 hover:opacity-100"><Trash2 size={16} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
-        {/* Rodapé Dinâmico */}
-        <div className="px-4 py-3 md:px-8 md:py-5 border-t border-gray-800 bg-[#0f1422] shrink-0">
-          <div className="flex flex-row justify-between items-center gap-4">
+        <div className="px-4 py-3 md:px-8 md:py-5 border-t border-gray-800 bg-[#0f1422] shrink-0 overflow-visible relative">
+          <div className="flex justify-between items-center">
              <div className="flex items-center gap-4 md:gap-12">
-                <div className="flex flex-col relative group">
+                
+                <div className="flex flex-col relative overflow-visible" ref={financialRef}>
                    <div className="flex items-center gap-1.5 mb-1">
-                      <p className="text-[7px] md:text-[9px] font-black text-gray-600 uppercase tracking-widest">Valor Líquido</p>
-                      <Info size={10} className="text-gray-600" />
+                      <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Valor Líquido</p>
+                      <button onClick={() => { setShowFinancialTooltip(!showFinancialTooltip); setShowPrizeTooltip(false); }} className={`p-1 rounded transition-colors ${showFinancialTooltip ? 'text-emerald-500 bg-emerald-500/10' : 'text-gray-600 hover:text-emerald-500'}`}><Info size={14} /></button>
+                      
+                      {showFinancialTooltip && (
+                        <div className="absolute bottom-full left-0 mb-4 w-64 bg-gray-900 border border-emerald-500/40 rounded-2xl p-5 shadow-2xl z-[150] animate-in zoom-in-95">
+                           <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest border-b border-gray-800 pb-2 mb-3">Resumo Financeiro</h4>
+                           <div className="space-y-2 text-[11px] font-bold">
+                              <div className="flex justify-between"><span className="text-gray-500">Valor Bruto:</span> <span className="text-white">R$ {formatCurrency(totalBruto)}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Rake ({selectedCategory?.rake || 0}%):</span> <span className="text-red-500">- R$ {formatCurrency(valorRake)}</span></div>
+                              <div className="flex justify-between"><span className="text-gray-500">Ranking ({selectedCategory?.rankingPercent || 0}%):</span> <span className="text-amber-500">- R$ {formatCurrency(valorRanking)}</span></div>
+                              <div className="pt-2 border-t border-gray-800 flex justify-between font-black">
+                                 <span className="text-emerald-500 uppercase">Líquido Final:</span> 
+                                 <span className="text-emerald-500">R$ {formatCurrency(valorLiquido)}</span>
+                              </div>
+                           </div>
+                           <div className="absolute -bottom-1.5 left-4 w-3 h-3 bg-gray-900 border-r border-b border-emerald-500/40 rotate-45"></div>
+                        </div>
+                      )}
                    </div>
-                   <span className="text-[11px] md:text-xl font-black text-emerald-500">R$ {totalEventNetValue.toFixed(0)}</span>
+                   <span className="text-lg md:text-2xl font-black text-emerald-500">R$ {formatCurrency(valorLiquido)}</span>
                 </div>
                 
-                <div className="flex flex-col border-l border-gray-800 pl-4 md:pl-12 relative">
+                <div className="flex flex-col border-l border-gray-800 pl-4 md:pl-12 relative overflow-visible" ref={prizeRef}>
                    <div className="flex items-center gap-1.5 mb-1">
-                      <p className="text-[7px] md:text-[9px] font-black text-gray-600 uppercase tracking-widest">Ranking</p>
-                      <div className="relative z-[140]">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setShowPrizeTooltip(!showPrizeTooltip); }}
-                          className={`transition-colors p-0.5 rounded ${showPrizeTooltip ? 'text-amber-500 bg-amber-500/10' : 'text-gray-600 hover:text-amber-500'}`}
-                        >
-                          <DollarSign size={10} />
-                        </button>
-                        
-                        {showPrizeTooltip && (
-                          <div className="absolute bottom-full left-0 mb-3 w-56 md:w-64 bg-gray-900 border border-amber-500/30 rounded-xl p-4 shadow-2xl animate-in zoom-in-95">
-                             <h4 className="text-[8px] font-black text-amber-500 uppercase tracking-widest mb-3 border-b border-gray-800 pb-2">Sugestão de Premiação</h4>
-                             <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
-                                {prizeSuggestions.length > 0 ? prizeSuggestions.map((p, idx) => (
-                                  <div key={idx} className="flex justify-between items-center text-[10px]">
-                                     <span className="font-black text-gray-500">{idx + 1}º ({p.percent}%):</span>
-                                     <span className="font-bold text-white tracking-tight">R$ {p.value.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}</span>
-                                  </div>
-                                )) : <p className="text-[9px] text-gray-600 italic">Lista vazia.</p>}
-                             </div>
-                             <div className="absolute -bottom-1 left-3 w-2 h-2 bg-gray-900 border-r border-b border-amber-500/30 rotate-45"></div>
-                          </div>
-                        )}
-                      </div>
+                      <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Pote Ranking</p>
+                      <button onClick={() => { setShowPrizeTooltip(!showPrizeTooltip); setShowFinancialTooltip(false); }} className={`p-1 rounded transition-colors ${showPrizeTooltip ? 'text-amber-500 bg-amber-500/10' : 'text-gray-600 hover:text-amber-500'}`}><DollarSign size={14} /></button>
+                      
+                      {showPrizeTooltip && (
+                        <div className="absolute bottom-full left-0 mb-4 w-72 bg-gray-900 border border-amber-500/40 rounded-2xl p-5 shadow-2xl z-[150] animate-in zoom-in-95">
+                           <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
+                              <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Premiação ITM</h4>
+                              <div className="flex items-center gap-2 bg-black/40 border border-gray-700 rounded-lg px-2 py-1">
+                                 <span className="text-[8px] font-black text-gray-500 uppercase">Pagos:</span>
+                                 <input 
+                                   type="number" 
+                                   {...inputNumericProps}
+                                   className="w-10 bg-transparent text-white font-black text-xs text-center outline-none border-b border-amber-500/30 focus:border-amber-500" 
+                                   value={customPaidPlaces} 
+                                   onChange={(e) => setCustomPaidPlaces(e.target.value === '' ? '' : Number(e.target.value))} 
+                                   placeholder={prizeSuggestions.length.toString()} 
+                                 />
+                              </div>
+                           </div>
+
+                           <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
+                              {prizeSuggestions.map((p, idx) => (
+                                <div key={idx} className="flex justify-between items-center text-[10px] bg-black/20 p-2.5 rounded-xl border border-gray-800/30">
+                                   <span className="font-black text-gray-500">{idx + 1}º Lugar ({p.percent}%):</span>
+                                   <span className="font-bold text-white tracking-tighter text-xs">R$ {formatCurrency(p.value)}</span>
+                                </div>
+                              ))}
+                           </div>
+                           <div className="absolute -bottom-1.5 left-4 w-3 h-3 bg-gray-900 border-r border-b border-amber-500/40 rotate-45"></div>
+                        </div>
+                      )}
                    </div>
-                   <span className="text-[11px] md:text-xl font-black text-amber-500">R$ {rankingPrizeValue.toFixed(0)}</span>
+                   <span className="text-lg md:text-2xl font-black text-amber-500">R$ {formatCurrency(valorRanking)}</span>
                 </div>
              </div>
 
-             <div className="flex gap-2">
-                <button 
-                  onClick={handleSave}
-                  disabled={!selectedCategoryId || selectedPlayers.length === 0 || isSaving}
-                  className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white px-6 md:px-10 py-2.5 md:py-4 rounded-xl font-black text-[10px] md:text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-emerald-900/20"
-                >
-                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : (
-                    <>
-                      <span>Finalizar</span> 
-                      <ChevronRight size={16} className="hidden xs:block" />
-                    </>
-                  )}
-                </button>
-             </div>
+             <button onClick={handleSave} disabled={!selectedCategoryId || selectedPlayers.length === 0 || isSaving} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all active:scale-95">
+                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <><span>Finalizar Etapa</span><ChevronRight size={18} /></>}
+             </button>
           </div>
         </div>
       </div>
 
-      {/* Confirmação ao Sair */}
       {showExitConfirm && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
            <div className="bg-[#111827] border border-gray-800 rounded-[2rem] p-8 max-w-sm w-full text-center space-y-6 shadow-2xl">
-              <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto border border-amber-500/20">
-                 <AlertTriangle size={32} />
-              </div>
-              <div>
-                <h4 className="text-white font-black text-xl tracking-tight">Deseja excluir o lançamento?</h4>
-                <p className="text-gray-500 text-sm mt-2">Você pode salvar o progresso atual e continuar editando depois.</p>
-              </div>
+              <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto border border-amber-500/20"><AlertTriangle size={32} /></div>
+              <div><h4 className="text-white font-black text-xl tracking-tight">Deseja sair?</h4><p className="text-gray-500 text-sm mt-2">O rascunho será salvo para você continuar depois.</p></div>
               <div className="flex flex-col gap-3">
-                 <button 
-                    onClick={handleContinueLater}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-widest"
-                 >
-                    <Save size={16} />
-                    Continuar editando depois
-                 </button>
-                 <button 
-                    onClick={handleDiscardDraft}
-                    className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-black py-4 rounded-2xl transition-all text-xs uppercase tracking-widest border border-red-500/20"
-                 >
-                    Sim, excluir lançamento
-                 </button>
+                 <button onClick={() => onClose()} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-widest"><Save size={16} /> Salvar Rascunho</button>
+                 <button onClick={() => { localStorage.removeItem(`draft_${activeRanking.id}`); onClose(); }} className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-black py-4 rounded-2xl transition-all text-xs uppercase tracking-widest border border-red-500/20">Excluir Tudo</button>
               </div>
-              <button onClick={() => setShowExitConfirm(false)} className="text-[10px] font-black text-gray-600 hover:text-white uppercase tracking-widest transition-colors">
-                Voltar ao Lançamento
-              </button>
+              <button onClick={() => setShowExitConfirm(false)} className="text-[10px] font-black text-gray-600 hover:text-white uppercase tracking-widest transition-colors">Voltar</button>
            </div>
         </div>
       )}

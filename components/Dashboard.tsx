@@ -24,10 +24,13 @@ const Dashboard: React.FC = () => {
     </div>
   );
 
+  const normalizeStr = (str: string) => 
+    str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
   const sortedPlayers = [...activeRanking.players].sort((a, b) => b.totalPoints - a.totalPoints);
   
   const filteredPlayers = sortedPlayers.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+    normalizeStr(p.name).includes(normalizeStr(searchTerm))
   );
 
   const totalAccumulated = sortedPlayers.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0);
@@ -50,14 +53,7 @@ const Dashboard: React.FC = () => {
   const exportCSV = () => {
     const headers = ["Posição", "Nome", "Pontos Totais", "Pontos Anterior", "Presenças", "Vitórias", "Pontos no Dia", "Valor Acumulado"];
     const rows = sortedPlayers.map((p, i) => [
-      i + 1,
-      p.name,
-      p.totalPoints,
-      p.prevPoints,
-      p.attendances,
-      p.wins,
-      p.dayPoints,
-      p.accumulatedValue
+      i + 1, p.name, p.totalPoints, p.prevPoints, p.attendances, p.wins, p.dayPoints, p.accumulatedValue
     ]);
     const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].map(e => e.join(",")).join("\n");
     const encodedUri = encodeURI(csvContent);
@@ -66,6 +62,12 @@ const Dashboard: React.FC = () => {
     link.setAttribute("download", `ranking_${activeRanking.name.replace(/\s+/g, '_').toLowerCase()}.csv`);
     document.body.appendChild(link);
     link.click();
+  };
+
+  const inputNumericProps = {
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
+    onWheel: (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(),
+    inputMode: "numeric" as const,
   };
 
   return (
@@ -132,7 +134,7 @@ const Dashboard: React.FC = () => {
           <table className="w-full text-left min-w-[1000px]">
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-800 text-gray-500 text-[9px] md:text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
-                <th className="px-6 py-5 font-black">Pos.</th>
+                <th className="px-6 py-5 font-black">Pos..</th>
                 <th className="px-6 py-5 font-black">Nome do Jogador</th>
                 <th className="px-6 py-5 font-black text-center">Pontos Totais</th>
                 <th className="px-6 py-5 font-black text-center">Ant.</th>
@@ -169,6 +171,7 @@ const Dashboard: React.FC = () => {
                     <td className="px-6 py-4 text-center">
                       <input 
                         type="number"
+                        {...inputNumericProps}
                         className="bg-transparent border-none text-emerald-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[80px] text-center font-black"
                         value={player.totalPoints}
                         onChange={(e) => updatePlayer(player.id, { totalPoints: Number(e.target.value) })}
@@ -178,6 +181,7 @@ const Dashboard: React.FC = () => {
                     <td className="px-6 py-4 text-center">
                       <input 
                         type="number"
+                        {...inputNumericProps}
                         className="bg-transparent border-none text-gray-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[50px] text-center font-medium"
                         value={player.attendances}
                         onChange={(e) => updatePlayer(player.id, { attendances: Number(e.target.value) })}
@@ -186,6 +190,7 @@ const Dashboard: React.FC = () => {
                     <td className="px-6 py-4 text-center">
                       <input 
                         type="number"
+                        {...inputNumericProps}
                         className="bg-transparent border-none text-gray-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[50px] text-center font-medium"
                         value={player.wins}
                         onChange={(e) => updatePlayer(player.id, { wins: Number(e.target.value) })}
@@ -201,6 +206,7 @@ const Dashboard: React.FC = () => {
                         <span className="text-gray-600 text-[10px] font-black">R$</span>
                         <input 
                           type="number"
+                          {...inputNumericProps}
                           className="bg-transparent border-none text-amber-500 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-24 text-right font-black text-sm"
                           value={player.accumulatedValue}
                           onChange={(e) => updatePlayer(player.id, { accumulatedValue: Number(e.target.value) })}
