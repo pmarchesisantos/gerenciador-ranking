@@ -9,6 +9,7 @@ import History from './components/History';
 import ProfileSettings from './components/ProfileSettings';
 import PublicView from './components/PublicView';
 import Login from './components/Login';
+import PlayerData from './components/PlayerData';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import { LogOut, User, Menu, Shield, ArrowLeft, X } from 'lucide-react';
 
@@ -19,7 +20,6 @@ const AdminLayout: React.FC = () => {
 
   useEffect(() => { if (window.innerWidth < 1024) setIsSidebarOpen(false); }, [currentView]);
 
-  // Se for Super Admin e house.id estiver vazio, mostra Painel Global
   if (isSuperAdmin && !house.id) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
@@ -44,6 +44,7 @@ const AdminLayout: React.FC = () => {
   const renderView = () => {
     switch (currentView) {
       case 'dashboard': return <Dashboard />;
+      case 'player-data': return <PlayerData />;
       case 'settings': return <Settings />;
       case 'history': return <History />;
       case 'profile': return <ProfileSettings />;

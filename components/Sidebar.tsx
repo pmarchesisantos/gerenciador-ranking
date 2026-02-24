@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle } from 'lucide-react';
+import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users } from 'lucide-react';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -30,8 +30,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard (Ranking)', icon: LayoutDashboard },
-    { id: 'settings', label: 'Configurações', icon: Settings },
+    { id: 'player-data', label: 'Dados Jogadores', icon: Users },
     { id: 'history', label: 'Histórico Semanal', icon: History },
+    { id: 'settings', label: 'Configurações', icon: Settings },
     { id: 'profile', label: 'Dados do Perfil', icon: UserCircle },
   ];
 

@@ -23,7 +23,7 @@ interface RankingContextType {
   setViewingHouseId: (id: string | null) => void;
   currentView: View;
   setCurrentView: (view: View) => void;
-  addPlayer: (name: string) => Promise<Player>;
+  addPlayer: (name: string, extraData?: Partial<Player>) => Promise<Player>;
   removePlayer: (id: string) => Promise<void>;
   updatePlayer: (id: string, updates: Partial<Player>) => Promise<void>;
   updateScoringConfig: (config: ScoringConfig) => Promise<void>;
@@ -199,9 +199,19 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updateRankingName = async (id: string, name: string) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id), { name }); };
   const updateGameCategories = async (categories: GameCategory[]) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { gameCategories: categories }); };
 
-  const addPlayer = async (name: string): Promise<Player> => {
+  const addPlayer = async (name: string, extraData: Partial<Player> = {}): Promise<Player> => {
     if (!activeRanking || !resolvedHouseDocId) throw new Error("Sem ranking");
-    const p: Player = { id: Math.random().toString(36).substr(2, 9), name, totalPoints: 0, prevPoints: 0, attendances: 0, wins: 0, dayPoints: 0, accumulatedValue: 0 };
+    const p: Player = { 
+      id: Math.random().toString(36).substr(2, 9), 
+      name, 
+      totalPoints: 0, 
+      prevPoints: 0, 
+      attendances: 0, 
+      wins: 0, 
+      dayPoints: 0, 
+      accumulatedValue: 0,
+      ...extraData
+    };
     await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: [...(activeRanking.players || []), p] });
     return p;
   };
@@ -214,7 +224,19 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     let currentPlayers = [...activeRanking.players];
     const finalResults = results.map(res => {
       if (res.isNew) {
-        const p = { id: Math.random().toString(36).substr(2, 9), name: res.playerName, totalPoints: 0, prevPoints: 0, attendances: 0, wins: 0, dayPoints: 0, accumulatedValue: 0 };
+        const p = { 
+          id: Math.random().toString(36).substr(2, 9), 
+          name: res.playerName, 
+          totalPoints: 0, 
+          prevPoints: 0, 
+          attendances: 0, 
+          wins: 0, 
+          dayPoints: 0, 
+          accumulatedValue: 0,
+          phone: res.phone || '',
+          birthDate: res.birthDate || '',
+          favoriteTeam: res.favoriteTeam || ''
+        };
         currentPlayers.push(p);
         return { ...res, playerId: p.id };
       }

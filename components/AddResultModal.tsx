@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { X, Search, ChevronRight, Wallet, Check, UserPlus, Trash2, Trophy, Loader2, Info, DollarSign, AlertTriangle, Save } from 'lucide-react';
+import { X, Search, ChevronRight, Wallet, Check, UserPlus, Trash2, Trophy, Loader2, Info, DollarSign, AlertTriangle, Save, ChevronDown, ChevronUp } from 'lucide-react';
 import { Player } from '../types';
 
 interface AddResultModalProps {
@@ -16,7 +16,10 @@ interface PlayerEntry {
   doubleRebuys: number;
   addons: number; 
   paid: boolean;
-  isNew?: boolean; 
+  isNew?: boolean;
+  phone?: string;
+  birthDate?: string;
+  favoriteTeam?: string;
 }
 
 const ITM_PERCENTAGES: Record<number, number[]> = {
@@ -41,6 +44,10 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const [showFinancialTooltip, setShowFinancialTooltip] = useState(false);
   const [showPrizeTooltip, setShowPrizeTooltip] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  // Estados para novo jogador
+  const [showExtraNewPlayer, setShowExtraNewPlayer] = useState(false);
+  const [extraNewPlayer, setExtraNewPlayer] = useState({ phone: '', birthDate: '', favoriteTeam: '' });
   
   const [selectedPlayers, setSelectedPlayers] = useState<PlayerEntry[]>([]);
   const [customPaidPlaces, setCustomPaidPlaces] = useState<number | ''>('');
@@ -48,9 +55,17 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const financialRef = useRef<HTMLDivElement>(null);
   const prizeRef = useRef<HTMLDivElement>(null);
 
-  // Helper de normalização (Senior approach)
   const normalizeStr = (str: string) => 
-    str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+
+  const formatPhone = (value: string) => {
+    if (!value) return "";
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -106,8 +121,20 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   };
 
   const addNewPlayerToStage = () => {
-    setSelectedPlayers(prev => [{ playerId: `temp-${Date.now()}`, name: searchTerm.trim(), position: 0, rebuys: 0, doubleRebuys: 0, addons: 0, paid: false, isNew: true }, ...prev]);
+    setSelectedPlayers(prev => [{ 
+      playerId: `temp-${Date.now()}`, 
+      name: searchTerm.trim(), 
+      position: 0, 
+      rebuys: 0, 
+      doubleRebuys: 0, 
+      addons: 0, 
+      paid: false, 
+      isNew: true,
+      ...extraNewPlayer
+    }, ...prev]);
     setSearchTerm('');
+    setExtraNewPlayer({ phone: '', birthDate: '', favoriteTeam: '' });
+    setShowExtraNewPlayer(false);
   };
 
   const handleEntryChange = (playerId: string, field: keyof PlayerEntry, value: any) => {
@@ -179,7 +206,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           <button onClick={() => setShowExitConfirm(true)} className="p-2 text-gray-500 hover:text-white transition-all"><X size={20} /></button>
         </div>
 
-        <div className="p-2 md:p-4 border-b border-gray-800 bg-black/40 shrink-0">
+        <div className="p-2 md:p-4 border-b border-gray-800 bg-black/40 shrink-0 space-y-2">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
             <div className="md:col-span-3">
                <select className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-gray-200 text-xs font-bold outline-none focus:border-emerald-500" value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)}>
@@ -196,7 +223,25 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                      <button key={p.id} onClick={() => addPlayerToStage(p)} className="w-full px-4 py-3 text-left hover:bg-emerald-600/10 border-b border-gray-800 text-white font-bold text-xs">{p.name}</button>
                    ))}
                    {!activeRanking.players.some(p => normalizeStr(p.name) === normalizeStr(searchTerm)) && (
-                     <button onClick={addNewPlayerToStage} className="w-full px-4 py-3 text-left bg-emerald-600/10 text-emerald-500 font-black text-[10px] uppercase">Novo: {searchTerm}</button>
+                     <div className="bg-emerald-900/10 border-b border-emerald-500/20">
+                        <div className="flex items-center justify-between px-4 py-3">
+                           <span className="text-emerald-500 font-black text-[10px] uppercase">Novo: {searchTerm}</span>
+                           <button 
+                             onClick={() => setShowExtraNewPlayer(!showExtraNewPlayer)}
+                             className="text-emerald-400 hover:text-emerald-200 transition-colors"
+                           >
+                             {showExtraNewPlayer ? <ChevronUp size={16} /> : <div className="flex items-center gap-1 text-[8px] font-black uppercase bg-emerald-500/20 px-2 py-1 rounded">Expandir Cadastro <ChevronDown size={12}/></div>}
+                           </button>
+                        </div>
+                        {showExtraNewPlayer && (
+                          <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                             <input className="bg-black/60 border border-emerald-500/30 rounded-lg px-3 py-2 text-[10px] text-white outline-none" placeholder="Celular" value={extraNewPlayer.phone} onChange={e => setExtraNewPlayer({...extraNewPlayer, phone: formatPhone(e.target.value)})} />
+                             <input type="date" className="bg-black/60 border border-emerald-500/30 rounded-lg px-3 py-2 text-[10px] text-white outline-none" value={extraNewPlayer.birthDate} onChange={e => setExtraNewPlayer({...extraNewPlayer, birthDate: e.target.value})} />
+                             <input className="bg-black/60 border border-emerald-500/30 rounded-lg px-3 py-2 text-[10px] text-white outline-none" placeholder="Time" value={extraNewPlayer.favoriteTeam} onChange={e => setExtraNewPlayer({...extraNewPlayer, favoriteTeam: e.target.value})} />
+                          </div>
+                        )}
+                        <button onClick={addNewPlayerToStage} className="w-full px-4 py-2 bg-emerald-600 text-white font-black text-[9px] uppercase tracking-widest text-center hover:bg-emerald-500">Adicionar Jogador</button>
+                     </div>
                    )}
                  </div>
                )}
@@ -307,7 +352,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                                 </div>
                               ))}
                            </div>
-                           <div className="absolute -bottom-1.5 left-4 w-3 h-3 bg-gray-900 border-r border-b border-amber-500/40 rotate-45"></div>
+                           <div className="absolute -bottom-1.5 left-4 w-3 h-3 bg-gray-900 border-r border-b border-emerald-500/40 rotate-45"></div>
                         </div>
                       )}
                    </div>

@@ -8,6 +8,10 @@ export interface Player {
   wins: number;
   dayPoints: number;
   accumulatedValue: number;
+  // Novos campos de cadastro
+  phone?: string;
+  birthDate?: string;
+  favoriteTeam?: string;
 }
 
 export interface ScoringConfig {
@@ -71,4 +75,4 @@ export interface PokerHouse {
   profile?: ProfileData;
 }
 
-export type View = 'dashboard' | 'settings' | 'history' | 'profile';
+export type View = 'dashboard' | 'settings' | 'history' | 'profile' | 'player-data';

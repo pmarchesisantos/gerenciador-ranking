@@ -1,12 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { Trash2, UserPlus, Download, Search, PlayCircle } from 'lucide-react';
+import { Trash2, UserPlus, Download, Search, PlayCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import AddResultModal from './AddResultModal';
 
 const Dashboard: React.FC = () => {
   const { activeRanking, addPlayer, removePlayer, updatePlayer } = useRanking();
   const [newPlayerName, setNewPlayerName] = useState('');
+  const [showExtraFields, setShowExtraFields] = useState(false);
+  const [extraData, setExtraData] = useState({ phone: '', birthDate: '', favoriteTeam: '' });
+  
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
@@ -25,21 +28,34 @@ const Dashboard: React.FC = () => {
   );
 
   const normalizeStr = (str: string) => 
-    str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+
+  const formatPhone = (value: string) => {
+    if (!value) return "";
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  };
 
   const sortedPlayers = [...activeRanking.players].sort((a, b) => b.totalPoints - a.totalPoints);
   
-  const filteredPlayers = sortedPlayers.filter(p => 
-    normalizeStr(p.name).includes(normalizeStr(searchTerm))
-  );
+  const filteredPlayers = sortedPlayers.filter(p => {
+    const normalizedName = normalizeStr(p.name);
+    const normalizedSearch = normalizeStr(searchTerm.trim());
+    return normalizedName.includes(normalizedSearch);
+  });
 
   const totalAccumulated = sortedPlayers.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0);
 
-  const handleAddPlayer = (e: React.FormEvent) => {
+  const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPlayerName.trim()) return;
-    addPlayer(newPlayerName);
+    await addPlayer(newPlayerName, showExtraFields ? extraData : {});
     setNewPlayerName('');
+    setExtraData({ phone: '', birthDate: '', favoriteTeam: '' });
+    setShowExtraFields(false);
   };
 
   const getRank = (playerId: string) => sortedPlayers.findIndex(p => p.id === playerId) + 1;
@@ -50,20 +66,6 @@ const Dashboard: React.FC = () => {
     return 'text-white';
   };
 
-  const exportCSV = () => {
-    const headers = ["Posição", "Nome", "Pontos Totais", "Pontos Anterior", "Presenças", "Vitórias", "Pontos no Dia", "Valor Acumulado"];
-    const rows = sortedPlayers.map((p, i) => [
-      i + 1, p.name, p.totalPoints, p.prevPoints, p.attendances, p.wins, p.dayPoints, p.accumulatedValue
-    ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].map(e => e.join(",")).join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `ranking_${activeRanking.name.replace(/\s+/g, '_').toLowerCase()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-  };
-
   const inputNumericProps = {
     onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
     onWheel: (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(),
@@ -72,61 +74,85 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 md:space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 tracking-tight">{activeRanking.name}</h2>
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 tracking-tight truncate">{activeRanking.name}</h2>
           <p className="text-gray-500 text-xs md:text-sm">Gerenciamento de pontuação e jogadores em tempo real.</p>
         </div>
-        <button 
-          onClick={() => setIsAddModalOpen(true)}
-          className={`w-full md:w-auto px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-lg ${
-            hasDraft 
-            ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/20 animate-pulse' 
-            : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20'
-          }`}
-        >
-          {hasDraft ? (
-            <>
-              <PlayCircle size={18} />
-              Continuar Lançamento
-            </>
-          ) : (
-            <>
-              Adicionar Resultado
-            </>
-          )}
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <form onSubmit={handleAddPlayer} className="lg:col-span-3 bg-gray-900 border border-gray-800 p-2 rounded-2xl flex flex-col sm:flex-row gap-2">
-          <div className="flex-1 flex items-center gap-3 bg-black/30 rounded-xl px-4 border border-gray-700 focus-within:border-emerald-500 transition-all">
-            <UserPlus size={18} className="text-gray-500 shrink-0" />
-            <input 
-              type="text" 
-              placeholder="Nome do novo jogador..."
-              className="bg-transparent border-none outline-none w-full py-3 text-gray-200 text-sm font-medium"
-              value={newPlayerName}
-              onChange={(e) => setNewPlayerName(e.target.value)}
-            />
-          </div>
-          <button type="submit" className="bg-emerald-600 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-md">
-            Cadastrar
-          </button>
-        </form>
-
-        <div className="lg:col-span-2 bg-gray-900 border border-gray-800 p-2 rounded-2xl">
-          <div className="flex items-center gap-3 bg-black/30 rounded-xl px-4 border border-gray-700 focus-within:border-emerald-500 transition-all h-full">
-            <Search size={18} className="text-gray-500 shrink-0" />
+        
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          <div className="relative group flex-1 sm:flex-none sm:min-w-[240px]">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-emerald-500 transition-colors" />
             <input 
               type="text" 
               placeholder="Filtrar jogadores..."
-              className="bg-transparent border-none outline-none w-full py-3 text-gray-200 text-sm font-medium"
+              className="w-full bg-gray-900/50 border border-gray-800 rounded-xl pl-11 pr-4 py-3 text-sm text-gray-200 outline-none focus:border-emerald-500/50 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className={`px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-lg shrink-0 ${
+              hasDraft 
+              ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/20 animate-pulse' 
+              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20'
+            }`}
+          >
+            {hasDraft ? <><PlayCircle size={16} /> Continuar Lançamento</> : <>Adicionar Resultado</>}
+          </button>
         </div>
+      </div>
+
+      <div className="bg-gray-900/30 border border-gray-800/50 p-3 rounded-2xl">
+        <form onSubmit={handleAddPlayer} className="space-y-3">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 flex items-center gap-3 bg-black/20 rounded-xl px-4 border border-gray-800 focus-within:border-emerald-500/50 transition-all">
+              <UserPlus size={16} className="text-gray-500 shrink-0" />
+              <input 
+                type="text" 
+                placeholder="Cadastrar novo jogador..."
+                className="bg-transparent border-none outline-none w-full py-2.5 text-gray-200 text-xs font-medium"
+                value={newPlayerName}
+                onChange={(e) => setNewPlayerName(e.target.value)}
+              />
+              <button 
+                type="button"
+                onClick={() => setShowExtraFields(!showExtraFields)}
+                className={`p-1.5 rounded-lg transition-all ${showExtraFields ? 'text-emerald-500 bg-emerald-500/10' : 'text-gray-500 hover:text-gray-300'}`}
+              >
+                {showExtraFields ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </button>
+            </div>
+            <button type="submit" className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-md shrink-0">
+              Cadastrar
+            </button>
+          </div>
+
+          {showExtraFields && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 animate-in slide-in-from-top-2 duration-200">
+               <input 
+                 className="bg-black/20 border border-gray-800 rounded-xl px-4 py-2 text-[10px] text-white outline-none focus:border-emerald-500/50" 
+                 placeholder="Celular (DDD + Número)" 
+                 value={extraData.phone} 
+                 onChange={e => setExtraData({...extraData, phone: formatPhone(e.target.value)})}
+               />
+               <input 
+                 type="date"
+                 className="bg-black/20 border border-gray-800 rounded-xl px-4 py-2 text-[10px] text-white outline-none focus:border-emerald-500/50" 
+                 value={extraData.birthDate} 
+                 onChange={e => setExtraData({...extraData, birthDate: e.target.value})}
+               />
+               <input 
+                 className="bg-black/20 border border-gray-800 rounded-xl px-4 py-2 text-[10px] text-white outline-none focus:border-emerald-500/50" 
+                 placeholder="Time do Coração" 
+                 value={extraData.favoriteTeam} 
+                 onChange={e => setExtraData({...extraData, favoriteTeam: e.target.value})}
+               />
+            </div>
+          )}
+        </form>
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] md:rounded-3xl overflow-hidden shadow-2xl relative">
@@ -239,16 +265,6 @@ const Dashboard: React.FC = () => {
             </tfoot>
           </table>
         </div>
-      </div>
-
-      <div className="flex flex-col sm:flex-row justify-start gap-4 pb-12">
-        <button 
-          onClick={exportCSV}
-          className="w-full sm:w-auto flex items-center justify-center gap-3 text-gray-500 hover:text-white font-black text-[10px] uppercase tracking-widest px-8 py-4 border border-gray-800 rounded-2xl hover:bg-gray-800 transition-all active:scale-95"
-        >
-          <Download size={16} />
-          Exportar Ranking (CSV)
-        </button>
       </div>
 
       {isAddModalOpen && <AddResultModal onClose={() => setIsAddModalOpen(false)} />}
