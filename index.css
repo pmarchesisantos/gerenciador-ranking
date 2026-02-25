@@ -1,8 +1,8 @@
 @keyframes bubble {
-  0% { transform: translateY(0) scale(1); opacity: 0; }
-  20% { opacity: 0.5; }
-  80% { opacity: 0.5; }
-  100% { transform: translateY(-120vh) scale(1.5); opacity: 0; }
+  0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.6; }
+  80% { opacity: 0.6; }
+  100% { transform: translateY(-120vh) scale(1.2) rotate(20deg); opacity: 0; }
 }
 
 .animate-bubble {
@@ -10,4 +10,19 @@
   animation-timing-function: ease-in;
   animation-fill-mode: forwards;
   animation-iteration-count: infinite;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, rgba(34, 211, 238, 0.1) 60%, rgba(34, 211, 238, 0.2) 100%);
+  box-shadow: inset -5px -5px 10px rgba(34, 211, 238, 0.2), 0 0 15px rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.animate-bubble::after {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  width: 25%;
+  height: 25%;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  filter: blur(1px);
 }

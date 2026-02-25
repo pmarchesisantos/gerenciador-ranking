@@ -11,7 +11,7 @@ const PokerClock: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isExternal, setIsExternal] = useState(false);
-  const [itmPhase, setItmPhase] = useState<'bubbles' | 'message' | null>(null);
+  const [itmPhase, setItmPhase] = useState<'bubble' | 'itm' | null>(null);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const lastElimTimeRef = useRef<number | undefined>(pokerClockConfig.lastEliminationTime);
@@ -27,28 +27,38 @@ const PokerClock: React.FC = () => {
     const paidPlaces = pokerClockConfig.prizeDistribution?.length || 0;
     const remaining = pokerClockConfig.playersRemaining || 0;
 
-    if (paidPlaces > 0 && remaining === paidPlaces && prevPlayersRemaining.current !== remaining && remaining > 0) {
-      // ITM Reached!
-      setItmPhase('bubbles');
-      
-      if (!isMuted) {
-        // Rocket/Firework sound
-        const firework = new Audio('https://assets.mixkit.co/active_storage/sfx/2014/2014-preview.mp3');
-        firework.volume = 0.5;
-        firework.play().catch(() => {});
-      }
-
-      setTimeout(() => {
-        setItmPhase('message');
+    if (paidPlaces > 0 && remaining > 0) {
+      // Bubble Phase: 1 player left to enter ITM
+      if (remaining === paidPlaces + 1 && prevPlayersRemaining.current !== remaining) {
+        setItmPhase('bubble');
+        
         if (!isMuted) {
+          const bubbles = new Audio('https://assets.mixkit.co/active_storage/sfx/1104/1104-preview.mp3');
+          bubbles.volume = 0.5;
+          bubbles.play().catch(() => {});
+        }
+        
+        setTimeout(() => setItmPhase(null), 10000); // Show bubble message for 10s
+      }
+      
+      // ITM Reached!
+      if (remaining === paidPlaces && prevPlayersRemaining.current !== remaining) {
+        setItmPhase('itm');
+        
+        if (!isMuted) {
+          // Rocket/Firework sound
+          const firework = new Audio('https://assets.mixkit.co/active_storage/sfx/2014/2014-preview.mp3');
+          firework.volume = 0.5;
+          firework.play().catch(() => {});
+          
           // Celebration/Crowd sound
           const celebration = new Audio('https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3');
           celebration.volume = 0.5;
           celebration.play().catch(() => {});
         }
-      }, 5000);
 
-      setTimeout(() => setItmPhase(null), 15000); // 5s bubbles + 10s message
+        setTimeout(() => setItmPhase(null), 10000); // 10s message as requested
+      }
     }
     prevPlayersRemaining.current = remaining;
   }, [pokerClockConfig.playersRemaining, pokerClockConfig.prizeDistribution, isMuted]);
@@ -206,38 +216,45 @@ const PokerClock: React.FC = () => {
         {/* Main Content: Full Width Timer & Blinds */}
         <div className="flex-1 flex flex-col items-center justify-center gap-2 md:gap-6 py-2 md:py-4 border border-emerald-500/20 rounded-[1.5rem] md:rounded-[3rem] bg-black/40 backdrop-blur-sm relative overflow-hidden group min-h-0">
           
-          {/* ITM Animations */}
-          {itmPhase === 'bubbles' && (
+          {/* Bubble Phase Animations */}
+          {itmPhase === 'bubble' && (
             <div className="absolute inset-0 z-[60] pointer-events-none overflow-hidden">
-              {[...Array(30)].map((_, i) => (
+              {[...Array(40)].map((_, i) => (
                 <div 
                   key={i}
-                  className="absolute rounded-full bg-cyan-400/20 backdrop-blur-sm border border-cyan-400/30 animate-bubble"
+                  className="absolute rounded-full animate-bubble"
                   style={{
-                    width: `${Math.random() * 100 + 20}px`,
-                    height: `${Math.random() * 100 + 20}px`,
+                    width: `${Math.random() * 80 + 20}px`,
+                    height: `${Math.random() * 80 + 20}px`,
                     left: `${Math.random() * 100}%`,
-                    bottom: '-120px',
-                    animationDuration: `${Math.random() * 3 + 2}s`,
-                    animationDelay: `${Math.random() * 2}s`
+                    bottom: '-100px',
+                    animationDuration: `${Math.random() * 4 + 3}s`,
+                    animationDelay: `${Math.random() * 5}s`
                   }}
                 />
               ))}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-500">
+                <div className="text-center">
+                  <h2 className="text-[clamp(2rem,6vw,5rem)] font-black text-white uppercase tracking-[0.2em] drop-shadow-[0_0_20px_rgba(34,211,238,0.5)]">
+                    Estamos na BOLHA do Dinheiro
+                  </h2>
+                  <div className="mt-4 flex justify-center gap-2">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }}></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
-          {itmPhase === 'message' && (
+          {/* ITM Phase Animations */}
+          {itmPhase === 'itm' && (
             <div className="absolute inset-0 z-[70] flex items-center justify-center bg-black/80 backdrop-blur-2xl animate-in fade-in zoom-in duration-500">
-              <div className="text-center space-y-6">
-                <div className="flex justify-center gap-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="w-4 h-4 rounded-full bg-amber-500 animate-bounce" style={{ animationDelay: `${i * 0.1}s` }}></div>
-                  ))}
-                </div>
-                <h2 className="text-[clamp(2rem,8vw,6rem)] font-black text-white uppercase tracking-[0.2em] drop-shadow-[0_0_30px_rgba(245,158,11,0.5)]">
-                  VOCÊ ESTÁ NO DINHEIRO!
+              <div className="text-center">
+                <h2 className="text-[clamp(2rem,7vw,7rem)] font-black text-white uppercase tracking-tight drop-shadow-[0_0_40px_rgba(245,158,11,0.6)] whitespace-nowrap">
+                  🎉 TODOS NO DINHEIRO 🎉
                 </h2>
-                <p className="text-amber-500 font-black text-xl tracking-[0.5em] animate-pulse">ITM ALCANÇADO</p>
               </div>
             </div>
           )}
