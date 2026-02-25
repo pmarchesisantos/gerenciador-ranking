@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users } from 'lucide-react';
+import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users, Timer, Clock, Settings2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -27,6 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const [tempRankingName, setTempRankingName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [newRankName, setNewRankName] = useState('');
+  const [isClockMenuOpen, setIsClockMenuOpen] = useState(currentView.startsWith('poker-clock'));
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard (Ranking)', icon: LayoutDashboard },
@@ -189,6 +190,46 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 {item.label}
               </button>
             ))}
+
+            <div className="pt-2">
+              <button 
+                onClick={() => setIsClockMenuOpen(!isClockMenuOpen)}
+                className={`w-full text-left px-4 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-between transition-all ${
+                  currentView.startsWith('poker-clock') 
+                  ? 'bg-cyan-600/10 text-cyan-500 border border-cyan-600/20' 
+                  : 'text-gray-500 hover:bg-gray-800'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Timer size={18} className={currentView.startsWith('poker-clock') ? 'text-cyan-500' : 'text-gray-600'} />
+                  Poker Clock
+                </div>
+                {isClockMenuOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+              
+              {isClockMenuOpen && (
+                <div className="mt-1 ml-4 space-y-1 border-l border-gray-800 pl-4 animate-in slide-in-from-top-2 duration-200">
+                  <button
+                    onClick={() => { setCurrentView('poker-clock'); if (onClose) onClose(); }}
+                    className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
+                      currentView === 'poker-clock' ? 'text-cyan-400 bg-cyan-400/5' : 'text-gray-600 hover:text-gray-400'
+                    }`}
+                  >
+                    <Clock size={14} />
+                    Poker Clock
+                  </button>
+                  <button
+                    onClick={() => { setCurrentView('poker-clock-settings'); if (onClose) onClose(); }}
+                    className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
+                      currentView === 'poker-clock-settings' ? 'text-cyan-400 bg-cyan-400/5' : 'text-gray-600 hover:text-gray-400'
+                    }`}
+                  >
+                    <Settings2 size={14} />
+                    Configurações Clock
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </section>
       </div>

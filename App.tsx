@@ -10,6 +10,8 @@ import ProfileSettings from './components/ProfileSettings';
 import PublicView from './components/PublicView';
 import Login from './components/Login';
 import PlayerData from './components/PlayerData';
+import PokerClock from './components/PokerClock';
+import PokerClockSettings from './components/PokerClockSettings';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import { LogOut, User, Menu, Shield, ArrowLeft, X } from 'lucide-react';
 
@@ -48,6 +50,8 @@ const AdminLayout: React.FC = () => {
       case 'settings': return <Settings />;
       case 'history': return <History />;
       case 'profile': return <ProfileSettings />;
+      case 'poker-clock': return <PokerClock />;
+      case 'poker-clock-settings': return <PokerClockSettings />;
       default: return <Dashboard />;
     }
   };
@@ -98,12 +102,25 @@ const AdminLayout: React.FC = () => {
 const RootContent: React.FC = () => {
   const { isAdmin, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
+
+  // Check for external clock view via query param
+  const isExternalClock = window.location.search.includes('view=poker-clock-external');
+
   if (loading) return (
     <div className="h-screen flex flex-col items-center justify-center bg-[#0a0a0a] space-y-4 p-6">
       <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
       <p className="text-emerald-500 font-black animate-pulse text-[10px] uppercase tracking-[0.4em] text-center">INICIALIZANDO SISTEMA...</p>
     </div>
   );
+
+  if (isExternalClock) {
+    return (
+      <div className="h-screen bg-black">
+        <PokerClock />
+      </div>
+    );
+  }
+
   if (isAdmin) return <AdminLayout />;
   return (
     <>

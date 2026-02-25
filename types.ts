@@ -75,4 +75,36 @@ export interface PokerHouse {
   profile?: ProfileData;
 }
 
-export type View = 'dashboard' | 'settings' | 'history' | 'profile' | 'player-data';
+export interface BlindLevel {
+  id: string;
+  smallBlind: number;
+  bigBlind: number;
+  ante: number;
+  durationMinutes: number;
+  isBreak?: boolean;
+}
+
+export interface BlindStructure {
+  id: string;
+  name: string;
+  levels: BlindLevel[];
+}
+
+export interface PrizeDistribution {
+  position: number;
+  percentage: number;
+  value: number;
+}
+
+export interface PokerClockConfig {
+  tournamentName: string;
+  activeStructureId: string;
+  structures: BlindStructure[];
+  playersRemaining?: number;
+  totalPlayers?: number;
+  totalPrize?: number;
+  prizeDistribution?: PrizeDistribution[];
+  lastEliminationTime?: number;
+}
+
+export type View = 'dashboard' | 'settings' | 'history' | 'profile' | 'player-data' | 'poker-clock' | 'poker-clock-settings';

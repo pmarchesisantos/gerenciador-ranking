@@ -1,6 +1,6 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { PokerHouse, Ranking, Player, ScoringConfig, WeeklyHistoryEntry, View, ProfileData, GameCategory } from '../types';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { PokerHouse, Ranking, Player, ScoringConfig, WeeklyHistoryEntry, View, ProfileData, GameCategory, PokerClockConfig, BlindLevel } from '../types';
 import { INITIAL_SCORING_CONFIG, MOCK_HOUSE } from '../services/mockData';
 import { useAuth } from './AuthContext';
 import { 
@@ -36,6 +36,8 @@ interface RankingContextType {
   deleteRanking: (id: string) => Promise<void>;
   updateRankingName: (id: string, name: string) => Promise<void>;
   updateGameCategories: (categories: GameCategory[]) => Promise<void>;
+  updatePokerClockConfig: (config: Partial<PokerClockConfig>) => Promise<void>;
+  pokerClockConfig: PokerClockConfig;
   loadingData: boolean;
   unauthorized: boolean;
 }
@@ -44,6 +46,75 @@ const RankingContext = createContext<RankingContextType | undefined>(undefined);
 
 const EMPTY_HOUSE: PokerHouse = { id: '', slug: '', name: '', rankings: [] };
 
+const generateDefaultLevels = (): BlindLevel[] => {
+  const levels: BlindLevel[] = [];
+  let sb = 100;
+  let bb = 200;
+  let ante = 0;
+  
+  for (let i = 1; i <= 50; i++) {
+    levels.push({
+      id: `lvl-${i}`,
+      smallBlind: sb,
+      bigBlind: bb,
+      ante: ante,
+      durationMinutes: 15
+    });
+
+    // Progression logic
+    if (i < 5) {
+      sb += 100;
+      bb += 200;
+    } else if (i < 10) {
+      sb += 200;
+      bb += 400;
+      ante = Math.floor(bb / 10);
+    } else if (i < 20) {
+      sb *= 1.5;
+      bb *= 1.5;
+      ante = Math.floor(bb / 10);
+    } else {
+      sb *= 1.2;
+      bb *= 1.2;
+      ante = Math.floor(bb / 10);
+    }
+
+    // Round to nearest 100
+    sb = Math.round(sb / 100) * 100;
+    bb = Math.round(bb / 100) * 100;
+    ante = Math.round(ante / 100) * 100;
+    
+    // Add a break every 4 levels
+    if (i % 4 === 0 && i < 48) {
+      levels.push({
+        id: `break-${i}`,
+        smallBlind: 0,
+        bigBlind: 0,
+        ante: 0,
+        durationMinutes: 10,
+        isBreak: true
+      });
+    }
+  }
+  return levels;
+};
+
+const DEFAULT_CLOCK_CONFIG: PokerClockConfig = {
+  tournamentName: 'Torneio Texas Hold\'em',
+  activeStructureId: 'default-structure',
+  playersRemaining: 0,
+  totalPlayers: 0,
+  totalPrize: 0,
+  prizeDistribution: [],
+  structures: [
+    {
+      id: 'default-structure',
+      name: 'Estrutura Padrão',
+      levels: generateDefaultLevels()
+    }
+  ]
+};
+
 export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isSuperAdmin } = useAuth();
   const [house, setHouse] = useState<PokerHouse>(EMPTY_HOUSE);
@@ -51,6 +122,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [viewingHouseId, setViewingHouseId] = useState<string | null>(null);
   const [resolvedHouseDocId, setResolvedHouseDocId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [pokerClockConfig, setPokerClockConfig] = useState<PokerClockConfig>(DEFAULT_CLOCK_CONFIG);
   const [loadingData, setLoadingData] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
 
@@ -154,6 +226,9 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           name: data.name,
           profile: data.profile 
         }));
+        if (data.pokerClockConfig) {
+          setPokerClockConfig(data.pokerClockConfig);
+        }
       }
     });
     const unsubRankings = onSnapshot(rankingsCollRef, (snapshot) => {
@@ -181,25 +256,35 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const activeRanking = house.rankings.find(r => r.id === activeRankingId) || null;
 
-  const updateHouseName = async (name: string) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId), { name }); };
-  const updateHouseSlug = async (slug: string) => { 
+  const updateHouseName = useCallback(async (name: string) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId), { name }); }, [resolvedHouseDocId]);
+  const updateHouseSlug = useCallback(async (slug: string) => { 
     if (!resolvedHouseDocId) return;
     const s = slug.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
     await updateDoc(doc(db, 'casas', resolvedHouseDocId), { slug: s });
     setViewingHouseId(s);
-  };
-  const updateProfileData = async (profile: ProfileData) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId), { profile }); };
-  const addRanking = async (name: string) => {
+  }, [resolvedHouseDocId]);
+  const updateProfileData = useCallback(async (profile: ProfileData) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId), { profile }); }, [resolvedHouseDocId]);
+  const addRanking = useCallback(async (name: string) => {
     if (!resolvedHouseDocId) return;
     const rankingsCollRef = collection(db, 'casas', resolvedHouseDocId, 'rankings');
     const docRef = await addDoc(rankingsCollRef, { name, players: [], scoringConfig: { ...INITIAL_SCORING_CONFIG }, history: [], gameCategories: [] });
     setActiveRankingId(docRef.id);
-  };
-  const deleteRanking = async (id: string) => { if (resolvedHouseDocId) await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id)); };
-  const updateRankingName = async (id: string, name: string) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id), { name }); };
-  const updateGameCategories = async (categories: GameCategory[]) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { gameCategories: categories }); };
+  }, [resolvedHouseDocId]);
+  const deleteRanking = useCallback(async (id: string) => { if (resolvedHouseDocId) await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id)); }, [resolvedHouseDocId]);
+  const updateRankingName = useCallback(async (id: string, name: string) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id), { name }); }, [resolvedHouseDocId]);
+  const updateGameCategories = useCallback(async (categories: GameCategory[]) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { gameCategories: categories }); }, [activeRanking, resolvedHouseDocId]);
 
-  const addPlayer = async (name: string, extraData: Partial<Player> = {}): Promise<Player> => {
+  const updatePokerClockConfig = useCallback(async (config: Partial<PokerClockConfig>) => {
+    if (!resolvedHouseDocId) return;
+    setPokerClockConfig(prev => {
+      const newConfig = { ...prev, ...config };
+      // Update Firestore in the background
+      updateDoc(doc(db, 'casas', resolvedHouseDocId), { pokerClockConfig: newConfig }).catch(console.error);
+      return newConfig;
+    });
+  }, [resolvedHouseDocId]);
+
+  const addPlayer = useCallback(async (name: string, extraData: Partial<Player> = {}): Promise<Player> => {
     if (!activeRanking || !resolvedHouseDocId) throw new Error("Sem ranking");
     const p: Player = { 
       id: Math.random().toString(36).substr(2, 9), 
@@ -214,12 +299,12 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
     await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: [...(activeRanking.players || []), p] });
     return p;
-  };
-  const removePlayer = async (id: string) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.filter(p => p.id !== id) }); };
-  const updatePlayer = async (id: string, updates: Partial<Player>) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.map(p => p.id === id ? { ...p, ...updates } : p) }); };
-  const updateScoringConfig = async (config: ScoringConfig) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { scoringConfig: config }); };
+  }, [activeRanking, resolvedHouseDocId]);
+  const removePlayer = useCallback(async (id: string) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.filter(p => p.id !== id) }); }, [activeRanking, resolvedHouseDocId]);
+  const updatePlayer = useCallback(async (id: string, updates: Partial<Player>) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.map(p => p.id === id ? { ...p, ...updates } : p) }); }, [activeRanking, resolvedHouseDocId]);
+  const updateScoringConfig = useCallback(async (config: ScoringConfig) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { scoringConfig: config }); }, [activeRanking, resolvedHouseDocId]);
 
-  const addWeeklyResult = async (results: any[], multiplier: number, categoryId?: string) => {
+  const addWeeklyResult = useCallback(async (results: any[], multiplier: number, categoryId?: string) => {
     if (!activeRanking || !resolvedHouseDocId) return;
     let currentPlayers = [...activeRanking.players];
     const finalResults = results.map(res => {
@@ -253,9 +338,9 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return { ...player, dayPoints: 0 };
     });
     await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: [entry, ...(activeRanking.history || [])] });
-  };
+  }, [activeRanking, resolvedHouseDocId]);
 
-  const deleteHistoryEntry = async (entryId: string) => {
+  const deleteHistoryEntry = useCallback(async (entryId: string) => {
     if (!activeRanking || !resolvedHouseDocId) return;
     const history = activeRanking.history || [];
     const entry = history.find(h => h.id === entryId);
@@ -281,7 +366,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       return state;
     });
     await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: updatedHistory });
-  };
+  }, [activeRanking, resolvedHouseDocId]);
 
   return (
     <RankingContext.Provider value={{ 
@@ -289,6 +374,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       currentView, setCurrentView, addPlayer, removePlayer, updatePlayer,
       updateScoringConfig, addWeeklyResult, deleteHistoryEntry, updateHouseName, updateHouseSlug,
       updateProfileData, addRanking, deleteRanking, updateRankingName, updateGameCategories,
+      updatePokerClockConfig, pokerClockConfig,
       loadingData, unauthorized
     }}>
       {children}

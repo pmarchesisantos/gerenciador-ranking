@@ -77,8 +77,8 @@ const PlayerData: React.FC = () => {
           <p className="text-gray-500 text-xs md:text-sm">Gerenciamento centralizado de perfis e CRM.</p>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full lg:w-auto">
-          <div className="relative group min-w-[200px]">
+        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+          <div className="relative group flex-1 lg:min-w-[200px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-emerald-500 transition-colors" size={16} />
             <input 
               className="w-full bg-gray-900/50 border border-gray-800 rounded-xl pl-11 pr-4 py-3 text-xs text-white font-bold outline-none focus:border-emerald-500/50 transition-all"
@@ -88,7 +88,7 @@ const PlayerData: React.FC = () => {
             />
           </div>
 
-          <div className="relative group min-w-[180px]">
+          <div className="relative group flex-1 lg:min-w-[180px]">
             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-emerald-500 transition-colors" size={16} />
             <select 
               className="w-full bg-gray-900/50 border border-gray-800 rounded-xl pl-11 pr-4 py-3 text-xs text-white font-bold outline-none focus:border-emerald-500/50 transition-all appearance-none cursor-pointer"
@@ -99,7 +99,7 @@ const PlayerData: React.FC = () => {
             </select>
           </div>
 
-          <div className="relative group min-w-[180px]">
+          <div className="relative group flex-1 lg:min-w-[180px]">
             <Heart className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-emerald-500 transition-colors" size={16} />
             <input 
               className="w-full bg-gray-900/50 border border-gray-800 rounded-xl pl-11 pr-4 py-3 text-xs text-white font-bold outline-none focus:border-emerald-500/50 transition-all"

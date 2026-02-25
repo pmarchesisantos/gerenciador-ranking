@@ -288,6 +288,76 @@ const Settings: React.FC = () => {
            </div>
         </div>
       )}
+
+      {activeTab === 'security' && (
+        <div className="animate-in fade-in duration-300 max-w-2xl">
+          <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 space-y-8">
+            <div className="flex items-center gap-4 border-b border-gray-800 pb-6">
+              <div className="w-12 h-12 bg-emerald-600/20 rounded-2xl flex items-center justify-center text-emerald-500">
+                <ShieldCheck size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-white uppercase tracking-tight">Alterar Senha</h3>
+                <p className="text-gray-500 text-xs uppercase font-bold tracking-widest mt-1">Mantenha sua conta protegida</p>
+              </div>
+            </div>
+
+            <form onSubmit={handlePasswordUpdate} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nova Senha</label>
+                <div className="relative">
+                  <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-700" size={18} />
+                  <input 
+                    type="password"
+                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all"
+                    placeholder="Mínimo 6 caracteres"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
+                <div className="relative">
+                  <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-700" size={18} />
+                  <input 
+                    type="password"
+                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all"
+                    placeholder="Repita a nova senha"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {pwdStatus && (
+                <div className={`p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2 ${
+                  pwdStatus.type === 'success' ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-500' : 'bg-red-600/10 border border-red-500/20 text-red-500'
+                }`}>
+                  {pwdStatus.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+                  <span className="text-xs font-bold uppercase tracking-tight">{pwdStatus.msg}</span>
+                </div>
+              )}
+
+              <button 
+                type="submit"
+                disabled={isUpdating}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-900/30 uppercase text-xs tracking-widest"
+              >
+                {isUpdating ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    Atualizar Senha
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

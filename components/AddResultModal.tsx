@@ -1,8 +1,8 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { X, Search, ChevronRight, Wallet, Check, UserPlus, Trash2, Trophy, Loader2, Info, DollarSign, AlertTriangle, Save, ChevronDown, ChevronUp } from 'lucide-react';
-import { Player } from '../types';
+import { X, Search, ChevronRight, Wallet, Check, UserPlus, Trash2, Trophy, Loader2, Info, DollarSign, AlertTriangle, Save, ChevronDown, ChevronUp, Clock, ExternalLink } from 'lucide-react';
+import { Player, PokerClockConfig } from '../types';
 
 interface AddResultModalProps {
   onClose: () => void;
@@ -12,6 +12,7 @@ interface PlayerEntry {
   playerId: string;
   name: string;
   position: number;
+  eliminatedOrder?: number;
   rebuys: number;
   doubleRebuys: number;
   addons: number; 
@@ -36,7 +37,7 @@ const ITM_PERCENTAGES: Record<number, number[]> = {
 };
 
 const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
-  const { activeRanking, addWeeklyResult } = useRanking();
+  const { activeRanking, addWeeklyResult, updatePokerClockConfig, house } = useRanking();
   const [searchTerm, setSearchTerm] = useState('');
   const [multiplier, setMultiplier] = useState(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
@@ -44,6 +45,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const [showFinancialTooltip, setShowFinancialTooltip] = useState(false);
   const [showPrizeTooltip, setShowPrizeTooltip] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isClockActive, setIsClockActive] = useState(false);
 
   // Estados para novo jogador
   const [showExtraNewPlayer, setShowExtraNewPlayer] = useState(false);
@@ -51,6 +53,8 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   
   const [selectedPlayers, setSelectedPlayers] = useState<PlayerEntry[]>([]);
   const [customPaidPlaces, setCustomPaidPlaces] = useState<number | ''>('');
+  const [valorAdministrativo, setValorAdministrativo] = useState<number>(0);
+  const [manualRankingValue, setManualRankingValue] = useState<number | null>(null);
 
   const financialRef = useRef<HTMLDivElement>(null);
   const prizeRef = useRef<HTMLDivElement>(null);
@@ -137,6 +141,45 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     setShowExtraNewPlayer(false);
   };
 
+  const toggleElimination = (playerId: string) => {
+    const player = selectedPlayers.find(p => p.playerId === playerId);
+    if (!player) return;
+
+    if (player.eliminatedOrder) {
+      // Unchecking: remove elimination order and reset position
+      setSelectedPlayers(prev => prev.map(p => p.playerId === playerId ? { ...p, eliminatedOrder: undefined, position: 0 } : p));
+    } else {
+      // Checking: assign next elimination order
+      const maxOrder = Math.max(0, ...selectedPlayers.map(p => p.eliminatedOrder || 0));
+      const newOrder = maxOrder + 1;
+      
+      // Trigger elimination update on TV
+      updatePokerClockConfig({ lastEliminationTime: Date.now() });
+      
+      // Update all positions based on new elimination
+      const totalPlayers = selectedPlayers.length;
+      setSelectedPlayers(prev => prev.map(p => {
+        if (p.playerId === playerId) {
+          return { ...p, eliminatedOrder: newOrder, position: totalPlayers - newOrder + 1 };
+        }
+        if (p.eliminatedOrder) {
+          return { ...p, position: totalPlayers - p.eliminatedOrder + 1 };
+        }
+        return p;
+      }));
+    }
+  };
+
+  const openExternalClock = () => {
+    setIsClockActive(true);
+    const width = 1200;
+    const height = 800;
+    const left = (window.screen.width / 2) - (width / 2);
+    const top = (window.screen.height / 2) - (height / 2);
+    const url = `/c/${house.slug || house.id}?view=poker-clock-external`;
+    window.open(url, 'PokerClockWindow', `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=no`);
+  };
+
   const handleEntryChange = (playerId: string, field: keyof PlayerEntry, value: any) => {
     setSelectedPlayers(prev => prev.map(p => p.playerId === playerId ? { ...p, [field]: value } : p));
   };
@@ -160,8 +203,11 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const totalBruto = useMemo(() => selectedPlayers.reduce((acc, p) => acc + calculatePlayerGross(p), 0), [selectedPlayers, selectedCategory]);
   const valorRake = useMemo(() => totalBruto * ((selectedCategory?.rake || 0) / 100), [totalBruto, selectedCategory]);
   const valorPosRake = totalBruto - valorRake;
-  const valorRanking = useMemo(() => valorPosRake * ((selectedCategory?.rankingPercent || 0) / 100), [valorPosRake, selectedCategory]);
-  const valorLiquido = totalBruto - valorRake - valorRanking;
+  
+  const calculatedRanking = useMemo(() => valorPosRake * ((selectedCategory?.rankingPercent || 0) / 100), [valorPosRake, selectedCategory]);
+  const valorRanking = manualRankingValue !== null ? manualRankingValue : calculatedRanking;
+  
+  const valorLiquido = totalBruto - valorRake - valorRanking - valorAdministrativo;
 
   const prizeSuggestions = useMemo(() => {
     const playerCount = selectedPlayers.length;
@@ -181,10 +227,40 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     return percentages.map(p => ({ percent: p, value: (valorLiquido * p) / 100 }));
   }, [selectedPlayers.length, valorLiquido, customPaidPlaces]);
 
+  useEffect(() => {
+    if (isClockActive && activeRanking) {
+      const timer = setTimeout(() => {
+        const eliminatedCount = selectedPlayers.filter(p => p.eliminatedOrder).length;
+        updatePokerClockConfig({
+          playersRemaining: selectedPlayers.length - eliminatedCount,
+          totalPlayers: selectedPlayers.length,
+          totalPrize: valorLiquido,
+          prizeDistribution: prizeSuggestions.map((p, idx) => ({
+            position: idx + 1,
+            percentage: p.percent,
+            value: p.value
+          }))
+        });
+      }, 1000); // 1 second debounce
+      return () => clearTimeout(timer);
+    }
+  }, [selectedPlayers, valorLiquido, isClockActive, activeRanking, updatePokerClockConfig, prizeSuggestions]);
+
   const handleSave = async () => {
-    const valid = selectedPlayers.filter(p => p.position > 0).map(p => ({ 
+    // Se houver apenas um jogador sem posição definida, ele é o vencedor (1º lugar)
+    const playersWithoutPosition = selectedPlayers.filter(p => !p.position || p.position === 0);
+    let finalPlayers = [...selectedPlayers];
+    
+    if (playersWithoutPosition.length === 1) {
+      finalPlayers = selectedPlayers.map(p => 
+        p.playerId === playersWithoutPosition[0].playerId ? { ...p, position: 1 } : p
+      );
+    }
+
+    const valid = finalPlayers.filter(p => p.position > 0).map(p => ({ 
       ...p, playerName: p.name, totalValue: p.position === 1 ? valorRanking : 0 
     }));
+    
     if (valid.length === 0) return alert('Defina a posição de ao menos um jogador.');
     setIsSaving(true);
     try {
@@ -199,9 +275,18 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
       <div className="bg-[#0b0f1a] w-full max-w-7xl rounded-t-[1.5rem] md:rounded-[2rem] border-t md:border border-emerald-900/30 shadow-2xl flex flex-col h-[98dvh] md:h-auto md:max-h-[92vh] overflow-hidden">
         
         <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/40 shrink-0">
-          <div className="flex items-center gap-2">
-            <Wallet className="text-emerald-500 hidden xs:block" size={16} />
-            <h3 className="text-xs md:text-lg font-black text-white uppercase tracking-widest">Lançamento de Resultados</h3>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Wallet className="text-emerald-500 hidden xs:block" size={16} />
+              <h3 className="text-xs md:text-lg font-black text-white uppercase tracking-widest">Lançamento de Resultados</h3>
+            </div>
+            <button 
+              onClick={openExternalClock}
+              className="flex items-center gap-2 bg-cyan-500/10 hover:bg-cyan-500 text-cyan-500 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border border-cyan-500/20"
+            >
+              <Clock size={14} />
+              Start Clock (TV)
+            </button>
           </div>
           <button onClick={() => setShowExitConfirm(true)} className="p-2 text-gray-500 hover:text-white transition-all"><X size={20} /></button>
         </div>
@@ -257,7 +342,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
             <thead className="sticky top-0 bg-[#080b14] z-20 border-b border-gray-800">
               <tr className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
                 <th className="px-8 py-4">Jogador</th>
-                <th className="px-2 py-4 text-center w-24">Posição</th>
+                <th className="px-2 py-4 text-center w-24">Eliminado</th>
                 <th className="px-2 py-4 text-center w-28">Re-buy</th>
                 <th className="px-2 py-4 text-center w-28">Re-buy Duplo</th>
                 <th className="px-2 py-4 text-center w-28">Add-on</th>
@@ -277,7 +362,18 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                       <span className="text-white font-bold text-xs">{p.name}</span>
                     </div>
                   </td>
-                  <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-emerald-400 font-black text-xs outline-none" value={p.position || ''} onChange={(e) => handleEntryChange(p.playerId, 'position', Number(e.target.value))} /></td>
+                  <td className="px-2 py-3 text-center">
+                    <button 
+                      onClick={() => toggleElimination(p.playerId)} 
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all relative ${p.eliminatedOrder ? 'bg-red-500 text-white border-red-400 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent hover:text-gray-600'}`}
+                    >
+                      {p.eliminatedOrder ? (
+                        <span className="text-[12px] font-black">{p.position}</span>
+                      ) : (
+                        <Check size={16} />
+                      )}
+                    </button>
+                  </td>
                   <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" value={p.rebuys || ''} onChange={(e) => handleEntryChange(p.playerId, 'rebuys', Number(e.target.value))} /></td>
                   <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" value={p.doubleRebuys || ''} onChange={(e) => handleEntryChange(p.playerId, 'doubleRebuys', Number(e.target.value))} /></td>
                   <td className="px-2 py-3 text-center">
@@ -304,12 +400,47 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                       <button onClick={() => { setShowFinancialTooltip(!showFinancialTooltip); setShowPrizeTooltip(false); }} className={`p-1 rounded transition-colors ${showFinancialTooltip ? 'text-emerald-500 bg-emerald-500/10' : 'text-gray-600 hover:text-emerald-500'}`}><Info size={14} /></button>
                       
                       {showFinancialTooltip && (
-                        <div className="absolute bottom-full left-0 mb-4 w-64 bg-gray-900 border border-emerald-500/40 rounded-2xl p-5 shadow-2xl z-[150] animate-in zoom-in-95">
+                        <div className="absolute bottom-full left-0 mb-4 w-72 bg-gray-900 border border-emerald-500/40 rounded-2xl p-5 shadow-2xl z-[150] animate-in zoom-in-95">
                            <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest border-b border-gray-800 pb-2 mb-3">Resumo Financeiro</h4>
-                           <div className="space-y-2 text-[11px] font-bold">
-                              <div className="flex justify-between"><span className="text-gray-500">Valor Bruto:</span> <span className="text-white">R$ {formatCurrency(totalBruto)}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Rake ({selectedCategory?.rake || 0}%):</span> <span className="text-red-500">- R$ {formatCurrency(valorRake)}</span></div>
-                              <div className="flex justify-between"><span className="text-gray-500">Ranking ({selectedCategory?.rankingPercent || 0}%):</span> <span className="text-amber-500">- R$ {formatCurrency(valorRanking)}</span></div>
+                           <div className="space-y-3 text-[11px] font-bold">
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-500">Valor Bruto:</span> 
+                                <span className="text-white">R$ {formatCurrency(totalBruto)}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-500">Rake ({selectedCategory?.rake || 0}%):</span> 
+                                <span className="text-red-500">- R$ {formatCurrency(valorRake)}</span>
+                              </div>
+                              
+                              <div className="flex justify-between items-center group">
+                                <span className="text-gray-500">Ranking ({selectedCategory?.rankingPercent || 0}%):</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400 text-[10px]">- R$</span>
+                                  <input 
+                                    type="number" 
+                                    {...inputNumericProps}
+                                    className="w-20 bg-black/40 border border-gray-800 rounded px-2 py-1 text-amber-500 text-right outline-none focus:border-amber-500/50"
+                                    value={manualRankingValue !== null ? manualRankingValue : calculatedRanking.toFixed(2)}
+                                    onChange={(e) => setManualRankingValue(e.target.value === '' ? null : Number(e.target.value))}
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-500">Administrativo:</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-gray-400 text-[10px]">- R$</span>
+                                  <input 
+                                    type="number" 
+                                    {...inputNumericProps}
+                                    className="w-20 bg-black/40 border border-gray-800 rounded px-2 py-1 text-red-400 text-right outline-none focus:border-red-500/50"
+                                    value={valorAdministrativo || ''}
+                                    onChange={(e) => setValorAdministrativo(Number(e.target.value))}
+                                    placeholder="0,00"
+                                  />
+                                </div>
+                              </div>
+
                               <div className="pt-2 border-t border-gray-800 flex justify-between font-black">
                                  <span className="text-emerald-500 uppercase">Líquido Final:</span> 
                                  <span className="text-emerald-500">R$ {formatCurrency(valorLiquido)}</span>
@@ -356,7 +487,16 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                         </div>
                       )}
                    </div>
-                   <span className="text-lg md:text-2xl font-black text-amber-500">R$ {formatCurrency(valorRanking)}</span>
+                   <div className="flex items-center gap-2">
+                     <span className="text-lg md:text-2xl font-black text-amber-500">R$</span>
+                     <input 
+                       type="number" 
+                       {...inputNumericProps}
+                       className="w-32 bg-transparent text-lg md:text-2xl font-black text-amber-500 outline-none border-b border-amber-500/20 focus:border-amber-500"
+                       value={manualRankingValue !== null ? manualRankingValue : valorRanking.toFixed(2)}
+                       onChange={(e) => setManualRankingValue(e.target.value === '' ? null : Number(e.target.value))}
+                     />
+                   </div>
                 </div>
              </div>
 
