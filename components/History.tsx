@@ -78,14 +78,18 @@ const History: React.FC = () => {
                           <div key={res.playerId} className="bg-black/30 border border-gray-800/40 rounded-2xl p-4 flex items-center justify-between group/item hover:bg-emerald-600/[0.02] transition-colors">
                             <div className="flex items-center gap-4">
                               <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-xs ${
-                                res.position === 1 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
-                                res.position === 2 ? 'bg-gray-300 text-black' :
-                                res.position === 3 ? 'bg-amber-700 text-white' : 'bg-gray-800 text-gray-500'
+                                res.position >= 1 && res.position <= 3 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
+                                res.position >= 4 && res.position <= 8 ? 'bg-blue-600 text-white' :
+                                res.position === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500'
                               }`}>
                                 {res.position}º
                               </div>
                               <div className="flex items-center gap-2">
-                                 <p className="text-gray-200 font-bold text-sm tracking-tight">{playerName}</p>
+                                 <p className={`font-bold text-sm tracking-tight ${
+                                   res.position >= 1 && res.position <= 3 ? 'text-amber-400' : 
+                                   res.position >= 4 && res.position <= 8 ? 'text-blue-400' :
+                                   res.position === 9 ? 'text-red-400' : 'text-gray-200'
+                                 }`}>{playerName}</p>
                                  {res.paid ? (
                                    <span title="Pago"><CheckCircle size={14} className="text-emerald-500" /></span>
                                  ) : (

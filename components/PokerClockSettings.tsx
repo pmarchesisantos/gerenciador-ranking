@@ -91,6 +91,11 @@ const PokerClockSettings: React.FC = () => {
     setTempConfig({ ...tempConfig, activeStructureId: id });
   };
 
+  const inputNumericProps = {
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
+    onWheel: (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(),
+  };
+
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -191,6 +196,7 @@ const PokerClockSettings: React.FC = () => {
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Jogadores Restantes</label>
                 <input 
                   type="number"
+                  {...inputNumericProps}
                   className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-emerald-500 transition-all"
                   value={tempConfig.playersRemaining || 0}
                   onChange={(e) => setTempConfig({ ...tempConfig, playersRemaining: Number(e.target.value) })}
@@ -200,6 +206,7 @@ const PokerClockSettings: React.FC = () => {
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Total de Entradas</label>
                 <input 
                   type="number"
+                  {...inputNumericProps}
                   className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-emerald-500 transition-all"
                   value={tempConfig.totalPlayers || 0}
                   onChange={(e) => setTempConfig({ ...tempConfig, totalPlayers: Number(e.target.value) })}
@@ -209,6 +216,7 @@ const PokerClockSettings: React.FC = () => {
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Premiação Total (R$)</label>
                 <input 
                   type="number"
+                  {...inputNumericProps}
                   className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-emerald-500 transition-all"
                   value={tempConfig.totalPrize || 0}
                   onChange={(e) => setTempConfig({ ...tempConfig, totalPrize: Number(e.target.value) })}
@@ -247,6 +255,7 @@ const PokerClockSettings: React.FC = () => {
                           <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Small Blind</label>
                           <input 
                             type="number"
+                            {...inputNumericProps}
                             className="w-full bg-transparent border-b border-gray-800 focus:border-emerald-500 text-xs font-bold text-white outline-none py-1"
                             value={level.smallBlind}
                             onChange={(e) => handleUpdateLevel(level.id, { smallBlind: Number(e.target.value) })}
@@ -256,6 +265,7 @@ const PokerClockSettings: React.FC = () => {
                           <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Big Blind</label>
                           <input 
                             type="number"
+                            {...inputNumericProps}
                             className="w-full bg-transparent border-b border-gray-800 focus:border-emerald-500 text-xs font-bold text-white outline-none py-1"
                             value={level.bigBlind}
                             onChange={(e) => handleUpdateLevel(level.id, { bigBlind: Number(e.target.value) })}
@@ -265,6 +275,7 @@ const PokerClockSettings: React.FC = () => {
                           <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Ante</label>
                           <input 
                             type="number"
+                            {...inputNumericProps}
                             className="w-full bg-transparent border-b border-gray-800 focus:border-emerald-500 text-xs font-bold text-white outline-none py-1"
                             value={level.ante}
                             onChange={(e) => handleUpdateLevel(level.id, { ante: Number(e.target.value) })}
@@ -280,6 +291,7 @@ const PokerClockSettings: React.FC = () => {
                       <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Duração (min)</label>
                       <input 
                         type="number"
+                        {...inputNumericProps}
                         className="w-full bg-transparent border-b border-gray-800 focus:border-emerald-500 text-xs font-bold text-white outline-none py-1"
                         value={level.durationMinutes}
                         onChange={(e) => handleUpdateLevel(level.id, { durationMinutes: Number(e.target.value) })}

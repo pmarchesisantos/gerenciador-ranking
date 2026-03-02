@@ -61,8 +61,9 @@ const Dashboard: React.FC = () => {
   const getRank = (playerId: string) => sortedPlayers.findIndex(p => p.id === playerId) + 1;
 
   const getNameColor = (rank: number) => {
-    if (rank >= 1 && rank <= 8) return 'text-emerald-400';
-    if (rank === 9 || rank === 10) return 'text-blue-400';
+    if (rank >= 1 && rank <= 3) return 'text-amber-400';
+    if (rank >= 4 && rank <= 8) return 'text-blue-400';
+    if (rank === 9) return 'text-red-400';
     return 'text-white';
   };
 
@@ -180,9 +181,9 @@ const Dashboard: React.FC = () => {
                   <tr key={player.id} className="hover:bg-emerald-600/[0.03] transition-colors group">
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-black text-[10px] ${
-                        rank === 1 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
-                        rank === 2 ? 'bg-gray-300 text-black' :
-                        rank === 3 ? 'bg-amber-700 text-white' : 'bg-gray-800 text-gray-500'
+                        rank >= 1 && rank <= 3 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
+                        rank >= 4 && rank <= 8 ? 'bg-blue-600 text-white' :
+                        rank === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500'
                       }`}>
                         {rank}
                       </span>

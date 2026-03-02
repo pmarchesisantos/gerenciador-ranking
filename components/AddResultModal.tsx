@@ -224,7 +224,21 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     }
     const effectivePlaces = Math.min(Math.max(placesToPay, 1), 10);
     const percentages = ITM_PERCENTAGES[effectivePlaces] || [100];
-    return percentages.map(p => ({ percent: p, value: (valorLiquido * p) / 100 }));
+    
+    // Round values favoring the top positions
+    const totalToDistribute = Math.floor(valorLiquido);
+    const rawSuggestions = percentages.map(p => Math.floor((totalToDistribute * p) / 100));
+    const currentSum = rawSuggestions.reduce((a, b) => a + b, 0);
+    const diff = totalToDistribute - currentSum;
+    
+    if (rawSuggestions.length > 0) {
+      rawSuggestions[0] += diff;
+    }
+
+    return rawSuggestions.map((val, idx) => ({ 
+      percent: percentages[idx], 
+      value: val 
+    }));
   }, [selectedPlayers.length, valorLiquido, customPaidPlaces]);
 
   useEffect(() => {

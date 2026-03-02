@@ -195,14 +195,18 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                           <tr key={p.id} className="hover:bg-emerald-600/[0.02] transition-colors">
                             <td className="px-6 py-5">
                               <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-black text-[10px] ${
-                                rank === 1 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
-                                rank === 2 ? 'bg-gray-300 text-black' :
-                                rank === 3 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-400 font-bold'
+                                rank >= 1 && rank <= 3 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
+                                rank >= 4 && rank <= 8 ? 'bg-blue-600 text-white' :
+                                rank === 9 ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-400 font-bold'
                               }`}>
                                 {rank}
                               </span>
                             </td>
-                            <td className="px-6 py-5 font-bold tracking-tight text-white text-sm">{p.name}</td>
+                            <td className={`px-6 py-5 font-bold tracking-tight text-sm ${
+                              rank >= 1 && rank <= 3 ? 'text-amber-400' : 
+                              rank >= 4 && rank <= 8 ? 'text-blue-400' :
+                              rank === 9 ? 'text-red-400' : 'text-white'
+                            }`}>{p.name}</td>
                             <td className="px-6 py-5 text-emerald-400 font-black text-center">{p.totalPoints}</td>
                             <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.attendances}</td>
                             <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.wins}</td>
@@ -238,13 +242,17 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                         <div key={res.playerId} className="bg-black/30 border border-gray-800/40 px-4 py-2.5 rounded-xl flex items-center justify-between group hover:bg-emerald-600/[0.05] transition-colors">
                           <div className="flex items-center gap-3">
                             <span className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-black ${
-                                res.position === 1 ? 'bg-amber-500 text-black' : 
-                                res.position === 2 ? 'bg-gray-300 text-black' :
-                                res.position === 3 ? 'bg-amber-700 text-white' : 'bg-gray-800 text-gray-500'
+                                res.position >= 1 && res.position <= 3 ? 'bg-amber-500 text-black' : 
+                                res.position >= 4 && res.position <= 8 ? 'bg-blue-600 text-white' :
+                                res.position === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500'
                             }`}>
                               {res.position}º
                             </span>
-                            <span className="text-gray-300 text-[11px] font-bold">{activeRanking.players.find(p => p.id === res.playerId)?.name || 'Removido'}</span>
+                            <span className={`text-[11px] font-bold ${
+                                res.position >= 1 && res.position <= 3 ? 'text-amber-400' : 
+                                res.position >= 4 && res.position <= 8 ? 'text-blue-400' :
+                                res.position === 9 ? 'text-red-400' : 'text-gray-300'
+                            }`}>{activeRanking.players.find(p => p.id === res.playerId)?.name || 'Removido'}</span>
                           </div>
                           <span className="text-emerald-500 text-[10px] font-black">+{res.pointsEarned} <span className="text-gray-600 text-[8px] uppercase">pts</span></span>
                         </div>
