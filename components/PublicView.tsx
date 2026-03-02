@@ -101,6 +101,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
   }
 
   const activeRanking = house.rankings.find(r => r.id === activeTabId);
+  const totalAccumulated = activeRanking?.players.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0) || 0;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
@@ -175,7 +176,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
 
             {subView === 'ranking' ? (
               <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-                <div className="overflow-x-auto custom-scrollbar">
+                <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
                   <table className="w-full text-left min-w-[900px]">
                     <thead>
                       <tr className="bg-gray-800 text-gray-500 text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
@@ -220,6 +221,16 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                         );
                       })}
                     </tbody>
+                    <tfoot className="sticky bottom-0 z-10 bg-gray-800 border-t border-gray-700 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+                      <tr>
+                        <td colSpan={6} className="px-6 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                          Total Acumulado do Ranking:
+                        </td>
+                        <td className="px-6 py-5 text-right font-black text-amber-500 text-lg">
+                          R$ {totalAccumulated.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </div>

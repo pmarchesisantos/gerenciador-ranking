@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { Plus, Trash2, Save, Clock, Trophy, Check, Star } from 'lucide-react';
+import { Plus, Trash2, Save, Clock, Trophy, Check, Star, ArrowUp, ArrowDown } from 'lucide-react';
 import { BlindLevel, BlindStructure } from '../types';
 
 const PokerClockSettings: React.FC = () => {
@@ -42,22 +42,36 @@ const PokerClockSettings: React.FC = () => {
     });
   };
 
-  const handleAddLevel = () => {
+  const handleAddLevel = (index?: number | React.MouseEvent, direction?: 'above' | 'below') => {
     const levels = activeStructure.levels;
     const lastLevel = levels[levels.length - 1];
+    
+    const isManualInsert = typeof index === 'number';
+    const templateLevel = isManualInsert ? levels[index] : lastLevel;
+    
     const newLevel: BlindLevel = {
       id: Math.random().toString(36).substr(2, 9),
-      smallBlind: lastLevel ? lastLevel.smallBlind * 2 : 100,
-      bigBlind: lastLevel ? lastLevel.bigBlind * 2 : 200,
-      ante: lastLevel ? lastLevel.ante : 0,
-      durationMinutes: lastLevel ? lastLevel.durationMinutes : 15,
+      smallBlind: templateLevel ? templateLevel.smallBlind : 100,
+      bigBlind: templateLevel ? templateLevel.bigBlind : 200,
+      ante: templateLevel ? templateLevel.ante : 0,
+      durationMinutes: templateLevel ? templateLevel.durationMinutes : 15,
     };
     
     setTempConfig({
       ...tempConfig,
-      structures: tempConfig.structures.map(s => 
-        s.id === selectedStructureId ? { ...s, levels: [...s.levels, newLevel] } : s
-      )
+      structures: tempConfig.structures.map(s => {
+        if (s.id === selectedStructureId) {
+          const newLevels = [...s.levels];
+          if (isManualInsert) {
+            const insertIndex = direction === 'above' ? index : index + 1;
+            newLevels.splice(insertIndex, 0, newLevel);
+          } else {
+            newLevels.push(newLevel);
+          }
+          return { ...s, levels: newLevels };
+        }
+        return s;
+      })
     });
   };
 
@@ -234,7 +248,7 @@ const PokerClockSettings: React.FC = () => {
                 </h3>
               </div>
               <button 
-                onClick={handleAddLevel}
+                onClick={() => handleAddLevel()}
                 className="p-2 bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600 hover:text-white rounded-xl transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4"
               >
                 <Plus size={16} /> Adicionar Nível
@@ -300,6 +314,22 @@ const PokerClockSettings: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    <div className="flex flex-col gap-1 mr-2">
+                      <button 
+                        onClick={() => handleAddLevel(index, 'above')}
+                        className="p-1 text-gray-600 hover:text-emerald-500 transition-all"
+                        title="Adicionar acima"
+                      >
+                        <ArrowUp size={12} />
+                      </button>
+                      <button 
+                        onClick={() => handleAddLevel(index, 'below')}
+                        className="p-1 text-gray-600 hover:text-emerald-500 transition-all"
+                        title="Adicionar abaixo"
+                      >
+                        <ArrowDown size={12} />
+                      </button>
+                    </div>
                     <button 
                       onClick={() => handleUpdateLevel(level.id, { isBreak: !level.isBreak })}
                       className={`p-2 rounded-lg transition-all ${level.isBreak ? 'bg-amber-500 text-black' : 'bg-gray-800 text-gray-500 hover:text-amber-500'}`}

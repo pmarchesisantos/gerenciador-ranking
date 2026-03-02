@@ -252,7 +252,7 @@ const Dashboard: React.FC = () => {
                 );
               })}
             </tbody>
-            <tfoot className="bg-gray-800/50 border-t border-gray-700">
+            <tfoot className="sticky bottom-0 z-10 bg-gray-800 border-t border-gray-700 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
               <tr>
                 <td colSpan={7} className="px-6 py-5 text-right text-[9px] font-black text-gray-500 uppercase tracking-widest">Total Acumulado do Ranking:</td>
                 <td className="px-6 py-5 text-right">
