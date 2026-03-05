@@ -55,6 +55,8 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const [customPaidPlaces, setCustomPaidPlaces] = useState<number | ''>('');
   const [valorAdministrativo, setValorAdministrativo] = useState<number>(0);
   const [manualRankingValue, setManualRankingValue] = useState<number | null>(null);
+  const [editedPrizes, setEditedPrizes] = useState<Record<number, number>>({});
+  const isLoaded = useRef(false);
 
   const financialRef = useRef<HTMLDivElement>(null);
   const prizeRef = useRef<HTMLDivElement>(null);
@@ -93,16 +95,29 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           setSelectedPlayers(parsed.selectedPlayers || []);
           setMultiplier(parsed.multiplier || 1);
           setSelectedCategoryId(parsed.selectedCategoryId || '');
+          setCustomPaidPlaces(parsed.customPaidPlaces || '');
+          setValorAdministrativo(parsed.valorAdministrativo || 0);
+          setManualRankingValue(parsed.manualRankingValue !== undefined ? parsed.manualRankingValue : null);
+          setEditedPrizes(parsed.editedPrizes || {});
         } catch (e) { console.error(e); }
       }
+      isLoaded.current = true;
     }
   }, [activeRanking]);
 
   useEffect(() => {
     if (activeRanking && selectedPlayers.length > 0) {
-      localStorage.setItem(`draft_${activeRanking.id}`, JSON.stringify({ selectedPlayers, multiplier, selectedCategoryId }));
+      localStorage.setItem(`draft_${activeRanking.id}`, JSON.stringify({ 
+        selectedPlayers, 
+        multiplier, 
+        selectedCategoryId,
+        customPaidPlaces,
+        valorAdministrativo,
+        manualRankingValue,
+        editedPrizes
+      }));
     }
-  }, [selectedPlayers, multiplier, selectedCategoryId, activeRanking]);
+  }, [selectedPlayers, multiplier, selectedCategoryId, activeRanking, customPaidPlaces, valorAdministrativo, manualRankingValue, editedPrizes]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -209,6 +224,11 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   
   const valorLiquido = totalBruto - valorRake - valorRanking - valorAdministrativo;
 
+  useEffect(() => {
+    if (!isLoaded.current) return;
+    setEditedPrizes({});
+  }, [customPaidPlaces]);
+
   const prizeSuggestions = useMemo(() => {
     const playerCount = selectedPlayers.length;
     if (playerCount === 0) return [];
@@ -241,6 +261,13 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     }));
   }, [selectedPlayers.length, valorLiquido, customPaidPlaces]);
 
+  const finalPrizes = useMemo(() => {
+    return prizeSuggestions.map((p, idx) => ({
+      ...p,
+      value: editedPrizes[idx] !== undefined ? editedPrizes[idx] : p.value
+    }));
+  }, [prizeSuggestions, editedPrizes]);
+
   useEffect(() => {
     if (isClockActive && activeRanking) {
       const timer = setTimeout(() => {
@@ -249,7 +276,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           playersRemaining: selectedPlayers.length - eliminatedCount,
           totalPlayers: selectedPlayers.length,
           totalPrize: valorLiquido,
-          prizeDistribution: prizeSuggestions.map((p, idx) => ({
+          prizeDistribution: finalPrizes.map((p, idx) => ({
             position: idx + 1,
             percentage: p.percent,
             value: p.value
@@ -258,7 +285,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
       }, 1000); // 1 second debounce
       return () => clearTimeout(timer);
     }
-  }, [selectedPlayers, valorLiquido, isClockActive, activeRanking, updatePokerClockConfig, prizeSuggestions]);
+  }, [selectedPlayers, valorLiquido, isClockActive, activeRanking, updatePokerClockConfig, finalPrizes]);
 
   const handleSave = async () => {
     // Se houver apenas um jogador sem posição definida, ele é o vencedor (1º lugar)
@@ -377,16 +404,23 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                     </div>
                   </td>
                   <td className="px-2 py-3 text-center">
-                    <button 
-                      onClick={() => toggleElimination(p.playerId)} 
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all relative ${p.eliminatedOrder ? 'bg-red-500 text-white border-red-400 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent hover:text-gray-600'}`}
-                    >
-                      {p.eliminatedOrder ? (
-                        <span className="text-[12px] font-black">{p.position}</span>
-                      ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      <button 
+                        onClick={() => toggleElimination(p.playerId)} 
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center border transition-all relative ${p.eliminatedOrder ? 'bg-red-500 text-white border-red-400 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent hover:text-gray-600'}`}
+                      >
                         <Check size={16} />
+                      </button>
+                      {p.eliminatedOrder && (
+                        <input 
+                          type="number"
+                          {...inputNumericProps}
+                          className="w-10 bg-gray-900 border border-gray-800 rounded text-center text-white text-[10px] font-black py-1.5 outline-none focus:border-red-500"
+                          value={p.position}
+                          onChange={(e) => handleEntryChange(p.playerId, 'position', Number(e.target.value))}
+                        />
                       )}
-                    </button>
+                    </div>
                   </td>
                   <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" value={p.rebuys || ''} onChange={(e) => handleEntryChange(p.playerId, 'rebuys', Number(e.target.value))} /></td>
                   <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" value={p.doubleRebuys || ''} onChange={(e) => handleEntryChange(p.playerId, 'doubleRebuys', Number(e.target.value))} /></td>
@@ -490,10 +524,19 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                            </div>
 
                            <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
-                              {prizeSuggestions.map((p, idx) => (
+                               {finalPrizes.map((p, idx) => (
                                 <div key={idx} className="flex justify-between items-center text-[10px] bg-black/20 p-2.5 rounded-xl border border-gray-800/30">
                                    <span className="font-black text-gray-500">{idx + 1}º Lugar ({p.percent}%):</span>
-                                   <span className="font-bold text-white tracking-tighter text-xs">R$ {formatCurrency(p.value)}</span>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-600">R$</span>
+                                      <input 
+                                        type="number"
+                                        {...inputNumericProps}
+                                        className="w-20 bg-transparent text-white font-bold text-right outline-none border-b border-gray-800 focus:border-amber-500"
+                                        value={p.value}
+                                        onChange={(e) => setEditedPrizes(prev => ({ ...prev, [idx]: Number(e.target.value) }))}
+                                      />
+                                    </div>
                                 </div>
                               ))}
                            </div>
