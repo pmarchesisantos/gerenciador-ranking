@@ -8,11 +8,21 @@ export interface Player {
   wins: number;
   dayPoints: number;
   accumulatedValue: number;
+  // Novos campos de cadastro
+  phone?: string;
+  birthDate?: string;
+  favoriteTeam?: string;
 }
 
 export interface ScoringConfig {
   [position: number]: number;
   baseAttendance: number;
+}
+
+export interface CustomValueField {
+  id: string;
+  name: string;
+  value: number;
 }
 
 export interface GameCategory {
@@ -22,6 +32,7 @@ export interface GameCategory {
   reBuy: number;
   reBuyDuplo: number;
   addOn: number;
+  customValues?: CustomValueField[];
   rake: number;
   rankingPercent: number;
 }
@@ -38,6 +49,7 @@ export interface WeeklyHistoryEntry {
     rebuys?: number;
     doubleRebuys?: number;
     addons?: number;
+    customValues?: { [fieldId: string]: number };
     totalValue?: number;
     paid?: boolean;
   }[];
@@ -71,4 +83,36 @@ export interface PokerHouse {
   profile?: ProfileData;
 }
 
-export type View = 'dashboard' | 'settings' | 'history' | 'profile';
+export interface BlindLevel {
+  id: string;
+  smallBlind: number;
+  bigBlind: number;
+  ante: number;
+  durationMinutes: number;
+  isBreak?: boolean;
+}
+
+export interface BlindStructure {
+  id: string;
+  name: string;
+  levels: BlindLevel[];
+}
+
+export interface PrizeDistribution {
+  position: number;
+  percentage: number;
+  value: number;
+}
+
+export interface PokerClockConfig {
+  tournamentName: string;
+  activeStructureId: string;
+  structures: BlindStructure[];
+  playersRemaining?: number;
+  totalPlayers?: number;
+  totalPrize?: number;
+  prizeDistribution?: PrizeDistribution[];
+  lastEliminationTime?: number;
+}
+
+export type View = 'dashboard' | 'settings' | 'history' | 'profile' | 'player-data' | 'poker-clock' | 'poker-clock-settings';

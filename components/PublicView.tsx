@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { db, collection, onSnapshot } from '../services/firebase';
-import { Trophy, Calendar, LogIn, ChevronRight, Search, Home, Instagram, Phone, User, X, MessageCircle } from 'lucide-react';
+import { Trophy, Calendar, LogIn, ChevronRight, Search, Home, Instagram, Phone, X, MessageCircle } from 'lucide-react';
 
 const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) => {
   const { house, loadingData, setViewingHouseId } = useRanking();
@@ -22,9 +22,12 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
 
   useEffect(() => {
     if (house.rankings.length > 0) {
-      setActiveTabId(house.rankings[0].id);
+      const currentActive = house.rankings.find(r => r.id === activeTabId);
+      if (!currentActive) {
+        setActiveTabId(house.rankings[0].id);
+      }
     }
-  }, [house.rankings]);
+  }, [house.rankings, activeTabId]);
 
   const isViewingSpecificHouse = !!house.id && house.id !== 'house_123';
 
@@ -98,6 +101,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
   }
 
   const activeRanking = house.rankings.find(r => r.id === activeTabId);
+  const totalAccumulated = activeRanking?.players.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0) || 0;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
@@ -172,11 +176,11 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
 
             {subView === 'ranking' ? (
               <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-                <div className="overflow-x-auto custom-scrollbar">
+                <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
                   <table className="w-full text-left min-w-[900px]">
                     <thead>
                       <tr className="bg-gray-800 text-gray-500 text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
-                        <th className="px-6 py-6 font-black">Pos.</th>
+                        <th className="px-6 py-6 font-black">Pos..</th>
                         <th className="px-6 py-6 font-black">Nome do Jogador</th>
                         <th className="px-6 py-6 font-black text-center text-emerald-500">Pts Totais</th>
                         <th className="px-6 py-6 font-black text-center">Pres.</th>
@@ -192,14 +196,18 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                           <tr key={p.id} className="hover:bg-emerald-600/[0.02] transition-colors">
                             <td className="px-6 py-5">
                               <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-black text-[10px] ${
-                                rank === 1 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
-                                rank === 2 ? 'bg-gray-300 text-black' :
-                                rank === 3 ? 'bg-amber-700 text-white' : 'bg-gray-700 text-gray-400 font-bold'
+                                rank >= 1 && rank <= 3 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
+                                rank >= 4 && rank <= 8 ? 'bg-blue-600 text-white' :
+                                rank === 9 ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-400 font-bold'
                               }`}>
                                 {rank}
                               </span>
                             </td>
-                            <td className="px-6 py-5 font-bold tracking-tight text-white text-sm">{p.name}</td>
+                            <td className={`px-6 py-5 font-bold tracking-tight text-sm ${
+                              rank >= 1 && rank <= 3 ? 'text-amber-400' : 
+                              rank >= 4 && rank <= 8 ? 'text-blue-400' :
+                              rank === 9 ? 'text-red-400' : 'text-white'
+                            }`}>{p.name}</td>
                             <td className="px-6 py-5 text-emerald-400 font-black text-center">{p.totalPoints}</td>
                             <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.attendances}</td>
                             <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.wins}</td>
@@ -213,6 +221,16 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                         );
                       })}
                     </tbody>
+                    <tfoot className="sticky bottom-0 z-10 bg-gray-800 border-t border-gray-700 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
+                      <tr>
+                        <td colSpan={6} className="px-6 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                          Total Acumulado do Ranking:
+                        </td>
+                        <td className="px-6 py-5 text-right font-black text-amber-500 text-lg">
+                          R$ {totalAccumulated.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        </td>
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </div>
@@ -229,11 +247,25 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                         <span className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-amber-500/20">2X</span>
                       )}
                     </div>
-                    <div className="space-y-1.5">
-                      {entry.results.sort((a,b) => a.position - b.position).slice(0, 5).map(res => (
-                        <div key={res.playerId} className="bg-black/30 border border-gray-800/40 px-4 py-2.5 rounded-xl flex items-center justify-between">
-                          <span className="text-gray-300 text-[11px] font-bold">{activeRanking.players.find(p => p.id === res.playerId)?.name || '...'}</span>
-                          <span className="text-emerald-500 text-[10px] font-black">{res.position}º (+{res.pointsEarned} pts)</span>
+                    {/* Exibição de todos os participantes da etapa no Histórico Público */}
+                    <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
+                      {entry.results.sort((a,b) => a.position - b.position).map(res => (
+                        <div key={res.playerId} className="bg-black/30 border border-gray-800/40 px-4 py-2.5 rounded-xl flex items-center justify-between group hover:bg-emerald-600/[0.05] transition-colors">
+                          <div className="flex items-center gap-3">
+                            <span className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-black ${
+                                res.position >= 1 && res.position <= 3 ? 'bg-amber-500 text-black' : 
+                                res.position >= 4 && res.position <= 8 ? 'bg-blue-600 text-white' :
+                                res.position === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500'
+                            }`}>
+                              {res.position}º
+                            </span>
+                            <span className={`text-[11px] font-bold ${
+                                res.position >= 1 && res.position <= 3 ? 'text-amber-400' : 
+                                res.position >= 4 && res.position <= 8 ? 'text-blue-400' :
+                                res.position === 9 ? 'text-red-400' : 'text-gray-300'
+                            }`}>{activeRanking.players.find(p => p.id === res.playerId)?.name || 'Removido'}</span>
+                          </div>
+                          <span className="text-emerald-500 text-[10px] font-black">+{res.pointsEarned} <span className="text-gray-600 text-[8px] uppercase">pts</span></span>
                         </div>
                       ))}
                     </div>
