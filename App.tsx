@@ -13,6 +13,7 @@ import PlayerData from './components/PlayerData';
 import PokerClock from './components/PokerClock';
 import PokerClockSettings from './components/PokerClockSettings';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
+import ErrorBoundary from './components/ErrorBoundary';
 import { LogOut, User, Menu, Shield, ArrowLeft, X } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
@@ -132,11 +133,13 @@ const RootContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <RankingProvider>
-        <RootContent />
-      </RankingProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <RankingProvider>
+          <RootContent />
+        </RankingProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   );
 };
 

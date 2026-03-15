@@ -40,6 +40,7 @@ export interface GameCategory {
 export interface WeeklyHistoryEntry {
   id: string;
   date: string;
+  name?: string;
   multiplier: number;
   categoryId?: string;
   results: {

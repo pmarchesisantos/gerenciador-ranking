@@ -41,6 +41,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const { activeRanking, addWeeklyResult, updatePokerClockConfig, house } = useRanking();
   const [searchTerm, setSearchTerm] = useState('');
   const [multiplier, setMultiplier] = useState(1);
+  const [stageName, setStageName] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [showFinancialTooltip, setShowFinancialTooltip] = useState(false);
@@ -95,22 +96,34 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           const parsed = JSON.parse(savedDraft);
           setSelectedPlayers(parsed.selectedPlayers || []);
           setMultiplier(parsed.multiplier || 1);
+          setStageName(parsed.stageName || '');
           setSelectedCategoryId(parsed.selectedCategoryId || '');
           setCustomPaidPlaces(parsed.customPaidPlaces || '');
           setValorAdministrativo(parsed.valorAdministrativo || 0);
           setManualRankingValue(parsed.manualRankingValue !== undefined ? parsed.manualRankingValue : null);
           setEditedPrizes(parsed.editedPrizes || {});
         } catch (e) { console.error(e); }
+      } else {
+        // Reset state if no draft found for this ranking
+        setSelectedPlayers([]);
+        setMultiplier(1);
+        setStageName('');
+        setSelectedCategoryId('');
+        setCustomPaidPlaces('');
+        setValorAdministrativo(0);
+        setManualRankingValue(null);
+        setEditedPrizes({});
       }
       isLoaded.current = true;
     }
   }, [activeRanking]);
 
   useEffect(() => {
-    if (activeRanking && selectedPlayers.length > 0) {
+    if (activeRanking && (selectedPlayers.length > 0 || stageName)) {
       localStorage.setItem(`draft_${activeRanking.id}`, JSON.stringify({ 
         selectedPlayers, 
         multiplier, 
+        stageName,
         selectedCategoryId,
         customPaidPlaces,
         valorAdministrativo,
@@ -118,7 +131,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
         editedPrizes
       }));
     }
-  }, [selectedPlayers, multiplier, selectedCategoryId, activeRanking, customPaidPlaces, valorAdministrativo, manualRankingValue, editedPrizes]);
+  }, [selectedPlayers, multiplier, stageName, selectedCategoryId, activeRanking, customPaidPlaces, valorAdministrativo, manualRankingValue, editedPrizes]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -326,7 +339,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     if (valid.length === 0) return alert('Defina a posição de ao menos um jogador.');
     setIsSaving(true);
     try {
-      await addWeeklyResult(valid, multiplier, selectedCategoryId);
+      await addWeeklyResult(valid, multiplier, selectedCategoryId, stageName);
       localStorage.removeItem(`draft_${activeRanking.id}`);
       onClose();
     } catch (err) { alert('Erro ao salvar'); } finally { setIsSaving(false); }
@@ -355,13 +368,21 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
 
         <div className="p-2 md:p-4 border-b border-gray-800 bg-black/40 shrink-0 space-y-2">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
+               <input 
+                 className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-gray-200 text-xs font-bold outline-none focus:border-emerald-500" 
+                 placeholder="Nome da Etapa (ex: Etapa 1)" 
+                 value={stageName} 
+                 onChange={(e) => setStageName(e.target.value)} 
+               />
+            </div>
+            <div className="md:col-span-2">
                <select className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-gray-200 text-xs font-bold outline-none focus:border-emerald-500" value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)}>
                  <option value="">Escolher Categoria...</option>
                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                </select>
             </div>
-            <div className="md:col-span-7 relative">
+            <div className="md:col-span-6 relative">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
                <input className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-gray-200 text-xs font-bold outline-none" placeholder="Buscar jogador..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                {searchTerm.length > 1 && (

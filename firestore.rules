@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: casas
+    // Fields: name, slug, ownerEmail, profile, pokerClockConfig
+    //
+    // Subcollection: rankings
+    // Fields: name, players, scoringConfig, history, gameCategories
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "pedro.marchesi2000@gmail.com" || 
+         request.auth.token.email == "admin@gmail.com");
+    }
+
+    function isOwner(casaData) {
+      return isAuthenticated() && 
+        casaData.ownerEmail.lower() == request.auth.token.email.lower();
+    }
+
+    function isValidCasa(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.slug is string && data.slug.size() > 0 && data.slug.size() < 100 &&
+             data.ownerEmail is string;
+    }
+
+    function isValidRanking(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() < 100;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /casas/{casaId} {
+      // Leitura pública permitida para visualização de rankings por slug
+      // ou se for o dono/admin
+      allow read: if true; 
+      
+      allow create: if isAuthenticated() && isValidCasa(request.resource.data) &&
+        (isSuperAdmin() || request.resource.data.ownerEmail.lower() == request.auth.token.email.lower());
+        
+      allow update: if isAuthenticated() && isValidCasa(request.resource.data) &&
+        (isSuperAdmin() || isOwner(resource.data));
+        
+      allow delete: if isAuthenticated() && (isSuperAdmin() || isOwner(resource.data));
+
+      match /rankings/{rankingId} {
+        allow read: if true;
+        
+        allow create: if isAuthenticated() && isValidRanking(request.resource.data) &&
+          (isSuperAdmin() || isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
+          
+        allow update: if isAuthenticated() && isValidRanking(request.resource.data) &&
+          (isSuperAdmin() || isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
+          
+        allow delete: if isAuthenticated() && 
+          (isSuperAdmin() || isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
+      }
+    }
+  }
+}

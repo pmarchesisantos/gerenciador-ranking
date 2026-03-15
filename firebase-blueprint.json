@@ -1,0 +1,40 @@
+{
+  "entities": {
+    "Casa": {
+      "title": "Casa",
+      "description": "Uma casa de poker (clube)",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "slug": { "type": "string" },
+        "ownerEmail": { "type": "string", "format": "email" },
+        "profile": { "type": "object" },
+        "pokerClockConfig": { "type": "object" }
+      },
+      "required": ["name", "slug", "ownerEmail"]
+    },
+    "Ranking": {
+      "title": "Ranking",
+      "description": "Um ranking dentro de uma casa de poker",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "players": { "type": "array" },
+        "scoringConfig": { "type": "object" },
+        "history": { "type": "array" },
+        "gameCategories": { "type": "array" }
+      },
+      "required": ["name"]
+    }
+  },
+  "firestore": {
+    "/casas/{casaId}": {
+      "schema": "Casa",
+      "description": "Coleção de casas de poker"
+    },
+    "/casas/{casaId}/rankings/{rankingId}": {
+      "schema": "Ranking",
+      "description": "Subcoleção de rankings de uma casa"
+    }
+  }
+}

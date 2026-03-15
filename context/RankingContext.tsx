@@ -13,7 +13,10 @@ import {
   addDoc,
   query,
   where,
-  getDocs
+  getDocs,
+  auth,
+  OperationType,
+  handleFirestoreError
 } from '../services/firebase';
 
 interface RankingContextType {
@@ -27,7 +30,8 @@ interface RankingContextType {
   removePlayer: (id: string) => Promise<void>;
   updatePlayer: (id: string, updates: Partial<Player>) => Promise<void>;
   updateScoringConfig: (config: ScoringConfig) => Promise<void>;
-  addWeeklyResult: (results: any[], multiplier: number, categoryId?: string) => Promise<void>;
+  addWeeklyResult: (results: any[], multiplier: number, categoryId?: string, name?: string) => Promise<void>;
+  updateHistoryEntryName: (entryId: string, newName: string) => Promise<void>;
   deleteHistoryEntry: (id: string) => Promise<void>;
   updateHouseName: (name: string) => Promise<void>;
   updateHouseSlug: (slug: string) => Promise<void>;
@@ -172,26 +176,34 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return;
         }
         const q = query(collection(db, 'casas'), where('slug', '==', viewingHouseId));
-        const snap = await getDocs(q);
-        setResolvedHouseDocId(!snap.empty ? snap.docs[0].id : null);
+        try {
+          const snap = await getDocs(q);
+          setResolvedHouseDocId(!snap.empty ? snap.docs[0].id : null);
+        } catch (error) {
+          handleFirestoreError(error, OperationType.LIST, 'casas');
+        }
         setLoadingData(false);
         return;
       }
       if (user && !isSuperAdmin) {
         const email = user.email?.toLowerCase().trim();
         const q = query(collection(db, 'casas'), where('ownerEmail', '==', email));
-        const snap = await getDocs(q);
-        if (!snap.empty) {
-          const houseDoc = snap.docs[0];
-          setResolvedHouseDocId(houseDoc.id);
-          const correctSlug = houseDoc.data().slug || houseDoc.id;
-          if (viewingHouseId !== correctSlug) {
-            setViewingHouseId(correctSlug);
-            safeNavigate(`/c/${correctSlug}`, 'replace');
+        try {
+          const snap = await getDocs(q);
+          if (!snap.empty) {
+            const houseDoc = snap.docs[0];
+            setResolvedHouseDocId(houseDoc.id);
+            const correctSlug = houseDoc.data().slug || houseDoc.id;
+            if (viewingHouseId !== correctSlug) {
+              setViewingHouseId(correctSlug);
+              safeNavigate(`/c/${correctSlug}`, 'replace');
+            }
+          } else {
+            setHouse({ ...EMPTY_HOUSE, name: 'Clube não localizado' });
+            setResolvedHouseDocId(null);
           }
-        } else {
-          setHouse({ ...EMPTY_HOUSE, name: 'Clube não localizado' });
-          setResolvedHouseDocId(null);
+        } catch (error) {
+          handleFirestoreError(error, OperationType.LIST, 'casas');
         }
         setLoadingData(false);
         return;
@@ -204,8 +216,12 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return;
         }
         const q = query(collection(db, 'casas'), where('slug', '==', viewingHouseId));
-        const snap = await getDocs(q);
-        setResolvedHouseDocId(!snap.empty ? snap.docs[0].id : viewingHouseId);
+        try {
+          const snap = await getDocs(q);
+          setResolvedHouseDocId(!snap.empty ? snap.docs[0].id : viewingHouseId);
+        } catch (error) {
+          handleFirestoreError(error, OperationType.LIST, 'casas');
+        }
         setLoadingData(false);
       }
     };
@@ -230,6 +246,8 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           setPokerClockConfig(data.pokerClockConfig);
         }
       }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, `casas/${resolvedHouseDocId}`);
     });
     const unsubRankings = onSnapshot(rankingsCollRef, (snapshot) => {
       const rankingsData = snapshot.docs.map(doc => ({ 
@@ -241,6 +259,8 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         scoringConfig: doc.data().scoringConfig || { ...INITIAL_SCORING_CONFIG }
       })) as Ranking[];
       setHouse(prev => ({ ...prev, rankings: rankingsData }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `casas/${resolvedHouseDocId}/rankings`);
     });
     return () => { unsubHouse(); unsubRankings(); };
   }, [resolvedHouseDocId]);
@@ -256,30 +276,80 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const activeRanking = house.rankings.find(r => r.id === activeRankingId) || null;
 
-  const updateHouseName = useCallback(async (name: string) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId), { name }); }, [resolvedHouseDocId]);
+  const updateHouseName = useCallback(async (name: string) => { 
+    if (resolvedHouseDocId) {
+      try {
+        await updateDoc(doc(db, 'casas', resolvedHouseDocId), { name }); 
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}`);
+      }
+    }
+  }, [resolvedHouseDocId]);
   const updateHouseSlug = useCallback(async (slug: string) => { 
     if (!resolvedHouseDocId) return;
     const s = slug.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-    await updateDoc(doc(db, 'casas', resolvedHouseDocId), { slug: s });
-    setViewingHouseId(s);
+    try {
+      await updateDoc(doc(db, 'casas', resolvedHouseDocId), { slug: s });
+      setViewingHouseId(s);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}`);
+    }
   }, [resolvedHouseDocId]);
-  const updateProfileData = useCallback(async (profile: ProfileData) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId), { profile }); }, [resolvedHouseDocId]);
+  const updateProfileData = useCallback(async (profile: ProfileData) => { 
+    if (resolvedHouseDocId) {
+      try {
+        await updateDoc(doc(db, 'casas', resolvedHouseDocId), { profile }); 
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}`);
+      }
+    }
+  }, [resolvedHouseDocId]);
   const addRanking = useCallback(async (name: string) => {
     if (!resolvedHouseDocId) return;
     const rankingsCollRef = collection(db, 'casas', resolvedHouseDocId, 'rankings');
-    const docRef = await addDoc(rankingsCollRef, { name, players: [], scoringConfig: { ...INITIAL_SCORING_CONFIG }, history: [], gameCategories: [] });
-    setActiveRankingId(docRef.id);
+    try {
+      const docRef = await addDoc(rankingsCollRef, { name, players: [], scoringConfig: { ...INITIAL_SCORING_CONFIG }, history: [], gameCategories: [] });
+      setActiveRankingId(docRef.id);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `casas/${resolvedHouseDocId}/rankings`);
+    }
   }, [resolvedHouseDocId]);
-  const deleteRanking = useCallback(async (id: string) => { if (resolvedHouseDocId) await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id)); }, [resolvedHouseDocId]);
-  const updateRankingName = useCallback(async (id: string, name: string) => { if (resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id), { name }); }, [resolvedHouseDocId]);
-  const updateGameCategories = useCallback(async (categories: GameCategory[]) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { gameCategories: categories }); }, [activeRanking, resolvedHouseDocId]);
+  const deleteRanking = useCallback(async (id: string) => { 
+    if (resolvedHouseDocId) {
+      try {
+        await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id)); 
+      } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, `casas/${resolvedHouseDocId}/rankings/${id}`);
+      }
+    }
+  }, [resolvedHouseDocId]);
+  const updateRankingName = useCallback(async (id: string, name: string) => { 
+    if (resolvedHouseDocId) {
+      try {
+        await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id), { name }); 
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${id}`);
+      }
+    }
+  }, [resolvedHouseDocId]);
+  const updateGameCategories = useCallback(async (categories: GameCategory[]) => { 
+    if (activeRanking && resolvedHouseDocId) {
+      try {
+        await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { gameCategories: categories }); 
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+      }
+    }
+  }, [activeRanking, resolvedHouseDocId]);
 
   const updatePokerClockConfig = useCallback(async (config: Partial<PokerClockConfig>) => {
     if (!resolvedHouseDocId) return;
     setPokerClockConfig(prev => {
       const newConfig = { ...prev, ...config };
       // Update Firestore in the background
-      updateDoc(doc(db, 'casas', resolvedHouseDocId), { pokerClockConfig: newConfig }).catch(console.error);
+      updateDoc(doc(db, 'casas', resolvedHouseDocId), { pokerClockConfig: newConfig }).catch(error => {
+        handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}`);
+      });
       return newConfig;
     });
   }, [resolvedHouseDocId]);
@@ -297,14 +367,42 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       accumulatedValue: 0,
       ...extraData
     };
-    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: [...(activeRanking.players || []), p] });
+    try {
+      await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: [...(activeRanking.players || []), p] });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+    }
     return p;
   }, [activeRanking, resolvedHouseDocId]);
-  const removePlayer = useCallback(async (id: string) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.filter(p => p.id !== id) }); }, [activeRanking, resolvedHouseDocId]);
-  const updatePlayer = useCallback(async (id: string, updates: Partial<Player>) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.map(p => p.id === id ? { ...p, ...updates } : p) }); }, [activeRanking, resolvedHouseDocId]);
-  const updateScoringConfig = useCallback(async (config: ScoringConfig) => { if (activeRanking && resolvedHouseDocId) await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { scoringConfig: config }); }, [activeRanking, resolvedHouseDocId]);
+  const removePlayer = useCallback(async (id: string) => { 
+    if (activeRanking && resolvedHouseDocId) {
+      try {
+        await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.filter(p => p.id !== id) }); 
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+      }
+    }
+  }, [activeRanking, resolvedHouseDocId]);
+  const updatePlayer = useCallback(async (id: string, updates: Partial<Player>) => { 
+    if (activeRanking && resolvedHouseDocId) {
+      try {
+        await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.map(p => p.id === id ? { ...p, ...updates } : p) }); 
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+      }
+    }
+  }, [activeRanking, resolvedHouseDocId]);
+  const updateScoringConfig = useCallback(async (config: ScoringConfig) => { 
+    if (activeRanking && resolvedHouseDocId) {
+      try {
+        await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { scoringConfig: config }); 
+      } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+      }
+    }
+  }, [activeRanking, resolvedHouseDocId]);
 
-  const addWeeklyResult = useCallback(async (results: any[], multiplier: number, categoryId?: string) => {
+  const addWeeklyResult = useCallback(async (results: any[], multiplier: number, categoryId?: string, name?: string) => {
     if (!activeRanking || !resolvedHouseDocId) return;
     let currentPlayers = [...activeRanking.players];
     const finalResults = results.map(res => {
@@ -329,7 +427,14 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
     const config = activeRanking.scoringConfig || { ...INITIAL_SCORING_CONFIG };
     const historyResults = finalResults.map(r => ({ ...r, pointsEarned: ((config[r.position] || 0) + (config.baseAttendance || 0)) * multiplier }));
-    const entry: WeeklyHistoryEntry = { id: Date.now().toString(), date: new Date().toISOString(), multiplier, categoryId, results: historyResults };
+    const entry: WeeklyHistoryEntry = { 
+      id: Date.now().toString(), 
+      date: new Date().toISOString(), 
+      name,
+      multiplier, 
+      categoryId, 
+      results: historyResults 
+    };
     const updatedPlayers = currentPlayers.map(player => {
       const res = historyResults.find(r => r.playerId === player.id);
       if (res) {
@@ -337,7 +442,23 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       return { ...player, dayPoints: 0 };
     });
-    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: [entry, ...(activeRanking.history || [])] });
+    try {
+      await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: [entry, ...(activeRanking.history || [])] });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+    }
+  }, [activeRanking, resolvedHouseDocId]);
+
+  const updateHistoryEntryName = useCallback(async (entryId: string, newName: string) => {
+    if (!activeRanking || !resolvedHouseDocId) return;
+    const updatedHistory = (activeRanking.history || []).map(h => 
+      h.id === entryId ? { ...h, name: newName } : h
+    );
+    try {
+      await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { history: updatedHistory });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+    }
   }, [activeRanking, resolvedHouseDocId]);
 
   const deleteHistoryEntry = useCallback(async (entryId: string) => {
@@ -365,14 +486,18 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       return state;
     });
-    await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: updatedHistory });
+    try {
+      await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: updatedHistory });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+    }
   }, [activeRanking, resolvedHouseDocId]);
 
   return (
     <RankingContext.Provider value={{ 
       house, activeRanking, setActiveRankingId, setViewingHouseId: updateViewingHouseId,
       currentView, setCurrentView, addPlayer, removePlayer, updatePlayer,
-      updateScoringConfig, addWeeklyResult, deleteHistoryEntry, updateHouseName, updateHouseSlug,
+      updateScoringConfig, addWeeklyResult, updateHistoryEntryName, deleteHistoryEntry, updateHouseName, updateHouseSlug,
       updateProfileData, addRanking, deleteRanking, updateRankingName, updateGameCategories,
       updatePokerClockConfig, pokerClockConfig,
       loadingData, unauthorized
