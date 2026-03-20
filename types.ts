@@ -19,6 +19,12 @@ export interface ScoringConfig {
   baseAttendance: number;
 }
 
+export interface CustomValueField {
+  id: string;
+  name: string;
+  value: number;
+}
+
 export interface GameCategory {
   id: string;
   name: string;
@@ -26,6 +32,7 @@ export interface GameCategory {
   reBuy: number;
   reBuyDuplo: number;
   addOn: number;
+  customValues?: CustomValueField[];
   rake: number;
   rankingPercent: number;
 }
@@ -33,6 +40,7 @@ export interface GameCategory {
 export interface WeeklyHistoryEntry {
   id: string;
   date: string;
+  name?: string;
   multiplier: number;
   categoryId?: string;
   results: {
@@ -42,6 +50,7 @@ export interface WeeklyHistoryEntry {
     rebuys?: number;
     doubleRebuys?: number;
     addons?: number;
+    customValues?: { [fieldId: string]: number };
     totalValue?: number;
     paid?: boolean;
   }[];

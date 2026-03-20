@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { db, collection, onSnapshot, setDoc, doc, deleteDoc, getDocs, firebaseConfig, query, where } from '../services/firebase';
+import { db, collection, onSnapshot, setDoc, doc, deleteDoc, getDocs, firebaseConfig, query, where, handleFirestoreError, OperationType } from '../services/firebase';
 import { useRanking } from '../context/RankingContext';
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
@@ -32,7 +32,7 @@ const SuperAdminDashboard: React.FC = () => {
       setHouses(data);
       setLoading(false);
     }, (error) => {
-      console.error("Erro ao escutar mudanças:", error);
+      handleFirestoreError(error, OperationType.LIST, 'casas');
       setLoading(false);
     });
     return unsub;

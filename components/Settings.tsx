@@ -182,7 +182,7 @@ const Settings: React.FC = () => {
            <div className="flex justify-between items-center">
              <h3 className="text-xl font-bold text-white">Categorias de Jogos</h3>
              <button 
-               onClick={() => setEditingCategory({ name: '', buyIn: 0, reBuy: 0, reBuyDuplo: 0, addOn: 0, rake: 0, rankingPercent: 0 })}
+               onClick={() => setEditingCategory({ name: '', buyIn: 0, reBuy: 0, reBuyDuplo: 0, addOn: 0, customValues: [], rake: 0, rankingPercent: 0 })}
                className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all"
              >
                <Plus size={16} /> Nova Categoria
@@ -239,6 +239,67 @@ const Settings: React.FC = () => {
                      />
                    </div>
                 </div>
+
+                {/* Campos Personalizados */}
+                <div className="space-y-4 pt-4 border-t border-gray-800/50">
+                  <div className="flex justify-between items-center">
+                    <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Campos de Valores Personalizados</h5>
+                    <button 
+                      onClick={() => {
+                        const currentCustom = editingCategory.customValues || [];
+                        setEditingCategory({
+                          ...editingCategory,
+                          customValues: [...currentCustom, { id: Date.now().toString(), name: '', value: 0 }]
+                        });
+                      }}
+                      className="text-emerald-500 hover:text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1"
+                    >
+                      <Plus size={12} /> Adicionar Campo
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {(editingCategory.customValues || []).map((field, idx) => (
+                      <div key={field.id} className="bg-black/20 p-4 rounded-2xl border border-gray-800/50 space-y-3 relative group">
+                        <button 
+                          onClick={() => {
+                            const updated = (editingCategory.customValues || []).filter((_, i) => i !== idx);
+                            setEditingCategory({ ...editingCategory, customValues: updated });
+                          }}
+                          className="absolute top-2 right-2 text-gray-600 hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Nome do Campo</label>
+                          <input 
+                            className="w-full bg-black/40 border border-gray-800 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500"
+                            placeholder="Ex: Buy-in Dobrado"
+                            value={field.name}
+                            onChange={(e) => {
+                              const updated = [...(editingCategory.customValues || [])];
+                              updated[idx] = { ...updated[idx], name: e.target.value };
+                              setEditingCategory({ ...editingCategory, customValues: updated });
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Valor (R$)</label>
+                          <input 
+                            type="number" {...inputNumericProps}
+                            className="w-full bg-black/40 border border-gray-800 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500"
+                            value={field.value}
+                            onChange={(e) => {
+                              const updated = [...(editingCategory.customValues || [])];
+                              updated[idx] = { ...updated[idx], value: Number(e.target.value) };
+                              setEditingCategory({ ...editingCategory, customValues: updated });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">RAKE (%)</label>
@@ -282,6 +343,9 @@ const Settings: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <div className="bg-black/30 p-3 rounded-2xl border border-gray-800 text-[11px]"><p className="text-gray-600 mb-1">Buy-in</p>R$ {cat.buyIn.toFixed(2)}</div>
                     <div className="bg-black/30 p-3 rounded-2xl border border-gray-800 text-[11px]"><p className="text-gray-600 mb-1">Re-buy</p>R$ {cat.reBuy.toFixed(2)}</div>
+                    {(cat.customValues || []).map(field => (
+                      <div key={field.id} className="bg-black/30 p-3 rounded-2xl border border-gray-800 text-[11px]"><p className="text-gray-600 mb-1">{field.name}</p>R$ {field.value.toFixed(2)}</div>
+                    ))}
                   </div>
                </div>
              ))}

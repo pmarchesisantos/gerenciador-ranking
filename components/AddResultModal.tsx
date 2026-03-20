@@ -16,6 +16,7 @@ interface PlayerEntry {
   rebuys: number;
   doubleRebuys: number;
   addons: number; 
+  customValues: { [fieldId: string]: number };
   paid: boolean;
   isNew?: boolean;
   phone?: string;
@@ -40,6 +41,8 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const { activeRanking, addWeeklyResult, updatePokerClockConfig, house } = useRanking();
   const [searchTerm, setSearchTerm] = useState('');
   const [multiplier, setMultiplier] = useState(1);
+  const [stageName, setStageName] = useState('');
+  const [stageDate, setStageDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [showFinancialTooltip, setShowFinancialTooltip] = useState(false);
@@ -94,22 +97,37 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           const parsed = JSON.parse(savedDraft);
           setSelectedPlayers(parsed.selectedPlayers || []);
           setMultiplier(parsed.multiplier || 1);
+          setStageName(parsed.stageName || '');
+          setStageDate(parsed.stageDate || new Date().toISOString().split('T')[0]);
           setSelectedCategoryId(parsed.selectedCategoryId || '');
           setCustomPaidPlaces(parsed.customPaidPlaces || '');
           setValorAdministrativo(parsed.valorAdministrativo || 0);
           setManualRankingValue(parsed.manualRankingValue !== undefined ? parsed.manualRankingValue : null);
           setEditedPrizes(parsed.editedPrizes || {});
         } catch (e) { console.error(e); }
+      } else {
+        // Reset state if no draft found for this ranking
+        setSelectedPlayers([]);
+        setMultiplier(1);
+        setStageName('');
+        setStageDate(new Date().toISOString().split('T')[0]);
+        setSelectedCategoryId('');
+        setCustomPaidPlaces('');
+        setValorAdministrativo(0);
+        setManualRankingValue(null);
+        setEditedPrizes({});
       }
       isLoaded.current = true;
     }
   }, [activeRanking]);
 
   useEffect(() => {
-    if (activeRanking && selectedPlayers.length > 0) {
+    if (activeRanking && (selectedPlayers.length > 0 || stageName)) {
       localStorage.setItem(`draft_${activeRanking.id}`, JSON.stringify({ 
         selectedPlayers, 
         multiplier, 
+        stageName,
+        stageDate,
         selectedCategoryId,
         customPaidPlaces,
         valorAdministrativo,
@@ -117,7 +135,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
         editedPrizes
       }));
     }
-  }, [selectedPlayers, multiplier, selectedCategoryId, activeRanking, customPaidPlaces, valorAdministrativo, manualRankingValue, editedPrizes]);
+  }, [selectedPlayers, multiplier, stageName, selectedCategoryId, activeRanking, customPaidPlaces, valorAdministrativo, manualRankingValue, editedPrizes]);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -135,7 +153,16 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
 
   const addPlayerToStage = (player: Player) => {
     if (selectedPlayers.some(p => p.playerId === player.id)) return;
-    setSelectedPlayers(prev => [{ playerId: player.id, name: player.name, position: 0, rebuys: 0, doubleRebuys: 0, addons: 0, paid: false }, ...prev]);
+    setSelectedPlayers(prev => [{ 
+      playerId: player.id, 
+      name: player.name, 
+      position: 0, 
+      rebuys: 0, 
+      doubleRebuys: 0, 
+      addons: 0, 
+      customValues: {},
+      paid: false 
+    }, ...prev]);
     setSearchTerm('');
   };
 
@@ -147,6 +174,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
       rebuys: 0, 
       doubleRebuys: 0, 
       addons: 0, 
+      customValues: {},
       paid: false, 
       isNew: true,
       ...extraNewPlayer
@@ -212,7 +240,14 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const calculatePlayerGross = (entry: PlayerEntry) => {
     if (!selectedCategory) return 0;
     const addonTotal = (entry.addons > 0) ? selectedCategory.addOn : 0;
-    return selectedCategory.buyIn + (entry.rebuys * selectedCategory.reBuy) + (entry.doubleRebuys * selectedCategory.reBuyDuplo) + addonTotal;
+    let customTotal = 0;
+    if (selectedCategory.customValues) {
+      selectedCategory.customValues.forEach(field => {
+        const qty = entry.customValues[field.id] || 0;
+        customTotal += qty * field.value;
+      });
+    }
+    return selectedCategory.buyIn + (entry.rebuys * selectedCategory.reBuy) + (entry.doubleRebuys * selectedCategory.reBuyDuplo) + addonTotal + customTotal;
   };
 
   const totalBruto = useMemo(() => selectedPlayers.reduce((acc, p) => acc + calculatePlayerGross(p), 0), [selectedPlayers, selectedCategory]);
@@ -299,13 +334,21 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     }
 
     const valid = finalPlayers.filter(p => p.position > 0).map(p => ({ 
-      ...p, playerName: p.name, totalValue: p.position === 1 ? valorRanking : 0 
+      ...p, 
+      playerName: p.name, 
+      totalValue: p.position === 1 ? valorRanking : 0,
+      customValues: p.customValues
     }));
     
     if (valid.length === 0) return alert('Defina a posição de ao menos um jogador.');
     setIsSaving(true);
     try {
-      await addWeeklyResult(valid, multiplier, selectedCategoryId);
+      // Convert stageDate to ISO string with current time to maintain sorting if multiple entries on same day
+      const now = new Date();
+      const [year, month, day] = stageDate.split('-').map(Number);
+      const finalDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString();
+      
+      await addWeeklyResult(valid, multiplier, selectedCategoryId, stageName, finalDate);
       localStorage.removeItem(`draft_${activeRanking.id}`);
       onClose();
     } catch (err) { alert('Erro ao salvar'); } finally { setIsSaving(false); }
@@ -334,13 +377,29 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
 
         <div className="p-2 md:p-4 border-b border-gray-800 bg-black/40 shrink-0 space-y-2">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
-            <div className="md:col-span-3">
+            <div className="md:col-span-2">
+               <input 
+                 className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-gray-200 text-xs font-bold outline-none focus:border-emerald-500" 
+                 placeholder="Nome da Etapa (ex: Etapa 1)" 
+                 value={stageName} 
+                 onChange={(e) => setStageName(e.target.value)} 
+               />
+            </div>
+            <div className="md:col-span-2">
+               <input 
+                 type="date"
+                 className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-gray-200 text-xs font-bold outline-none focus:border-emerald-500" 
+                 value={stageDate} 
+                 onChange={(e) => setStageDate(e.target.value)} 
+               />
+            </div>
+            <div className="md:col-span-2">
                <select className="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-gray-200 text-xs font-bold outline-none focus:border-emerald-500" value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)}>
                  <option value="">Escolher Categoria...</option>
                  {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                </select>
             </div>
-            <div className="md:col-span-7 relative">
+            <div className="md:col-span-6 relative">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600" size={14} />
                <input className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-gray-200 text-xs font-bold outline-none" placeholder="Buscar jogador..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                {searchTerm.length > 1 && (
@@ -387,6 +446,9 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                 <th className="px-2 py-4 text-center w-28">Re-buy</th>
                 <th className="px-2 py-4 text-center w-28">Re-buy Duplo</th>
                 <th className="px-2 py-4 text-center w-28">Add-on</th>
+                {selectedCategory?.customValues?.map(field => (
+                  <th key={field.id} className="px-2 py-4 text-center w-28">{field.name}</th>
+                ))}
                 <th className="px-2 py-4 text-center w-20">Pago</th>
                 <th className="px-4 py-4 text-right">Bruto</th>
                 <th className="px-4 py-4 w-16"></th>
@@ -427,6 +489,19 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                   <td className="px-2 py-3 text-center">
                     <button onClick={() => handleEntryChange(p.playerId, 'addons', p.addons > 0 ? 0 : 1)} className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.addons > 0 ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent'}`}><Check size={16} /></button>
                   </td>
+                  {selectedCategory?.customValues?.map(field => (
+                    <td key={field.id} className="px-2 py-3">
+                      <input 
+                        type="number" {...inputNumericProps} 
+                        className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" 
+                        value={p.customValues[field.id] || ''} 
+                        onChange={(e) => {
+                          const updatedCustom = { ...p.customValues, [field.id]: Number(e.target.value) };
+                          handleEntryChange(p.playerId, 'customValues', updatedCustom);
+                        }} 
+                      />
+                    </td>
+                  ))}
                   <td className="px-2 py-3 text-center">
                     <button onClick={() => handleEntryChange(p.playerId, 'paid', !p.paid)} className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.paid ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent'}`}><Check size={16} /></button>
                   </td>
@@ -455,6 +530,18 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                                 <span className="text-gray-500">Valor Bruto:</span> 
                                 <span className="text-white">R$ {formatCurrency(totalBruto)}</span>
                               </div>
+
+                              {selectedCategory?.customValues?.map(field => {
+                                const totalField = selectedPlayers.reduce((acc, p) => acc + (p.customValues[field.id] || 0) * field.value, 0);
+                                if (totalField === 0) return null;
+                                return (
+                                  <div key={field.id} className="flex justify-between items-center text-[10px] pl-2 border-l border-gray-800">
+                                    <span className="text-gray-600">{field.name}:</span>
+                                    <span className="text-gray-400">R$ {formatCurrency(totalField)}</span>
+                                  </div>
+                                );
+                              })}
+
                               <div className="flex justify-between items-center">
                                 <span className="text-gray-500">Rake ({selectedCategory?.rake || 0}%):</span> 
                                 <span className="text-red-500">- R$ {formatCurrency(valorRake)}</span>

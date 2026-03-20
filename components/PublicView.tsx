@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { db, collection, onSnapshot } from '../services/firebase';
+import { db, collection, onSnapshot, handleFirestoreError, OperationType } from '../services/firebase';
 import { Trophy, Calendar, LogIn, ChevronRight, Search, Home, Instagram, Phone, X, MessageCircle } from 'lucide-react';
 
 const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) => {
@@ -10,12 +10,16 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
   const [activeTabId, setActiveTabId] = useState('');
   const [subView, setSubView] = useState<'ranking' | 'history'>('ranking');
   const [houseSearch, setHouseSearch] = useState('');
+  const [historySearch, setHistorySearch] = useState('');
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [selectedEntryId, setSelectedEntryId] = useState<string>('');
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'casas'), (snap) => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setAllHouses(data);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'casas');
     });
     return unsub;
   }, []);
@@ -28,6 +32,18 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
       }
     }
   }, [house.rankings, activeTabId]);
+
+  const activeRanking = house.rankings.find(r => r.id === activeTabId);
+
+  useEffect(() => {
+    if (activeRanking && activeRanking.history.length > 0) {
+      // Default to the most recent entry if none selected or if selected is not in current ranking
+      const exists = activeRanking.history.some(h => h.id === selectedEntryId);
+      if (!selectedEntryId || !exists) {
+        setSelectedEntryId(activeRanking.history[0].id);
+      }
+    }
+  }, [activeRanking, selectedEntryId]);
 
   const isViewingSpecificHouse = !!house.id && house.id !== 'house_123';
 
@@ -100,8 +116,9 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
     );
   }
 
-  const activeRanking = house.rankings.find(r => r.id === activeTabId);
   const totalAccumulated = activeRanking?.players.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0) || 0;
+
+  const selectedEntry = activeRanking?.history.find(h => h.id === selectedEntryId);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
@@ -235,42 +252,113 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                {activeRanking.history.map(entry => (
-                  <div key={entry.id} className="bg-gray-900 border border-gray-800 rounded-2xl p-6 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
+              <div className="space-y-6">
+                {activeRanking.history.length > 0 ? (
+                  <>
+                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <Calendar size={18} className="text-emerald-500" />
-                        <h4 className="text-white font-black text-sm">{new Date(entry.date).toLocaleDateString('pt-BR')}</h4>
+                        <Calendar size={20} className="text-emerald-500" />
+                        <h3 className="text-white font-black text-lg tracking-tight">Histórico de Etapas</h3>
                       </div>
-                      {entry.multiplier > 1 && (
-                        <span className="bg-amber-500/10 text-amber-500 px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border border-amber-500/20">2X</span>
-                      )}
-                    </div>
-                    {/* Exibição de todos os participantes da etapa no Histórico Público */}
-                    <div className="space-y-1.5 max-h-[400px] overflow-y-auto custom-scrollbar pr-1">
-                      {entry.results.sort((a,b) => a.position - b.position).map(res => (
-                        <div key={res.playerId} className="bg-black/30 border border-gray-800/40 px-4 py-2.5 rounded-xl flex items-center justify-between group hover:bg-emerald-600/[0.05] transition-colors">
-                          <div className="flex items-center gap-3">
-                            <span className={`w-5 h-5 flex items-center justify-center rounded text-[9px] font-black ${
-                                res.position >= 1 && res.position <= 3 ? 'bg-amber-500 text-black' : 
-                                res.position >= 4 && res.position <= 8 ? 'bg-blue-600 text-white' :
-                                res.position === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500'
-                            }`}>
-                              {res.position}º
-                            </span>
-                            <span className={`text-[11px] font-bold ${
-                                res.position >= 1 && res.position <= 3 ? 'text-amber-400' : 
-                                res.position >= 4 && res.position <= 8 ? 'text-blue-400' :
-                                res.position === 9 ? 'text-red-400' : 'text-gray-300'
-                            }`}>{activeRanking.players.find(p => p.id === res.playerId)?.name || 'Removido'}</span>
-                          </div>
-                          <span className="text-emerald-500 text-[10px] font-black">+{res.pointsEarned} <span className="text-gray-600 text-[8px] uppercase">pts</span></span>
+                      
+                      <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                        <div className="relative flex-1 sm:w-64">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
+                          <input 
+                            className="w-full bg-gray-900 border border-gray-800 rounded-xl pl-11 pr-4 py-3 text-white text-xs font-bold outline-none focus:border-emerald-500 transition-all"
+                            placeholder="Buscar jogador na etapa..."
+                            value={historySearch}
+                            onChange={(e) => setHistorySearch(e.target.value)}
+                          />
                         </div>
-                      ))}
+
+                        <div className="relative sm:w-64">
+                          <select
+                            value={selectedEntryId}
+                            onChange={(e) => setSelectedEntryId(e.target.value)}
+                            className="w-full bg-gray-900 border border-gray-800 text-white text-xs font-bold py-3 px-4 rounded-xl outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                          >
+                            {activeRanking.history.map(h => (
+                              <option key={h.id} value={h.id}>
+                                {h.name 
+                                  ? `${h.name} (${new Date(h.date).toLocaleDateString('pt-BR')})` 
+                                  : `${new Date(h.date).toLocaleDateString('pt-BR')} ${new Date(h.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+                                }
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronRight size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 rotate-90 pointer-events-none" />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+
+                    {selectedEntry ? (
+                      <div className="bg-gray-900 border border-gray-800 rounded-[2rem] p-6 md:p-8 space-y-6 shadow-2xl">
+                        <div className="flex items-center justify-between border-b border-gray-800 pb-6">
+                          <div className="space-y-1">
+                            <h4 className="text-white font-black text-xl tracking-tight">
+                              {selectedEntry.name || 'Etapa sem nome'}
+                            </h4>
+                            <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                              {new Date(selectedEntry.date).toLocaleDateString('pt-BR')}
+                            </p>
+                          </div>
+                          {selectedEntry.multiplier > 1 && (
+                            <div className="bg-amber-500 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                              Pontos {selectedEntry.multiplier}X
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-2">
+                          {selectedEntry.results
+                            .filter(res => {
+                              const player = activeRanking.players.find(p => p.id === res.playerId);
+                              return player?.name.toLowerCase().includes(historySearch.toLowerCase());
+                            })
+                            .sort((a,b) => a.position - b.position)
+                            .map(res => {
+                              const player = activeRanking.players.find(p => p.id === res.playerId);
+                              return (
+                                <div key={res.playerId} className="bg-black/40 border border-gray-800/50 p-4 rounded-2xl flex items-center justify-between group hover:bg-emerald-600/[0.03] transition-all">
+                                  <div className="flex items-center gap-4">
+                                    <span className={`w-8 h-8 flex items-center justify-center rounded-xl text-[11px] font-black shadow-sm ${
+                                        res.position >= 1 && res.position <= 3 ? 'bg-amber-500 text-black' : 
+                                        res.position >= 4 && res.position <= 8 ? 'bg-blue-600 text-white' :
+                                        res.position === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500'
+                                    }`}>
+                                      {res.position}º
+                                    </span>
+                                    <span className={`font-bold text-sm ${
+                                        res.position >= 1 && res.position <= 3 ? 'text-amber-400' : 
+                                        res.position >= 4 && res.position <= 8 ? 'text-blue-400' :
+                                        res.position === 9 ? 'text-red-400' : 'text-white'
+                                    }`}>
+                                      {player?.name || 'Jogador Removido'}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-emerald-500 font-black text-sm">+{res.pointsEarned}</span>
+                                    <span className="text-gray-600 text-[9px] font-black uppercase tracking-widest">pts</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          {selectedEntry.results.filter(res => {
+                              const player = activeRanking.players.find(p => p.id === res.playerId);
+                              return player?.name.toLowerCase().includes(historySearch.toLowerCase());
+                            }).length === 0 && (
+                              <div className="py-10 text-center text-gray-600 italic">Nenhum jogador encontrado com este nome nesta etapa.</div>
+                            )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-20 text-center text-gray-600 italic">Etapa não encontrada...</div>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-20 text-center text-gray-600 italic">Nenhum histórico disponível para este ranking.</div>
+                )}
               </div>
             )}
           </div>
