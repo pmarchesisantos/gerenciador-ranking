@@ -237,9 +237,19 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
+  const totals = useMemo(() => {
+    if (!selectedCategory) return { buyins: 0, rebuys: 0, doubleRebuys: 0, addons: 0 };
+    return {
+      buyins: selectedPlayers.length,
+      rebuys: selectedPlayers.reduce((acc, p) => acc + p.rebuys, 0),
+      doubleRebuys: selectedPlayers.reduce((acc, p) => acc + p.doubleRebuys, 0),
+      addons: selectedPlayers.reduce((acc, p) => acc + p.addons, 0)
+    };
+  }, [selectedPlayers, selectedCategory]);
+
   const calculatePlayerGross = (entry: PlayerEntry) => {
     if (!selectedCategory) return 0;
-    const addonTotal = (entry.addons > 0) ? selectedCategory.addOn : 0;
+    const addonTotal = entry.addons * selectedCategory.addOn;
     let customTotal = 0;
     if (selectedCategory.customValues) {
       selectedCategory.customValues.forEach(field => {
@@ -353,6 +363,34 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
       onClose();
     } catch (err) { alert('Erro ao salvar'); } finally { setIsSaving(false); }
   };
+
+  const NumericStepper: React.FC<{ 
+    value: number, 
+    onChange: (val: number) => void,
+    className?: string
+  }> = ({ value, onChange, className = "" }) => (
+    <div className={`flex items-center bg-black/40 border border-gray-800 rounded-lg overflow-hidden group/stepper ${className}`}>
+      <button 
+        onClick={() => onChange(Math.max(0, value - 1))}
+        className="p-2 hover:bg-emerald-600/20 text-gray-500 hover:text-emerald-500 transition-colors"
+      >
+        <ChevronDown size={14} />
+      </button>
+      <input 
+        type="number" 
+        {...inputNumericProps} 
+        className="w-full bg-transparent py-2 text-center text-white text-xs outline-none" 
+        value={value || ''} 
+        onChange={(e) => onChange(Number(e.target.value))} 
+      />
+      <button 
+        onClick={() => onChange(value + 1)}
+        className="p-2 hover:bg-emerald-600/20 text-gray-500 hover:text-emerald-500 transition-colors"
+      >
+        <ChevronUp size={14} />
+      </button>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-300 overflow-hidden">
@@ -484,19 +522,27 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                       )}
                     </div>
                   </td>
-                  <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" value={p.rebuys || ''} onChange={(e) => handleEntryChange(p.playerId, 'rebuys', Number(e.target.value))} /></td>
-                  <td className="px-2 py-3"><input type="number" {...inputNumericProps} className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" value={p.doubleRebuys || ''} onChange={(e) => handleEntryChange(p.playerId, 'doubleRebuys', Number(e.target.value))} /></td>
+                  <td className="px-2 py-3">
+                    <NumericStepper 
+                      value={p.rebuys} 
+                      onChange={(val) => handleEntryChange(p.playerId, 'rebuys', val)} 
+                    />
+                  </td>
+                  <td className="px-2 py-3">
+                    <NumericStepper 
+                      value={p.doubleRebuys} 
+                      onChange={(val) => handleEntryChange(p.playerId, 'doubleRebuys', val)} 
+                    />
+                  </td>
                   <td className="px-2 py-3 text-center">
                     <button onClick={() => handleEntryChange(p.playerId, 'addons', p.addons > 0 ? 0 : 1)} className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.addons > 0 ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent'}`}><Check size={16} /></button>
                   </td>
                   {selectedCategory?.customValues?.map(field => (
                     <td key={field.id} className="px-2 py-3">
-                      <input 
-                        type="number" {...inputNumericProps} 
-                        className="w-full bg-black/40 border border-gray-800 rounded-lg py-2 text-center text-white text-xs outline-none" 
-                        value={p.customValues[field.id] || ''} 
-                        onChange={(e) => {
-                          const updatedCustom = { ...p.customValues, [field.id]: Number(e.target.value) };
+                      <NumericStepper 
+                        value={p.customValues[field.id] || 0} 
+                        onChange={(val) => {
+                          const updatedCustom = { ...p.customValues, [field.id]: val };
                           handleEntryChange(p.playerId, 'customValues', updatedCustom);
                         }} 
                       />
@@ -526,21 +572,45 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                         <div className="absolute bottom-full left-0 mb-4 w-72 bg-gray-900 border border-emerald-500/40 rounded-2xl p-5 shadow-2xl z-[150] animate-in zoom-in-95">
                            <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest border-b border-gray-800 pb-2 mb-3">Resumo Financeiro</h4>
                            <div className="space-y-3 text-[11px] font-bold">
-                              <div className="flex justify-between items-center">
-                                <span className="text-gray-500">Valor Bruto:</span> 
-                                <span className="text-white">R$ {formatCurrency(totalBruto)}</span>
+                              <div className="flex justify-between items-center text-white border-b border-gray-800 pb-1">
+                                <span className="uppercase text-[9px] text-gray-500">Arrecadação</span>
+                                <span>R$ {formatCurrency(totalBruto)}</span>
                               </div>
 
-                              {selectedCategory?.customValues?.map(field => {
-                                const totalField = selectedPlayers.reduce((acc, p) => acc + (p.customValues[field.id] || 0) * field.value, 0);
-                                if (totalField === 0) return null;
-                                return (
-                                  <div key={field.id} className="flex justify-between items-center text-[10px] pl-2 border-l border-gray-800">
-                                    <span className="text-gray-600">{field.name}:</span>
-                                    <span className="text-gray-400">R$ {formatCurrency(totalField)}</span>
+                              <div className="space-y-1 pl-2">
+                                <div className="flex justify-between items-center text-[10px]">
+                                  <span className="text-gray-600">Buy-in:</span>
+                                  <span className="text-gray-400">{totals.buyins}</span>
+                                </div>
+                                {totals.rebuys > 0 && (
+                                  <div className="flex justify-between items-center text-[10px]">
+                                    <span className="text-gray-600">Re-buy:</span>
+                                    <span className="text-gray-400">{totals.rebuys}</span>
                                   </div>
-                                );
-                              })}
+                                )}
+                                {totals.doubleRebuys > 0 && (
+                                  <div className="flex justify-between items-center text-[10px]">
+                                    <span className="text-gray-600">Re-buy Duplo:</span>
+                                    <span className="text-gray-400">{totals.doubleRebuys}</span>
+                                  </div>
+                                )}
+                                {totals.addons > 0 && (
+                                  <div className="flex justify-between items-center text-[10px]">
+                                    <span className="text-gray-600">Add-on:</span>
+                                    <span className="text-gray-400">{totals.addons}</span>
+                                  </div>
+                                )}
+                                {selectedCategory?.customValues?.map(field => {
+                                  const totalQty = selectedPlayers.reduce((acc, p) => acc + (p.customValues[field.id] || 0), 0);
+                                  if (totalQty === 0) return null;
+                                  return (
+                                    <div key={field.id} className="flex justify-between items-center text-[10px]">
+                                      <span className="text-gray-600">{field.name}:</span>
+                                      <span className="text-gray-400">{totalQty}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
 
                               <div className="flex justify-between items-center">
                                 <span className="text-gray-500">Rake ({selectedCategory?.rake || 0}%):</span> 
