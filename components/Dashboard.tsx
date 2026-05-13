@@ -5,6 +5,56 @@ import { Trash2, UserPlus, Search, PlayCircle, ChevronDown, ChevronUp, UserCheck
 import AddResultModal from './AddResultModal';
 import ConfirmationModal from './ConfirmationModal';
 
+interface EditableCellProps {
+  value: number;
+  onSave: (val: number) => void;
+  className?: string;
+  prefix?: string;
+  inputNumericProps?: any;
+}
+
+const EditableCell: React.FC<EditableCellProps> = ({ value, onSave, className, prefix, inputNumericProps }) => {
+  const [localValue, setLocalValue] = useState<string>(value.toString());
+  const [isFocused, setIsFocused] = useState(false);
+
+  useEffect(() => {
+    if (!isFocused) {
+      setLocalValue(value.toString());
+    }
+  }, [value, isFocused]);
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    const num = Number(localValue);
+    if (!isNaN(num) && num !== value) {
+      onSave(num);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      {prefix && <span className={className?.includes('text-amber-500') ? "text-gray-600 text-[10px] font-black" : ""}>{prefix}</span>}
+      <input 
+        type="number"
+        {...inputNumericProps}
+        className={className}
+        value={localValue}
+        onFocus={(e) => {
+          setIsFocused(true);
+          inputNumericProps?.onFocus?.(e);
+        }}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={handleBlur}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.currentTarget.blur();
+          }
+        }}
+      />
+    </div>
+  );
+};
+
 const Dashboard: React.FC = () => {
   const { activeRanking, addPlayer, updatePlayer } = useRanking();
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -221,31 +271,28 @@ const Dashboard: React.FC = () => {
                       />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <input 
-                        type="number"
-                        {...inputNumericProps}
-                        className="bg-transparent border-none text-emerald-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[80px] text-center font-black"
+                      <EditableCell 
                         value={player.totalPoints}
-                        onChange={(e) => updatePlayer(player.id, { totalPoints: Number(e.target.value) })}
+                        inputNumericProps={inputNumericProps}
+                        className="bg-transparent border-none text-emerald-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[80px] text-center font-black"
+                        onSave={(val) => updatePlayer(player.id, { totalPoints: val })}
                       />
                     </td>
                     <td className="px-6 py-4 text-center text-gray-600 font-mono text-xs">{player.prevPoints}</td>
                     <td className="px-6 py-4 text-center">
-                      <input 
-                        type="number"
-                        {...inputNumericProps}
-                        className="bg-transparent border-none text-gray-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[50px] text-center font-medium"
+                      <EditableCell 
                         value={player.attendances}
-                        onChange={(e) => updatePlayer(player.id, { attendances: Number(e.target.value) })}
+                        inputNumericProps={inputNumericProps}
+                        className="bg-transparent border-none text-gray-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[50px] text-center font-medium"
+                        onSave={(val) => updatePlayer(player.id, { attendances: val })}
                       />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <input 
-                        type="number"
-                        {...inputNumericProps}
-                        className="bg-transparent border-none text-gray-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[50px] text-center font-medium"
+                      <EditableCell 
                         value={player.wins}
-                        onChange={(e) => updatePlayer(player.id, { wins: Number(e.target.value) })}
+                        inputNumericProps={inputNumericProps}
+                        className="bg-transparent border-none text-gray-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[50px] text-center font-medium"
+                        onSave={(val) => updatePlayer(player.id, { wins: val })}
                       />
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -254,16 +301,13 @@ const Dashboard: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <span className="text-gray-600 text-[10px] font-black">R$</span>
-                        <input 
-                          type="number"
-                          {...inputNumericProps}
-                          className="bg-transparent border-none text-amber-500 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-24 text-right font-black text-sm"
-                          value={player.accumulatedValue}
-                          onChange={(e) => updatePlayer(player.id, { accumulatedValue: Number(e.target.value) })}
-                        />
-                      </div>
+                      <EditableCell 
+                        value={player.accumulatedValue || 0}
+                        prefix="R$"
+                        inputNumericProps={inputNumericProps}
+                        className="bg-transparent border-none text-amber-500 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-24 text-right font-black text-sm"
+                        onSave={(val) => updatePlayer(player.id, { accumulatedValue: val })}
+                      />
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
