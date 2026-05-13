@@ -3,11 +3,14 @@ import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { Plus, Trash2, Save, Clock, Trophy, Check, Star, ArrowUp, ArrowDown } from 'lucide-react';
 import { BlindLevel, BlindStructure } from '../types';
+import ConfirmationModal from './ConfirmationModal';
 
 const PokerClockSettings: React.FC = () => {
   const { pokerClockConfig, updatePokerClockConfig } = useRanking();
   const [tempConfig, setTempConfig] = useState(pokerClockConfig);
   const [selectedStructureId, setSelectedStructureId] = useState(pokerClockConfig.activeStructureId);
+  const [structureToDelete, setStructureToDelete] = useState<{ id: string, name: string } | null>(null);
+  const [levelToDelete, setLevelToDelete] = useState<string | null>(null);
 
   const activeStructure = tempConfig.structures.find(s => s.id === selectedStructureId) || tempConfig.structures[0];
 
@@ -33,6 +36,7 @@ const PokerClockSettings: React.FC = () => {
       activeStructureId: tempConfig.activeStructureId === id ? newStructures[0].id : tempConfig.activeStructureId
     });
     if (selectedStructureId === id) setSelectedStructureId(newStructures[0].id);
+    setStructureToDelete(null);
   };
 
   const handleUpdateStructureName = (id: string, name: string) => {
@@ -82,6 +86,7 @@ const PokerClockSettings: React.FC = () => {
         s.id === selectedStructureId ? { ...s, levels: s.levels.filter(l => l.id !== levelId) } : s
       )
     });
+    setLevelToDelete(null);
   };
 
   const handleUpdateLevel = (levelId: string, updates: Partial<BlindLevel>) => {
@@ -170,7 +175,7 @@ const PokerClockSettings: React.FC = () => {
                       </button>
                       {tempConfig.structures.length > 1 && (
                         <button 
-                          onClick={(e) => { e.stopPropagation(); handleRemoveStructure(s.id); }}
+                          onClick={(e) => { e.stopPropagation(); setStructureToDelete({ id: s.id, name: s.name }); }}
                           className="p-1.5 text-gray-600 hover:text-red-500 transition-all opacity-0 group-hover:opacity-100"
                         >
                           <Trash2 size={12} />
@@ -338,7 +343,7 @@ const PokerClockSettings: React.FC = () => {
                       <Clock size={14} />
                     </button>
                     <button 
-                      onClick={() => handleRemoveLevel(level.id)}
+                      onClick={() => setLevelToDelete(level.id)}
                       className="p-2 bg-gray-800 text-gray-500 hover:text-red-500 rounded-lg transition-all"
                     >
                       <Trash2 size={14} />
@@ -350,6 +355,23 @@ const PokerClockSettings: React.FC = () => {
           </section>
         </div>
       </div>
+
+      <ConfirmationModal 
+        isOpen={!!structureToDelete}
+        onClose={() => setStructureToDelete(null)}
+        onConfirm={() => structureToDelete && handleRemoveStructure(structureToDelete.id)}
+        title="Excluir Estrutura"
+        message={`Tem certeza que deseja excluir a estrutura de blinds "${structureToDelete?.name}"?`}
+      />
+
+      <ConfirmationModal 
+        isOpen={!!levelToDelete}
+        onClose={() => setLevelToDelete(null)}
+        onConfirm={() => levelToDelete && handleRemoveLevel(levelToDelete)}
+        title="Excluir Nível"
+        message="Deseja remover este nível da estrutura?"
+        confirmLabel="Remover"
+      />
     </div>
   );
 };

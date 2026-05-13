@@ -12,6 +12,7 @@ export interface Player {
   phone?: string;
   birthDate?: string;
   favoriteTeam?: string;
+  active?: boolean;
 }
 
 export interface ScoringConfig {

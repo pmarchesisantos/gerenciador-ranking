@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users, Timer, Clock, Settings2, ChevronDown, ChevronUp } from 'lucide-react';
+import ConfirmationModal from './ConfirmationModal';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -28,6 +29,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newRankName, setNewRankName] = useState('');
   const [isClockMenuOpen, setIsClockMenuOpen] = useState(currentView.startsWith('poker-clock'));
+  const [rankingToDelete, setRankingToDelete] = useState<{ id: string, name: string } | null>(null);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard (Ranking)', icon: LayoutDashboard },
@@ -69,9 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
   const handleDeleteRanking = (e: React.MouseEvent, id: string, name: string) => {
     e.stopPropagation();
-    if (window.confirm(`ATENÇÃO: Deseja realmente excluir o ranking "${name}"?`)) {
-      deleteRanking(id);
-    }
+    setRankingToDelete({ id, name });
   };
 
   return (
@@ -237,6 +237,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       <div className="p-6 border-t border-emerald-900/10 bg-black/10 shrink-0">
         <p className="text-[9px] font-black text-gray-700 text-center uppercase tracking-[0.2em]">Rank Manager • 2024</p>
       </div>
+
+      <ConfirmationModal 
+        isOpen={!!rankingToDelete}
+        onClose={() => setRankingToDelete(null)}
+        onConfirm={() => rankingToDelete && deleteRanking(rankingToDelete.id)}
+        title="Excluir Ranking"
+        message={`ATENÇÃO: Deseja realmente excluir o ranking "${rankingToDelete?.name}"? Esta ação removerá permanentemente todos os jogadores, pontuações e histórico deste ranking.`}
+      />
     </div>
   );
 };

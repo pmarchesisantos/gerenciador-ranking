@@ -2,12 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { Calendar, CheckCircle, AlertCircle, RefreshCcw, Edit2, Save, ChevronDown } from 'lucide-react';
+import ConfirmationModal from './ConfirmationModal';
 
 const History: React.FC = () => {
   const { activeRanking, deleteHistoryEntry, updateHistoryEntryName } = useRanking();
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const historyEntries = activeRanking?.history || [];
 
@@ -141,11 +143,7 @@ const History: React.FC = () => {
                 )}
                 
                 <button 
-                  onClick={() => {
-                    if(window.confirm('VOLTAR ETAPA: Deseja realmente excluir esta atualização? Todas as pontuações (posição + presença) e valores acumulados serão removidos, e o ranking voltará EXATAMENTE ao estado anterior.')) {
-                      deleteHistoryEntry(selectedEntry.id);
-                    }
-                  }}
+                  onClick={() => setShowDeleteConfirm(true)}
                   className="flex items-center gap-2 px-5 py-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all font-black text-[10px] uppercase tracking-widest border border-red-500/20 shadow-xl"
                   title="Excluir esta etapa e reverter pontuações"
                 >
@@ -194,6 +192,14 @@ const History: React.FC = () => {
           </div>
         </div>
       ) : null}
+
+      <ConfirmationModal 
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={() => selectedEntryId && deleteHistoryEntry(selectedEntryId)}
+        title="Excluir Etapa"
+        message="VOLTAR ETAPA: Deseja realmente excluir esta atualização? Todas as pontuações (posição + presença) e valores acumulados serão removidos, e o ranking voltará EXATAMENTE ao estado anterior. Esta ação é irreversível."
+      />
     </div>
   );
 };

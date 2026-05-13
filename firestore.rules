@@ -23,8 +23,9 @@ service cloud.firestore {
 
     function isSuperAdmin() {
       return isAuthenticated() && 
-        (request.auth.token.email == "pedro.marchesi2000@gmail.com" || 
-         request.auth.token.email == "admin@gmail.com");
+        (request.auth.token.email.lower() == "pedro.marchesi2000@gmail.com" || 
+         request.auth.token.email.lower() == "admin@gmail.com" ||
+         request.auth.token.email.lower() == "pmarchesi.santos@gmail.com");
     }
 
     function isOwner(casaData) {

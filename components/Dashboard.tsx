@@ -1,11 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { Trash2, UserPlus, Download, Search, PlayCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Trash2, UserPlus, Search, PlayCircle, ChevronDown, ChevronUp, UserCheck, UserMinus } from 'lucide-react';
 import AddResultModal from './AddResultModal';
+import ConfirmationModal from './ConfirmationModal';
 
 const Dashboard: React.FC = () => {
-  const { activeRanking, addPlayer, removePlayer, updatePlayer } = useRanking();
+  const { activeRanking, addPlayer, updatePlayer } = useRanking();
   const [newPlayerName, setNewPlayerName] = useState('');
   const [showExtraFields, setShowExtraFields] = useState(false);
   const [extraData, setExtraData] = useState({ phone: '', birthDate: '', favoriteTeam: '' });
@@ -13,6 +14,7 @@ const Dashboard: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive'>('active');
 
   useEffect(() => {
     if (activeRanking) {
@@ -20,12 +22,6 @@ const Dashboard: React.FC = () => {
       setHasDraft(!!draft);
     }
   }, [activeRanking, isAddModalOpen]);
-
-  if (!activeRanking) return (
-    <div className="h-full flex items-center justify-center p-8 text-gray-500 text-center">
-      Selecione um ranking no menu lateral para começar.
-    </div>
-  );
 
   const normalizeStr = (str: string) => 
     str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
@@ -39,15 +35,31 @@ const Dashboard: React.FC = () => {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
   };
 
-  const sortedPlayers = [...activeRanking.players].sort((a, b) => b.totalPoints - a.totalPoints);
+  const sortedPlayers = useMemo(() => {
+    if (!activeRanking) return [];
+    return [...activeRanking.players].sort((a, b) => b.totalPoints - a.totalPoints);
+  }, [activeRanking]);
   
-  const filteredPlayers = sortedPlayers.filter(p => {
-    const normalizedName = normalizeStr(p.name);
-    const normalizedSearch = normalizeStr(searchTerm.trim());
-    return normalizedName.includes(normalizedSearch);
-  });
+  const filteredPlayers = useMemo(() => {
+    return sortedPlayers.filter(p => {
+      const normalizedName = normalizeStr(p.name);
+      const normalizedSearch = normalizeStr(searchTerm.trim());
+      const matchesSearch = normalizedName.includes(normalizedSearch);
+      const isActive = p.active !== false; // Default to true if undefined
+      const matchesStatus = statusFilter === 'active' ? isActive : !isActive;
+      return matchesSearch && matchesStatus;
+    });
+  }, [sortedPlayers, searchTerm, statusFilter]);
 
-  const totalAccumulated = sortedPlayers.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0);
+  const totalAccumulated = useMemo(() => {
+    return sortedPlayers.filter(p => p.active !== false).reduce((acc, p) => acc + (p.accumulatedValue || 0), 0);
+  }, [sortedPlayers]);
+
+  if (!activeRanking) return (
+    <div className="h-full flex items-center justify-center p-8 text-gray-500 text-center">
+      Selecione um ranking no menu lateral para começar.
+    </div>
+  );
 
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,8 +69,6 @@ const Dashboard: React.FC = () => {
     setExtraData({ phone: '', birthDate: '', favoriteTeam: '' });
     setShowExtraFields(false);
   };
-
-  const getRank = (playerId: string) => sortedPlayers.findIndex(p => p.id === playerId) + 1;
 
   const getNameColor = (rank: number) => {
     if (rank >= 1 && rank <= 3) return 'text-amber-400';
@@ -82,6 +92,21 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+          <div className="flex bg-gray-900/50 border border-gray-800 rounded-xl p-1 shrink-0">
+            <button 
+              onClick={() => setStatusFilter('active')}
+              className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${statusFilter === 'active' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              Ativos
+            </button>
+            <button 
+              onClick={() => setStatusFilter('inactive')}
+              className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${statusFilter === 'inactive' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+            >
+              Inativos
+            </button>
+          </div>
+
           <div className="relative group flex-1 sm:flex-none sm:min-w-[240px]">
             <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-emerald-500 transition-colors" />
             <input 
@@ -173,8 +198,8 @@ const Dashboard: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800 bg-gray-900/50">
-              {filteredPlayers.map((player) => {
-                const rank = getRank(player.id);
+              {filteredPlayers.map((player, index) => {
+                const rank = index + 1;
                 const nameColor = getNameColor(rank);
                 
                 return (
@@ -241,12 +266,19 @@ const Dashboard: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <button 
-                        onClick={() => removePlayer(player.id)}
-                        className="text-gray-600 hover:text-red-500 p-2 rounded-lg hover:bg-red-500/10 transition-all md:opacity-0 md:group-hover:opacity-100"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center justify-center gap-1">
+                        <button 
+                          onClick={() => updatePlayer(player.id, { active: player.active === false })}
+                          title={player.active === false ? "Reativar Jogador" : "Desativar (Arquivar) Jogador"}
+                          className={`p-2 rounded-lg transition-all md:opacity-0 md:group-hover:opacity-100 ${
+                            player.active === false 
+                            ? 'text-emerald-500 hover:bg-emerald-500/10' 
+                            : 'text-gray-600 hover:text-amber-500 hover:bg-amber-500/10'
+                          }`}
+                        >
+                          {player.active === false ? <UserCheck size={16} /> : <UserMinus size={16} />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

@@ -258,7 +258,12 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         gameCategories: doc.data().gameCategories || [],
         scoringConfig: doc.data().scoringConfig || { ...INITIAL_SCORING_CONFIG }
       })) as Ranking[];
-      setHouse(prev => ({ ...prev, rankings: rankingsData }));
+      
+      setHouse(prev => {
+        // Only update if rankings data actually changed to avoid unnecessary re-renders
+        if (JSON.stringify(prev.rankings) === JSON.stringify(rankingsData)) return prev;
+        return { ...prev, rankings: rankingsData };
+      });
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, `casas/${resolvedHouseDocId}/rankings`);
     });
@@ -267,12 +272,18 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   useEffect(() => {
     if (house.rankings.length > 0) {
-      const exists = house.rankings.find(r => r.id === activeRankingId);
-      if (!activeRankingId || !exists) setActiveRankingId(house.rankings[0].id);
+      if (!activeRankingId) {
+        setActiveRankingId(house.rankings[0].id);
+      } else {
+        const exists = house.rankings.find(r => r.id === activeRankingId);
+        if (!exists) {
+          setActiveRankingId(house.rankings[0].id);
+        }
+      }
     } else {
       if (activeRankingId !== '') setActiveRankingId('');
     }
-  }, [house.rankings, activeRankingId]);
+  }, [house.rankings.length, activeRankingId]);
 
   const activeRanking = house.rankings.find(r => r.id === activeRankingId) || null;
 
@@ -282,6 +293,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await updateDoc(doc(db, 'casas', resolvedHouseDocId), { name }); 
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}`);
+        throw error;
       }
     }
   }, [resolvedHouseDocId]);
@@ -293,6 +305,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setViewingHouseId(s);
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}`);
+      throw error;
     }
   }, [resolvedHouseDocId]);
   const updateProfileData = useCallback(async (profile: ProfileData) => { 
@@ -301,17 +314,19 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await updateDoc(doc(db, 'casas', resolvedHouseDocId), { profile }); 
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}`);
+        throw error;
       }
     }
   }, [resolvedHouseDocId]);
   const addRanking = useCallback(async (name: string) => {
-    if (!resolvedHouseDocId) return;
+    if (!resolvedHouseDocId) throw new Error("ID do clube não resolvido");
     const rankingsCollRef = collection(db, 'casas', resolvedHouseDocId, 'rankings');
     try {
       const docRef = await addDoc(rankingsCollRef, { name, players: [], scoringConfig: { ...INITIAL_SCORING_CONFIG }, history: [], gameCategories: [] });
       setActiveRankingId(docRef.id);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `casas/${resolvedHouseDocId}/rankings`);
+      throw error;
     }
   }, [resolvedHouseDocId]);
   const deleteRanking = useCallback(async (id: string) => { 
@@ -320,6 +335,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id)); 
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `casas/${resolvedHouseDocId}/rankings/${id}`);
+        throw error;
       }
     }
   }, [resolvedHouseDocId]);
@@ -329,6 +345,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id), { name }); 
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${id}`);
+        throw error;
       }
     }
   }, [resolvedHouseDocId]);
@@ -338,6 +355,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { gameCategories: categories }); 
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+        throw error;
       }
     }
   }, [activeRanking, resolvedHouseDocId]);
@@ -365,12 +383,14 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       wins: 0, 
       dayPoints: 0, 
       accumulatedValue: 0,
+      active: true,
       ...extraData
     };
     try {
       await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: [...(activeRanking.players || []), p] });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+      throw error;
     }
     return p;
   }, [activeRanking, resolvedHouseDocId]);
@@ -380,6 +400,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.filter(p => p.id !== id) }); 
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+        throw error;
       }
     }
   }, [activeRanking, resolvedHouseDocId]);
@@ -389,6 +410,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.map(p => p.id === id ? { ...p, ...updates } : p) }); 
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+        throw error;
       }
     }
   }, [activeRanking, resolvedHouseDocId]);
@@ -398,12 +420,13 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { scoringConfig: config }); 
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+        throw error;
       }
     }
   }, [activeRanking, resolvedHouseDocId]);
 
   const addWeeklyResult = useCallback(async (results: any[], multiplier: number, categoryId?: string, name?: string, date?: string) => {
-    if (!activeRanking || !resolvedHouseDocId) return;
+    if (!activeRanking || !resolvedHouseDocId) throw new Error("Ambiente de salvamento inválido");
     let currentPlayers = [...activeRanking.players];
     const finalResults = results.map(res => {
       if (res.isNew) {
@@ -416,6 +439,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           wins: 0, 
           dayPoints: 0, 
           accumulatedValue: 0,
+          active: true,
           phone: res.phone || '',
           birthDate: res.birthDate || '',
           favoriteTeam: res.favoriteTeam || ''
@@ -446,6 +470,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: [entry, ...(activeRanking.history || [])] });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+      throw error;
     }
   }, [activeRanking, resolvedHouseDocId]);
 
@@ -490,6 +515,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: updatedHistory });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+      throw error;
     }
   }, [activeRanking, resolvedHouseDocId]);
 

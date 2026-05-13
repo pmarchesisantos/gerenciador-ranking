@@ -4,6 +4,7 @@ import { useRanking } from '../context/RankingContext';
 import { useAuth } from '../context/AuthContext';
 import { Save, Info, Key, ShieldCheck, Settings as SettingsIcon, AlertCircle, CheckCircle, Wallet, Plus, Trash2, Edit2, Percent, Trophy } from 'lucide-react';
 import { GameCategory } from '../types';
+import ConfirmationModal from './ConfirmationModal';
 
 const Settings: React.FC = () => {
   const { activeRanking, updateScoringConfig, updateGameCategories } = useRanking();
@@ -16,21 +17,41 @@ const Settings: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const [editingCategory, setEditingCategory] = useState<Partial<GameCategory> | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<{ id: string, name: string } | null>(null);
+
+  const [tempScoring, setTempScoring] = useState<any>(null);
+  const [isSavingScoring, setIsSavingScoring] = useState(false);
 
   if (!activeRanking) return <div className="p-8 text-gray-500">Selecione um ranking...</div>;
 
+  const currentScoring = tempScoring || activeRanking.scoringConfig;
+
   const handleScoreChange = (pos: number, val: string) => {
-    updateScoringConfig({
-      ...activeRanking.scoringConfig,
+    setTempScoring({
+      ...currentScoring,
       [pos]: Number(val)
     });
   };
 
   const handleBaseChange = (val: string) => {
-    updateScoringConfig({
-      ...activeRanking.scoringConfig,
+    setTempScoring({
+      ...currentScoring,
       baseAttendance: Number(val)
     });
+  };
+
+  const handleSaveScoring = async () => {
+    if (!tempScoring) return;
+    setIsSavingScoring(true);
+    try {
+      await updateScoringConfig(tempScoring);
+      setTempScoring(null);
+      alert('Configuração de pontuação salva com sucesso!');
+    } catch (err) {
+      alert('Erro ao salvar configuração.');
+    } finally {
+      setIsSavingScoring(false);
+    }
   };
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
@@ -77,10 +98,8 @@ const Settings: React.FC = () => {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (confirm('Deseja excluir esta categoria?')) {
-      const updatedCategories = (activeRanking.gameCategories || []).filter(c => c.id !== id);
-      await updateGameCategories(updatedCategories);
-    }
+    const updatedCategories = (activeRanking.gameCategories || []).filter(c => c.id !== id);
+    await updateGameCategories(updatedCategories);
   };
 
   // Helper Senior para inputs numéricos: Seleção automática e bloqueio de scroll
@@ -134,7 +153,18 @@ const Settings: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6">
-              <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Pontos por Posição</h3>
+              <div className="flex justify-between items-center border-b border-gray-800 pb-4">
+                <h3 className="text-xl font-bold text-white">Pontos por Posição</h3>
+                {tempScoring && (
+                  <button 
+                    onClick={handleSaveScoring} 
+                    disabled={isSavingScoring}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                  >
+                    <Save size={14} /> {isSavingScoring ? 'Salvando...' : 'Salvar Alterações'}
+                  </button>
+                )}
+              </div>
               <div className="flex flex-col gap-y-3 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
                 {positions.map(pos => (
                   <div key={pos} className="flex items-center justify-between border-b border-gray-800/50 pb-2">
@@ -152,7 +182,7 @@ const Settings: React.FC = () => {
                       type="number"
                       {...inputNumericProps}
                       className="bg-black/50 border border-gray-700 rounded-lg px-3 py-2 w-24 text-right text-emerald-400 font-bold focus:border-emerald-500 outline-none"
-                      value={activeRanking.scoringConfig[pos] || 0}
+                      value={currentScoring[pos] || 0}
                       onChange={(e) => handleScoreChange(pos, e.target.value)}
                     />
                   </div>
@@ -168,10 +198,19 @@ const Settings: React.FC = () => {
                   type="number"
                   {...inputNumericProps}
                   className="bg-black/50 border border-gray-700 rounded-lg px-4 py-2 w-32 text-right text-emerald-400 focus:border-emerald-500 outline-none"
-                  value={activeRanking.scoringConfig.baseAttendance}
+                  value={currentScoring.baseAttendance}
                   onChange={(e) => handleBaseChange(e.target.value)}
                 />
               </div>
+              {tempScoring && (
+                <button 
+                  onClick={handleSaveScoring} 
+                  disabled={isSavingScoring}
+                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                >
+                  <Save size={14} /> Salvar Regras
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -337,7 +376,7 @@ const Settings: React.FC = () => {
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                       <button onClick={() => setEditingCategory(cat)} className="p-2 text-gray-500 hover:text-white"><Edit2 size={14} /></button>
-                      <button onClick={() => handleDeleteCategory(cat.id)} className="p-2 text-gray-500 hover:text-red-500"><Trash2 size={14} /></button>
+                      <button onClick={() => setCategoryToDelete({ id: cat.id, name: cat.name })} className="p-2 text-gray-500 hover:text-red-500"><Trash2 size={14} /></button>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 pt-2">
@@ -422,6 +461,14 @@ const Settings: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ConfirmationModal 
+        isOpen={!!categoryToDelete}
+        onClose={() => setCategoryToDelete(null)}
+        onConfirm={() => categoryToDelete && handleDeleteCategory(categoryToDelete.id)}
+        title="Excluir Categoria"
+        message={`Tem certeza que deseja excluir a categoria "${categoryToDelete?.name}"? Esta ação removerá a categoria das configurações, mas os registros históricos que usam esta categoria permanecerão.`}
+      />
     </div>
   );
 };

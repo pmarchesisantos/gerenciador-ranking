@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { Search, Edit2, Check, X, Phone, Calendar, Heart, Trash2, User, MessageCircle } from 'lucide-react';
+import { Search, Edit2, Check, X, Phone, Calendar, Heart, Trash2, User, MessageCircle, UserCheck, UserMinus } from 'lucide-react';
+import ConfirmationModal from './ConfirmationModal';
 
 const PlayerData: React.FC = () => {
-  const { activeRanking, updatePlayer, removePlayer } = useRanking();
+  const { activeRanking, updatePlayer } = useRanking();
   const [searchTerm, setSearchTerm] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
   const [teamFilter, setTeamFilter] = useState('');
@@ -192,8 +193,15 @@ const PlayerData: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleStartEdit(p)} className="p-2 text-gray-500 hover:text-emerald-500"><Edit2 size={16} /></button>
-                        <button onClick={() => removePlayer(p.id)} className="p-2 text-gray-500 hover:text-red-500"><Trash2 size={16} /></button>
+                        <button onClick={() => handleStartEdit(p)} title="Editar dados" className="p-2 text-gray-500 hover:text-emerald-500 transition-colors"><Edit2 size={16} /></button>
+                        <button 
+                          onClick={() => updatePlayer(p.id, { active: p.active === false })} 
+                          title={p.active === false ? "Reativar Jogador" : "Desativar (Arquivar) Jogador"}
+                          className={`p-2 transition-colors ${p.active === false ? 'text-emerald-500 hover:bg-emerald-500/10' : 'text-gray-500 hover:text-amber-500'}`}
+                        >
+                          <UserCheck size={16} className={p.active === false ? '' : 'hidden'} />
+                          <UserMinus size={16} className={p.active === false ? 'hidden' : ''} />
+                        </button>
                       </div>
                     </td>
                   </>

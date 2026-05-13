@@ -19,8 +19,8 @@ interface AuthContextType {
   updateUserPassword: (newPassword: string) => Promise<void>;
 }
 
-// DEFINIÇÃO DO SEU E-MAIL DE ADMINISTRADOR MESTRE
-const SUPER_ADMIN_EMAIL = 'admin@gmail.com';
+// DEFINIÇÃO DOS E-MAILS DE ADMINISTRADOR MESTRE
+const SUPER_ADMIN_EMAILS = ['admin@gmail.com', 'pedro.marchesi2000@gmail.com', 'pmarchesi.santos@gmail.com'];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -54,7 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // VERIFICAÇÃO DE PODERES
-  const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const userEmail = user?.email?.toLowerCase() || '';
+  const isSuperAdmin = SUPER_ADMIN_EMAILS.some(email => email.toLowerCase() === userEmail);
   const isAdmin = !!user; // Qualquer um logado é considerado um admin de clube (ou super admin)
 
   return (
