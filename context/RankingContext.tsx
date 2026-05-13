@@ -407,8 +407,12 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const updatePlayer = useCallback(async (id: string, updates: Partial<Player>) => { 
     if (activeRanking && resolvedHouseDocId) {
       try {
-        await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: activeRanking.players.map(p => p.id === id ? { ...p, ...updates } : p) }); 
+        const updatedPlayers = activeRanking.players.map(p => p.id === id ? { ...p, ...updates } : p);
+        await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { 
+          players: updatedPlayers 
+        }); 
       } catch (error) {
+        alert("Erro ao salvar no banco de dados. Verifique sua conexão ou permissões.");
         handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
         throw error;
       }

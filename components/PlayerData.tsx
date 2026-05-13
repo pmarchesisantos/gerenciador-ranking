@@ -59,14 +59,18 @@ const PlayerData: React.FC = () => {
 
   const handleSave = async () => {
     if (editingId && tempPlayer) {
-      await updatePlayer(editingId, {
-        name: tempPlayer.name,
-        phone: tempPlayer.phone,
-        birthDate: tempPlayer.birthDate,
-        favoriteTeam: tempPlayer.favoriteTeam
-      });
-      setEditingId(null);
-      setTempPlayer(null);
+      try {
+        await updatePlayer(editingId, {
+          name: tempPlayer.name,
+          phone: tempPlayer.phone,
+          birthDate: tempPlayer.birthDate,
+          favoriteTeam: tempPlayer.favoriteTeam
+        });
+        setEditingId(null);
+        setTempPlayer(null);
+      } catch (err) {
+        // Erro já reportado pelo context
+      }
     }
   };
 
