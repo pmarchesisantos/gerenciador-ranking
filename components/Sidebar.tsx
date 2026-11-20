@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users, Timer, Clock, Settings2, ChevronDown, ChevronUp } from 'lucide-react';
+import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users, Timer, Clock, Settings2, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 
 interface SidebarProps {
@@ -18,7 +18,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     updateHouseName,
     addRanking,
     deleteRanking,
-    updateRankingName
+    updateRankingName,
+    updateRankingActive
   } = useRanking();
 
   const [isEditingHouse, setIsEditingHouse] = useState(false);
@@ -74,6 +75,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     setRankingToDelete({ id, name });
   };
 
+  const handleToggleRankingActive = (e: React.MouseEvent, id: string, isActive: boolean) => {
+    e.stopPropagation();
+    updateRankingActive(id, !isActive);
+  };
+
   return (
     <div className="w-72 bg-[#111827] h-screen border-r border-emerald-900/30 flex flex-col z-50 shrink-0 shadow-2xl relative">
       <div className="p-6 border-b border-emerald-900/30 bg-black/20 shrink-0">
@@ -118,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       <div className="p-4 flex-1 overflow-y-auto space-y-6 custom-scrollbar">
         <section>
           <div className="flex justify-between items-center mb-3 px-2">
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Rankings Ativos</label>
+            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Rankings</label>
             <button 
               onClick={() => setIsCreating(true)}
               className="p-1.5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-lg transition-all"
@@ -150,24 +156,45 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                     <input autoFocus className="flex-1 bg-transparent text-white text-xs font-bold outline-none px-2 py-1" value={tempRankingName} onChange={(e) => setTempRankingName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSaveRankingName(e, r.id)} />
                     <button onClick={(e) => handleSaveRankingName(e, r.id)} className="p-1.5 text-emerald-500"><Check size={14} /></button>
                   </div>
-                ) : (
+                ) : (() => {
+                  const isHidden = r.active === false;
+                  return (
                   <div className="relative group">
                     <button
                       onClick={() => setActiveRankingId(r.id)}
-                      className={`w-full text-left pl-4 pr-14 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative overflow-hidden truncate ${
-                        activeRanking?.id === r.id 
-                        ? 'bg-emerald-600 text-white shadow-lg' 
-                        : 'text-gray-500 hover:bg-gray-800'
+                      className={`w-full text-left pl-4 pr-20 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative overflow-hidden truncate ${
+                        activeRanking?.id === r.id
+                        ? 'bg-emerald-600 text-white shadow-lg'
+                        : isHidden
+                          ? 'text-gray-700 hover:bg-gray-800'
+                          : 'text-gray-500 hover:bg-gray-800'
                       }`}
                     >
-                      {r.name}
+                      <span className={isHidden ? 'line-through decoration-gray-700' : ''}>{r.name}</span>
+                      {isHidden && (
+                        <span className="block text-[8px] font-black text-amber-600/70 tracking-[0.2em] mt-1 no-underline">
+                          Oculto no público
+                        </span>
+                      )}
                     </button>
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={(e) => handleStartEditRanking(e, r.id, r.name)} className="p-1.5 text-white/40 hover:text-white"><Edit2 size={12} /></button>
-                      <button onClick={(e) => handleDeleteRanking(e, r.id, r.name)} className="p-1.5 text-red-500/40 hover:text-red-500"><Trash2 size={12} /></button>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-0.5">
+                      <button
+                        onClick={(e) => handleToggleRankingActive(e, r.id, !isHidden)}
+                        title={isHidden ? 'Exibir este ranking na página pública' : 'Ocultar este ranking da página pública'}
+                        className={`p-1.5 transition-all ${
+                          isHidden
+                          ? 'text-amber-500 hover:text-amber-400'
+                          : 'text-white/40 hover:text-white opacity-0 group-hover:opacity-100'
+                        }`}
+                      >
+                        {isHidden ? <EyeOff size={12} /> : <Eye size={12} />}
+                      </button>
+                      <button onClick={(e) => handleStartEditRanking(e, r.id, r.name)} className="p-1.5 text-white/40 hover:text-white opacity-0 group-hover:opacity-100 transition-all"><Edit2 size={12} /></button>
+                      <button onClick={(e) => handleDeleteRanking(e, r.id, r.name)} className="p-1.5 text-red-500/40 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 size={12} /></button>
                     </div>
                   </div>
-                )}
+                  );
+                })()}
               </div>
             ))}
           </div>
