@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { Plus, Trash2, Save, Clock, Trophy, Check, Star, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Trash2, Save, Clock, Trophy, Check, Star, ArrowUp, ArrowDown, Coins } from 'lucide-react';
 import { BlindLevel, BlindStructure } from '../types';
 import ConfirmationModal from './ConfirmationModal';
+import { inputNumericProps } from '../services/inputNumeric';
+import { DEFAULT_STARTING_STACK } from '../services/clockStats';
 
 const PokerClockSettings: React.FC = () => {
   const { pokerClockConfig, updatePokerClockConfig } = useRanking();
@@ -110,11 +112,6 @@ const PokerClockSettings: React.FC = () => {
     setTempConfig({ ...tempConfig, activeStructureId: id });
   };
 
-  const inputNumericProps = {
-    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
-    onWheel: (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(),
-  };
-
   return (
     <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -129,6 +126,46 @@ const PokerClockSettings: React.FC = () => {
           <Save size={18} /> Salvar Tudo
         </button>
       </header>
+
+      <section className="bg-gray-900 border border-gray-800 rounded-[2rem] p-6 md:p-8 space-y-5">
+        <div>
+          <h3 className="text-white font-black text-lg tracking-tight flex items-center gap-3">
+            <Coins size={18} className="text-emerald-500" /> Fichas em Jogo
+          </h3>
+          <p className="text-gray-500 text-xs mt-1">
+            Reserva, usada só quando a categoria da etapa não tem fichas parametrizadas.
+            O caminho principal é definir as fichas junto de cada valor em
+            <strong className="text-gray-400"> Configurações › Parametrização de Valores</strong>.
+            Sem nada preenchido, o clock assume {DEFAULT_STARTING_STACK.toLocaleString('pt-BR')} fichas por entrada.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {([
+            { key: 'startingStack', label: 'Stack Inicial', hint: `Vazio = ${DEFAULT_STARTING_STACK.toLocaleString('pt-BR')}` },
+            { key: 'rebuyStack', label: 'Fichas do Re-buy', hint: 'Vazio = stack inicial' },
+            { key: 'doubleRebuyStack', label: 'Fichas do Duplo', hint: 'Vazio = 2x o inicial' },
+            { key: 'addonStack', label: 'Fichas do Add-on', hint: 'Vazio = stack inicial' },
+          ] as const).map(field => (
+            <div key={field.key}>
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2 ml-1">
+                {field.label}
+              </label>
+              <input
+                type="number" {...inputNumericProps}
+                className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white font-bold text-sm outline-none focus:border-emerald-500/50 transition-all"
+                placeholder="0"
+                value={tempConfig[field.key] ?? ''}
+                onChange={(e) => setTempConfig({
+                  ...tempConfig,
+                  [field.key]: e.target.value === '' ? undefined : Number(e.target.value)
+                })}
+              />
+              <p className="text-[9px] text-gray-600 mt-1.5 ml-1">{field.hint}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Sidebar: Structures List */}

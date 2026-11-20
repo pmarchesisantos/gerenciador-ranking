@@ -14,17 +14,23 @@
         color: #f3f4f6;
       }
       ::-webkit-scrollbar {
-        width: 8px;
+        width: 10px;
+        height: 10px;
       }
       ::-webkit-scrollbar-track {
-        background: #111827;
+        background: transparent;
       }
       ::-webkit-scrollbar-thumb {
-        background: #374151;
-        border-radius: 4px;
+        background-color: rgba(255, 255, 255, 0.14);
+        border: 3px solid transparent;
+        background-clip: padding-box;
+        border-radius: 999px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #4b5563;
+        background-color: rgba(255, 255, 255, 0.28);
+      }
+      ::-webkit-scrollbar-corner {
+        background: transparent;
       }
 
       /* Remover setas de inputs numéricos */

@@ -24,6 +24,8 @@ export interface CustomValueField {
   id: string;
   name: string;
   value: number;
+  /** Fichas entregues por este extra. */
+  chips?: number;
 }
 
 export interface GameCategory {
@@ -36,6 +38,11 @@ export interface GameCategory {
   customValues?: CustomValueField[];
   rake: number;
   rankingPercent: number;
+  /** Fichas entregues em cada tipo de compra desta categoria. */
+  buyInChips?: number;
+  reBuyChips?: number;
+  reBuyDuploChips?: number;
+  addOnChips?: number;
 }
 
 export interface WeeklyHistoryEntry {
@@ -44,6 +51,10 @@ export interface WeeklyHistoryEntry {
   name?: string;
   multiplier: number;
   categoryId?: string;
+  /** Valor que esta etapa acrescentou ao bolo do ranking. */
+  rankingValue?: number;
+  /** Campeão(ões) da etapa. Usado quando não há resultado em 1º lugar registrado. */
+  championIds?: string[];
   results: {
     playerId: string;
     position: number;
@@ -64,6 +75,8 @@ export interface Ranking {
   scoringConfig: ScoringConfig;
   history: WeeklyHistoryEntry[];
   gameCategories?: GameCategory[];
+  /** Ranking oculto na visão pública quando false. Ausente significa ativo. */
+  active?: boolean;
 }
 
 export interface Contact {
@@ -115,6 +128,24 @@ export interface PokerClockConfig {
   totalPrize?: number;
   prizeDistribution?: PrizeDistribution[];
   lastEliminationTime?: number;
+
+  /** Fichas entregues em cada tipo de entrada. Base do total de fichas em jogo. */
+  startingStack?: number;
+  rebuyStack?: number;
+  doubleRebuyStack?: number;
+  addonStack?: number;
+
+  /** Total exato de fichas da etapa, calculado pela categoria no lançamento. */
+  totalChips?: number;
+
+  /** Contagens da etapa em andamento, enviadas pelo lançamento. */
+  entries?: number;
+  rebuys?: number;
+  doubleRebuys?: number;
+  addons?: number;
+
+  /** Exibir a premiação no clock. Definido ao iniciar a etapa. */
+  showPrize?: boolean;
 }
 
 export type View = 'dashboard' | 'settings' | 'history' | 'profile' | 'player-data' | 'poker-clock' | 'poker-clock-settings';

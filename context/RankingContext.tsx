@@ -32,6 +32,7 @@ interface RankingContextType {
   updateScoringConfig: (config: ScoringConfig) => Promise<void>;
   addWeeklyResult: (results: any[], multiplier: number, categoryId?: string, name?: string, date?: string) => Promise<void>;
   updateHistoryEntryName: (entryId: string, newName: string) => Promise<void>;
+  updateHistoryEntryStage: (entryId: string, patch: { rankingValue?: number; championIds?: string[] }) => Promise<void>;
   deleteHistoryEntry: (id: string) => Promise<void>;
   updateHouseName: (name: string) => Promise<void>;
   updateHouseSlug: (slug: string) => Promise<void>;
@@ -39,6 +40,7 @@ interface RankingContextType {
   addRanking: (name: string) => Promise<void>;
   deleteRanking: (id: string) => Promise<void>;
   updateRankingName: (id: string, name: string) => Promise<void>;
+  updateRankingActive: (id: string, active: boolean) => Promise<void>;
   updateGameCategories: (categories: GameCategory[]) => Promise<void>;
   updatePokerClockConfig: (config: Partial<PokerClockConfig>) => Promise<void>;
   pokerClockConfig: PokerClockConfig;
@@ -329,7 +331,17 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       throw error;
     }
   }, [resolvedHouseDocId]);
-  const deleteRanking = useCallback(async (id: string) => { 
+  const updateRankingActive = useCallback(async (id: string, active: boolean) => {
+    if (!resolvedHouseDocId) return;
+    try {
+      await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id), { active });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${id}`);
+      throw error;
+    }
+  }, [resolvedHouseDocId]);
+
+  const deleteRanking = useCallback(async (id: string) => {
     if (resolvedHouseDocId) {
       try {
         await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id)); 
@@ -455,13 +467,20 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
     const config = activeRanking.scoringConfig || { ...INITIAL_SCORING_CONFIG };
     const historyResults = finalResults.map(r => ({ ...r, pointsEarned: ((config[r.position] || 0) + (config.baseAttendance || 0)) * multiplier }));
-    const entry: WeeklyHistoryEntry = { 
-      id: Date.now().toString(), 
-      date: date || new Date().toISOString(), 
+    const entry: WeeklyHistoryEntry = {
+      id: Date.now().toString(),
+      date: date || new Date().toISOString(),
       name,
-      multiplier, 
-      categoryId, 
-      results: historyResults 
+      multiplier,
+      categoryId,
+      rankingValue: historyResults.reduce((acc, r) => acc + (r.totalValue || 0), 0),
+      // Em acordos ninguém fica em 1º: o campeão é todo o grupo da melhor posição.
+      championIds: (() => {
+        if (historyResults.length === 0) return [];
+        const bestPosition = Math.min(...historyResults.map(r => r.position));
+        return historyResults.filter(r => r.position === bestPosition).map(r => r.playerId);
+      })(),
+      results: historyResults
     };
     const updatedPlayers = currentPlayers.map(player => {
       const res = historyResults.find(r => r.playerId === player.id);
@@ -482,6 +501,18 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!activeRanking || !resolvedHouseDocId) return;
     const updatedHistory = (activeRanking.history || []).map(h => 
       h.id === entryId ? { ...h, name: newName } : h
+    );
+    try {
+      await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { history: updatedHistory });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
+    }
+  }, [activeRanking, resolvedHouseDocId]);
+
+  const updateHistoryEntryStage = useCallback(async (entryId: string, patch: { rankingValue?: number; championIds?: string[] }) => {
+    if (!activeRanking || !resolvedHouseDocId) return;
+    const updatedHistory = (activeRanking.history || []).map(h =>
+      h.id === entryId ? { ...h, ...patch } : h
     );
     try {
       await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { history: updatedHistory });
@@ -527,8 +558,8 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     <RankingContext.Provider value={{ 
       house, activeRanking, setActiveRankingId, setViewingHouseId: updateViewingHouseId,
       currentView, setCurrentView, addPlayer, removePlayer, updatePlayer,
-      updateScoringConfig, addWeeklyResult, updateHistoryEntryName, deleteHistoryEntry, updateHouseName, updateHouseSlug,
-      updateProfileData, addRanking, deleteRanking, updateRankingName, updateGameCategories,
+      updateScoringConfig, addWeeklyResult, updateHistoryEntryName, updateHistoryEntryStage, deleteHistoryEntry, updateHouseName, updateHouseSlug,
+      updateProfileData, addRanking, deleteRanking, updateRankingName, updateRankingActive, updateGameCategories,
       updatePokerClockConfig, pokerClockConfig,
       loadingData, unauthorized
     }}>
