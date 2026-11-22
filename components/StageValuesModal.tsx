@@ -28,11 +28,11 @@ const StageValueInput: React.FC<StageValueInputProps> = ({ value, onSave }) => {
 
   return (
     <div className="flex items-center justify-end gap-1.5">
-      <span className="text-gray-600 text-[10px] font-black">R$</span>
+      <span className="text-gray-600 text-xs font-semibold">R$</span>
       <input
         type="number"
         inputMode="numeric"
-        className="bg-black/30 border border-gray-800 focus:border-emerald-500/50 rounded-lg px-2 py-1.5 w-24 text-right font-black text-sm text-amber-500 outline-none transition-all"
+        className="bg-black/30 border border-gray-800 focus:border-emerald-500/50 rounded-lg px-2 py-1.5 w-24 text-right font-semibold text-sm text-amber-500 outline-none transition-all"
         value={localValue}
         onFocus={(e) => { setIsFocused(true); e.target.select(); }}
         onWheel={(e) => e.currentTarget.blur()}
@@ -59,16 +59,16 @@ const StageValuesModal: React.FC<StageValuesModalProps> = ({ ranking, editable =
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#111827] w-full max-w-3xl max-h-[90vh] flex flex-col border border-gray-800 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-gray-900 w-full max-w-3xl max-h-[90vh] flex flex-col border border-gray-800 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
 
         <div className="flex justify-between items-center p-6 border-b border-gray-800 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
               <Trophy size={20} />
             </div>
             <div>
               <h3 className="text-lg font-bold text-white leading-none">Valores por Etapa</h3>
-              <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mt-1.5">
+              <p className="text-gray-500 text-xs font-semibold mt-1.5">
                 {ranking.name}
               </p>
             </div>
@@ -79,11 +79,11 @@ const StageValuesModal: React.FC<StageValuesModalProps> = ({ ranking, editable =
         </div>
 
         {editable && pendingCount > 0 && (
-          <div className="mx-6 mt-6 flex items-start gap-3 bg-amber-500/[0.07] border border-amber-500/20 rounded-2xl p-4 shrink-0">
+          <div className="mx-6 mt-6 flex items-start gap-3 bg-amber-500/[0.07] border border-amber-500/20 rounded-xl p-4 shrink-0">
             <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
             <p className="text-amber-500/90 text-xs leading-relaxed">
-              <strong className="font-black">{pendingCount}</strong> etapa(s) ainda sem valor.
-              As marcadas com <strong className="font-black">~</strong> tiveram o valor recuperado do acumulado
+              <strong className="font-semibold">{pendingCount}</strong> etapa(s) ainda sem valor.
+              As marcadas com <strong className="font-semibold">~</strong> tiveram o valor recuperado do acumulado
               do jogador — confira e ajuste digitando no campo.
             </p>
           </div>
@@ -101,17 +101,17 @@ const StageValuesModal: React.FC<StageValuesModalProps> = ({ ranking, editable =
             stages.map((stage, index) => (
               <div
                 key={stage.id}
-                className="bg-black/30 border border-gray-800/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-emerald-600/[0.02] transition-colors"
+                className="bg-black/30 border border-gray-800/40 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-emerald-600/[0.02] transition-colors"
               >
                 <div className="flex items-center gap-4 min-w-0 flex-1">
-                  <div className="w-9 h-9 shrink-0 rounded-xl bg-gray-800 text-gray-500 flex items-center justify-center font-black text-xs">
+                  <div className="w-9 h-9 shrink-0 rounded-xl bg-gray-800 text-gray-500 flex items-center justify-center font-semibold text-xs">
                     {index + 1}
                   </div>
                   <div className="min-w-0">
                     <p className="font-bold text-sm text-white tracking-tight truncate">
                       {stage.name || `Etapa de ${formatDate(stage.date)}`}
                     </p>
-                    <p className="text-gray-600 text-[10px] font-black uppercase tracking-widest mt-1">
+                    <p className="text-gray-600 text-xs font-semibold mt-1">
                       {formatDate(stage.date)}
                     </p>
                   </div>
@@ -119,7 +119,7 @@ const StageValuesModal: React.FC<StageValuesModalProps> = ({ ranking, editable =
 
                 <div className="w-full sm:w-60 shrink-0">
                   <div className="flex items-center gap-2">
-                    <Trophy size={14} className={`shrink-0 ${stage.championIds.length > 0 ? 'text-amber-500' : 'text-gray-700'}`} />
+                    <Trophy size={14} className={`shrink-0 ${stage.championIds.length > 0 ? 'text-emerald-500' : 'text-gray-700'}`} />
                     {editable ? (
                       <select
                         value={stage.isManualChampion ? stage.championIds[0] : ''}
@@ -132,14 +132,14 @@ const StageValuesModal: React.FC<StageValuesModalProps> = ({ ranking, editable =
                         ))}
                       </select>
                     ) : (
-                      <span className={`min-w-0 truncate text-xs font-bold ${stage.valueRecipientName ? 'text-amber-400' : 'text-gray-600'}`}>
+                      <span className={`min-w-0 truncate text-xs font-bold ${stage.valueRecipientName ? 'text-emerald-400' : 'text-gray-600'}`}>
                         {stage.valueRecipientName || 'Não informado'}
                       </span>
                     )}
                   </div>
                   {stage.isChop && (
-                    <p className="text-[9px] text-gray-500 leading-snug mt-1.5 pl-6">
-                      <span className="font-black uppercase tracking-widest text-gray-600">Acordo:</span>{' '}
+                    <p className="text-xs text-gray-500 leading-snug mt-1.5 pl-6">
+                      <span className="font-semibold text-gray-600">Acordo:</span>{' '}
                       {stage.championNames.join(', ')}
                     </p>
                   )}
@@ -149,7 +149,7 @@ const StageValuesModal: React.FC<StageValuesModalProps> = ({ ranking, editable =
                   className="flex items-center gap-1.5 shrink-0 self-start sm:self-center"
                   title={stage.isInferred ? 'Valor recuperado do acumulado do jogador. Confira e ajuste se precisar.' : undefined}
                 >
-                  <span className="w-3 shrink-0 text-center text-amber-500/60 text-sm font-black leading-none">
+                  <span className="w-3 shrink-0 text-center text-emerald-500/60 text-sm font-semibold leading-none">
                     {stage.isInferred ? '~' : ''}
                   </span>
                   {editable ? (
@@ -158,7 +158,7 @@ const StageValuesModal: React.FC<StageValuesModalProps> = ({ ranking, editable =
                       onSave={(val) => updateHistoryEntryStage(stage.id, { rankingValue: val })}
                     />
                   ) : (
-                    <span className="text-amber-500 font-black text-sm tracking-tight w-24 text-right">
+                    <span className="text-emerald-500 font-semibold text-sm tracking-tight w-24 text-right">
                       R$ {formatBRL(stage.value, 0)}
                     </span>
                   )}
@@ -169,12 +169,12 @@ const StageValuesModal: React.FC<StageValuesModalProps> = ({ ranking, editable =
         </ScrollArea>
 
         <div className="border-t border-gray-800 bg-gray-800/40 p-6 flex items-center justify-between gap-4 shrink-0">
-          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+          <span className="text-xs font-semibold text-gray-500">
             Total Acumulado do Ranking
           </span>
           <div className="flex items-center gap-2">
-            <span className="text-amber-500/50 text-[10px] font-black">R$</span>
-            <span className="text-amber-500 font-black text-2xl tracking-tighter">{formatBRL(total)}</span>
+            <span className="text-emerald-500/50 text-xs font-semibold">R$</span>
+            <span className="text-emerald-500 font-semibold text-2xl tracking-tight">{formatBRL(total)}</span>
           </div>
         </div>
       </div>

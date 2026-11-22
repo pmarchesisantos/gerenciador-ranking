@@ -40,6 +40,8 @@ export interface SituacaoAssinatura {
   status: StatusAssinatura;
   responsavel: string;
   documento: string;
+  /** Upgrade aguardando o pagamento da diferença de implantação. */
+  trocaPendente: { plano: PlanoId; valor: number; url: string } | null;
   fatura: { url: string; valor: number; vencimento: string; atrasada: boolean } | null;
 }
 
@@ -47,6 +49,7 @@ export const apiAssinatura = {
   assinar: (dados: DadosCadastro) =>
     chamar<{ casaId: string; slug: string; faturaUrl: string | null }>('/api/assinar', 'POST', dados),
   situacao: () => chamar<SituacaoAssinatura>('/api/assinatura', 'GET'),
-  trocarPlano: (plano: PlanoId) => chamar<{ ok: true }>('/api/assinatura', 'POST', { acao: 'trocar', plano }),
+  trocarPlano: (plano: PlanoId) =>
+    chamar<{ ok: true; pendente?: boolean; faturaUrl?: string; valor?: number }>('/api/assinatura', 'POST', { acao: 'trocar', plano }),
   cancelar: () => chamar<{ ok: true }>('/api/assinatura', 'POST', { acao: 'cancelar' }),
 };

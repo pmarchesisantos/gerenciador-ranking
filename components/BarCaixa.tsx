@@ -126,14 +126,14 @@ const BarCaixa: React.FC = () => {
       </header>
 
       {/* Situação do caixa */}
-      <section className={`rounded-3xl border p-6 md:p-8 ${caixaAberto ? 'border-violet-500/30 bg-violet-600/[0.05]' : 'border-gray-800 bg-gray-900'}`}>
+      <section className={`rounded-xl border p-6 md:p-8 ${caixaAberto ? 'border-violet-500/30 bg-violet-600/[0.05]' : 'border-gray-800 bg-gray-900'}`}>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${caixaAberto ? 'bg-violet-600/20 text-violet-300' : 'bg-gray-800 text-gray-500'}`}>
+            <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 ${caixaAberto ? 'bg-violet-600/20 text-violet-300' : 'bg-gray-800 text-gray-500'}`}>
               {caixaAberto ? <Unlock size={24} /> : <Lock size={24} />}
             </div>
             <div>
-              <p className="text-white font-black text-lg">{caixaAberto ? 'Caixa aberto' : 'Caixa fechado'}</p>
+              <p className="text-white font-semibold text-lg">{caixaAberto ? 'Caixa aberto' : 'Caixa fechado'}</p>
               <p className="text-gray-500 text-sm">
                 {caixaAberto
                   ? `Desde ${dataHora(caixaAberto.abertoEm)} · ${abertasAgora} comanda(s) aberta(s)`
@@ -142,28 +142,28 @@ const BarCaixa: React.FC = () => {
             </div>
           </div>
           <button onClick={() => abrirJanelaPDV(slug)}
-                  className="bg-violet-600 hover:bg-violet-500 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95">
+                  className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 px-6 py-4 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all  active:scale-95 ring-1 ring-inset ring-emerald-500/30">
             <Store size={16} /> {caixaAberto ? 'Abrir PDV' : 'Abrir caixa no PDV'} <ExternalLink size={13} className="opacity-60" />
           </button>
         </div>
 
         {resumoAberto && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 pt-6 border-t border-white/10">
-            <div><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Vendido</p><p className="text-white font-black text-lg tabular-nums">{brl(resumoAberto.vendido)}</p></div>
-            <div><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Recebido</p><p className="text-emerald-400 font-black text-lg tabular-nums">{brl(resumoAberto.recebido)}</p></div>
-            <div><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Dinheiro na gaveta</p><p className="text-white font-black text-lg tabular-nums">{brl(resumoAberto.dinheiroNaGaveta)}</p></div>
-            <div><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Comandas</p><p className="text-white font-black text-lg tabular-nums">{resumoAberto.comandas}</p></div>
+            <div><p className="text-xs font-semibold text-gray-500">Vendido</p><p className="text-white font-semibold text-lg tabular-nums">{brl(resumoAberto.vendido)}</p></div>
+            <div><p className="text-xs font-semibold text-gray-500">Recebido</p><p className="text-green-400 font-semibold text-lg tabular-nums">{brl(resumoAberto.recebido)}</p></div>
+            <div><p className="text-xs font-semibold text-gray-500">Dinheiro na gaveta</p><p className="text-white font-semibold text-lg tabular-nums">{brl(resumoAberto.dinheiroNaGaveta)}</p></div>
+            <div><p className="text-xs font-semibold text-gray-500">Comandas</p><p className="text-white font-semibold text-lg tabular-nums">{resumoAberto.comandas}</p></div>
           </div>
         )}
       </section>
 
       {orfas.length > 0 && (
-        <section className="rounded-3xl border border-amber-500/20 bg-amber-500/[0.05] overflow-hidden">
+        <section className="rounded-xl border border-amber-500/20 bg-amber-500/[0.05] overflow-hidden">
           <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0">
               <AlertTriangle size={18} className="text-amber-500 shrink-0 mt-0.5" />
               <div className="min-w-0">
-                <p className="text-white font-black text-sm">{orfas.length} comanda(s) sem caixa · {brl(totalOrfas)}</p>
+                <p className="text-white font-semibold text-sm">{orfas.length} comanda(s) sem caixa · {brl(totalOrfas)}</p>
                 <p className="text-gray-400 text-xs mt-0.5">
                   Lançadas antes do controle de caixa. Não pertencem a nenhum caixa, mas aparecem no financeiro.
                 </p>
@@ -171,11 +171,11 @@ const BarCaixa: React.FC = () => {
             </div>
             <div className="flex gap-2 shrink-0">
               <button onClick={() => setVerOrfas(v => !v)}
-                      className="px-4 py-2.5 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/5 transition-all">
+                      className="px-4 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-gray-300 hover:bg-white/5 transition-all">
                 {verOrfas ? 'Ocultar' : 'Ver comandas'}
               </button>
               <button onClick={() => setConfirmarOrfas(true)}
-                      className="px-4 py-2.5 rounded-xl border border-red-500/30 text-[10px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 flex items-center gap-1.5 transition-all">
+                      className="px-4 py-2.5 rounded-xl border border-red-500/30 text-xs font-semibold text-red-400 hover:bg-red-500/10 flex items-center gap-1.5 transition-all">
                 <Trash2 size={13} /> Excluir todas
               </button>
             </div>
@@ -188,7 +188,7 @@ const BarCaixa: React.FC = () => {
                     <span className="text-white font-bold">{c.clienteNome}</span>
                     <span className="text-gray-500"> · {dataHora(c.data)} · {c.itens.filter(i => !i.cancelado).map(i => `${i.quantidade}× ${i.nome}`).join(', ') || 'sem itens'}</span>
                   </span>
-                  <span className={`font-black tabular-nums shrink-0 ${c.status === 'cancelada' ? 'text-gray-600 line-through' : 'text-gray-200'}`}>
+                  <span className={`font-semibold tabular-nums shrink-0 ${c.status === 'cancelada' ? 'text-gray-600 line-through' : 'text-gray-200'}`}>
                     {brl(somaItens(c.itens))}
                   </span>
                 </li>
@@ -199,21 +199,21 @@ const BarCaixa: React.FC = () => {
       )}
 
       {erro && (
-        <div className="flex items-start gap-3 rounded-2xl bg-red-500/10 border border-red-500/20 p-4 text-red-300 text-sm">
+        <div className="flex items-start gap-3 rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-red-300 text-sm">
           <AlertTriangle size={16} className="shrink-0 mt-0.5" /> <span>{erro}</span>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Quem deve */}
-        <section className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden flex flex-col h-[460px] lg:h-[540px]">
+        <section className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden flex flex-col h-[460px] lg:h-[540px]">
           <div className="shrink-0 h-[60px] px-5 border-b border-gray-800 flex items-center justify-between">
-            <h3 className="text-white font-black text-sm">Quem deve</h3>
-            <span className="text-amber-500 font-black text-sm tabular-nums">{brl(totalFiado)}</span>
+            <h3 className="text-white font-semibold text-sm">Quem deve</h3>
+            <span className="text-amber-500 font-semibold text-sm tabular-nums">{brl(totalFiado)}</span>
           </div>
           {devedores.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-2">
-              <CheckCircle2 size={24} className="text-emerald-500/60" />
+              <CheckCircle2 size={24} className="text-green-500/60" />
               <p className="text-gray-500 text-sm">Ninguém devendo.</p>
             </div>
           ) : (
@@ -223,24 +223,24 @@ const BarCaixa: React.FC = () => {
                 <li key={normalizar(d.nome)} className="px-5 py-3.5 flex items-center justify-between gap-4">
                   <div className="min-w-0">
                     <p className="text-white font-bold text-sm truncate">{d.nome}</p>
-                    <p className="text-gray-600 text-[10px] font-bold">{d.comandas} conta(s) · desde {data(d.desde)}</p>
+                    <p className="text-gray-600 text-xs font-bold">{d.comandas} conta(s) · desde {data(d.desde)}</p>
                   </div>
-                  <span className="text-amber-500 font-black text-sm tabular-nums shrink-0">{brl(d.saldo)}</span>
+                  <span className="text-amber-500 font-semibold text-sm tabular-nums shrink-0">{brl(d.saldo)}</span>
                 </li>
               ))}
             </ul>
             </ScrollArea>
           )}
-          <p className="shrink-0 h-[42px] px-5 flex items-center border-t border-gray-800 text-[10px] text-gray-600">
+          <p className="shrink-0 h-[42px] px-5 flex items-center border-t border-gray-800 text-xs text-gray-600">
             O recebimento é feito no PDV, na aba "A receber".
           </p>
         </section>
 
         {/* Histórico de caixas */}
-        <section className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden flex flex-col h-[460px] lg:h-[540px]">
+        <section className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden flex flex-col h-[460px] lg:h-[540px]">
           <div className="shrink-0 h-[60px] px-5 border-b border-gray-800 flex items-center justify-between">
-            <h3 className="text-white font-black text-sm">Caixas anteriores</h3>
-            <span className="text-gray-500 font-black text-sm tabular-nums">{fechados.length}</span>
+            <h3 className="text-white font-semibold text-sm">Caixas anteriores</h3>
+            <span className="text-gray-500 font-semibold text-sm tabular-nums">{fechados.length}</span>
           </div>
           {fechados.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-2">
@@ -260,16 +260,16 @@ const BarCaixa: React.FC = () => {
                             className="w-full text-left px-5 py-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors">
                       <div className="min-w-0 flex-1">
                         <p className="text-white font-bold text-sm">{data(cx.abertoEm)}</p>
-                        <p className="text-gray-600 text-[10px] font-bold">
+                        <p className="text-gray-600 text-xs font-bold">
                           {hora(cx.abertoEm)} – {hora(cx.fechadoEm || cx.canceladoEm)} · {r.comandas} comanda(s)
                           {r.canceladas > 0 && ` · ${r.canceladas} cancelada(s)`}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-white font-black text-sm tabular-nums">{brl(r.vendido)}</p>
+                        <p className="text-white font-semibold text-sm tabular-nums">{brl(r.vendido)}</p>
                         {cx.status === 'cancelado'
-                          ? <p className="text-[10px] font-black text-red-400 uppercase tracking-widest">cancelado</p>
-                          : <p className="text-[10px] font-black text-emerald-500 tabular-nums">recebido {brl(r.recebido)}</p>}
+                          ? <p className="text-xs font-semibold text-red-400">cancelado</p>
+                          : <p className="text-xs font-semibold text-green-500 tabular-nums">recebido {brl(r.recebido)}</p>}
                       </div>
                       {aberto ? <ChevronUp size={16} className="text-gray-500 shrink-0" /> : <ChevronDown size={16} className="text-gray-500 shrink-0" />}
                     </button>
@@ -282,7 +282,7 @@ const BarCaixa: React.FC = () => {
                           </p>
                         )}
                         <div>
-                          <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{r.recebidoPoker > 0 ? 'Bar por forma' : 'Recebido por forma'}</p>
+                          <p className="text-xs font-semibold text-gray-500 mb-1.5">{r.recebidoPoker > 0 ? 'Bar por forma' : 'Recebido por forma'}</p>
                           {formas.length === 0 ? (
                             <p className="text-xs text-gray-600">Nenhum recebimento neste caixa.</p>
                           ) : (
@@ -294,15 +294,15 @@ const BarCaixa: React.FC = () => {
                                 </li>
                               ))}
                               <li className="flex justify-between gap-3 py-1.5">
-                                <span className="text-gray-500 font-black uppercase text-[10px] tracking-widest">Total</span>
-                                <span className="text-emerald-400 font-black tabular-nums">{brl(r.recebido - r.recebidoPoker)}</span>
+                                <span className="text-gray-500 font-semibold text-xs">Total</span>
+                                <span className="text-green-400 font-semibold tabular-nums">{brl(r.recebido - r.recebidoPoker)}</span>
                               </li>
                             </ul>
                           )}
                         </div>
                         {r.recebidoPoker > 0 && (
                           <div>
-                            <p className="text-[9px] font-black text-violet-300 uppercase tracking-widest mb-1.5">Poker recebido no bar</p>
+                            <p className="text-xs font-semibold text-violet-300 mb-1.5">Poker recebido no bar</p>
                             <ul className="divide-y divide-gray-800 text-xs">
                               {Object.entries(r.porFormaPoker).map(([forma, valor]) => (
                                 <li key={forma} className="flex justify-between gap-3 py-1.5">
@@ -311,8 +311,8 @@ const BarCaixa: React.FC = () => {
                                 </li>
                               ))}
                               <li className="flex justify-between gap-3 py-1.5">
-                                <span className="text-gray-500 font-black uppercase text-[10px] tracking-widest">Total</span>
-                                <span className="text-violet-200 font-black tabular-nums">{brl(r.recebidoPoker)}</span>
+                                <span className="text-gray-500 font-semibold text-xs">Total</span>
+                                <span className="text-violet-200 font-semibold tabular-nums">{brl(r.recebidoPoker)}</span>
                               </li>
                             </ul>
                           </div>
@@ -323,7 +323,7 @@ const BarCaixa: React.FC = () => {
                         </div>
                         {(cx.movimentos || []).length > 0 && (
                           <div>
-                            <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Sangrias e suprimentos</p>
+                            <p className="text-xs font-semibold text-gray-500 mb-1.5">Sangrias e suprimentos</p>
                             <ul className="space-y-1">
                               {cx.movimentos.map(m => (
                                 <li key={m.id} className="flex justify-between gap-3 text-xs">
@@ -339,7 +339,7 @@ const BarCaixa: React.FC = () => {
                         {cx.observacao && <p className="text-xs text-gray-400 italic">"{cx.observacao}"</p>}
                         <div className="flex justify-end pt-1">
                           <button onClick={() => setParaExcluir(cx)}
-                                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-all">
+                                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-400 border border-red-500/20 hover:bg-red-500/10 transition-all">
                             <Trash2 size={13} /> Excluir caixa
                           </button>
                         </div>
@@ -351,7 +351,7 @@ const BarCaixa: React.FC = () => {
             </ul>
             </ScrollArea>
           )}
-          <p className="shrink-0 h-[42px] px-5 flex items-center border-t border-gray-800 text-[10px] text-gray-600">
+          <p className="shrink-0 h-[42px] px-5 flex items-center border-t border-gray-800 text-xs text-gray-600">
             Clique num caixa para ver o detalhe. Caixas de teste podem ser excluídos.
           </p>
         </section>

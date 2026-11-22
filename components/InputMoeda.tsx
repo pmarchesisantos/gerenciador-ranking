@@ -91,7 +91,7 @@ const InputMoeda: React.FC<InputMoedaProps> = ({
   return (
     // min-w-0: sem isso o campo não encolhe numa linha flex e empurra os vizinhos para fora.
     <div className={`flex items-center min-w-0 bg-black/40 border border-gray-800 rounded-xl focus-within:border-emerald-500 transition-colors ${className}`}>
-      <span className="pl-4 text-gray-600 text-sm font-black select-none">R$</span>
+      <span className="pl-4 text-gray-600 text-sm font-semibold select-none">R$</span>
       <input
         ref={inputRef}
         type="text"
@@ -106,7 +106,7 @@ const InputMoeda: React.FC<InputMoedaProps> = ({
         onFocus={cursorNoFim}
         onClick={cursorNoFim}
         onKeyDown={e => { if (e.key === 'Enter' && onEnter) { e.preventDefault(); onEnter(); } }}
-        className="flex-1 min-w-0 bg-transparent pl-2 pr-4 py-3 text-right text-sm font-black text-inherit tabular-nums outline-none placeholder:text-gray-600"
+        className="flex-1 min-w-0 bg-transparent pl-2 pr-4 py-3 text-right text-sm font-semibold text-inherit tabular-nums outline-none placeholder:text-gray-600"
       />
     </div>
   );

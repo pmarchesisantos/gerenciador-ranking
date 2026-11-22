@@ -7,9 +7,20 @@ Firestore repetem o mapa de recursos (`temClock`, `temBar`): mudou um, mude o ou
 
 | Plano        | Mensal    | Anual (−15%) | Recursos                                  |
 |--------------|-----------|--------------|-------------------------------------------|
-| Essencial    | 49,99     | 509,90       | ranking, lançamento, jogadores, histórico |
-| Profissional | 79,90     | 814,98       | + poker clock, financeiro (só poker)      |
-| Completo     | 249,90    | 2.548,98     | + bar (PDV, caixa, estoque), financeiro com bar |
+| Standard     | 49,99     | 509,90       | ranking, lançamento, jogadores, histórico |
+| Gold         | 79,90     | 814,98       | + poker clock, financeiro (só poker)      |
+| Black        | 249,90    | 2.548,98     | + bar (PDV, caixa, estoque), financeiro com bar |
+
+### Implantação
+
+Taxa única pela configuração assistida (cadastro de rankings, clock, cardápio do bar).
+**Isenta no plano anual.** No mensal: Standard R$ 149,90 · Gold R$ 199,90 · Black R$ 499,90.
+
+- No cadastro, a primeira cobrança da assinatura sai com implantação + 1º mês (uma
+  fatura só; o cartão fica salvo na assinatura). As seguintes voltam ao valor normal.
+- Upgrade no mensal cobra a diferença de implantação (cobrança avulsa
+  `troca:{casaId}:{plano}`); o plano só muda quando o webhook confirma o pagamento.
+- Troca de plano fica bloqueada até a primeira fatura ser paga.
 
 Casas criadas pelo administrador (sem `assinatura`) são **cortesia**: acesso completo,
 ou o plano definido no painel Master.

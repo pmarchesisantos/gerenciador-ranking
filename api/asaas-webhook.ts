@@ -4,11 +4,12 @@ import { adminDb } from './_lib/firebaseAdmin.js';
 import { rota, HttpError } from './_lib/http.js';
 import { AssinaturaPrivada, acessoAte, assinaturaPublica } from './_lib/assinatura.js';
 import { StatusAssinatura } from '../services/planos.js';
+import { aplicarTroca, lerReferenciaTroca } from './_lib/troca.js';
 
 interface EventoAsaas {
   id: string;
   event: string;
-  payment?: { id: string; subscription?: string; dueDate: string; status: string };
+  payment?: { id: string; subscription?: string; dueDate: string; status: string; externalReference?: string | null };
   subscription?: { id: string };
 }
 
@@ -26,6 +27,7 @@ const tokenConfere = (recebido: string) => {
  * - Vencido: marca "atrasada"; o acesso segue até a data já paga + tolerância.
  * - Estornado/chargeback: corta o acesso na hora.
  * - Assinatura removida: "cancelada"; o acesso segue até o fim do período pago.
+ * - Diferença de implantação paga (cobrança avulsa "troca:..."): aplica o upgrade.
  *
  * Cada evento é processado uma vez só (o Asaas reenvia em caso de falha).
  */
@@ -37,8 +39,25 @@ export default rota(['POST'], async (req, res) => {
   if (!evento.id || !evento.event) throw new HttpError(400, 'Evento inválido.');
 
   const subscriptionId = evento.payment?.subscription || evento.subscription?.id;
-  // Cobranças avulsas (fora de assinatura) não são deste app.
-  if (!subscriptionId) { res.status(200).json({ ignorado: true }); return; }
+
+  // Cobrança avulsa: só interessa a diferença de implantação de um upgrade.
+  if (!subscriptionId) {
+    const troca = lerReferenciaTroca(evento.payment?.externalReference);
+    const pago = evento.event === 'PAYMENT_CONFIRMED' || evento.event === 'PAYMENT_RECEIVED';
+    if (!troca || !pago) { res.status(200).json({ ignorado: true }); return; }
+
+    const privadaRef = adminDb.collection('assinaturas').doc(troca.casaId);
+    const marcaRef = privadaRef.collection('eventos').doc(evento.id);
+    if ((await marcaRef.get()).exists) { res.status(200).json({ ok: true }); return; }
+    const privada = (await privadaRef.get()).data() as AssinaturaPrivada | undefined;
+    // Só aplica se esta ainda é a troca pendente (o dono pode ter escolhido outra depois).
+    if (privada && privada.trocaPendente?.cobrancaId === evento.payment!.id && privada.plano !== troca.plano) {
+      await aplicarTroca(troca.casaId, privada, troca.plano);
+    }
+    await marcaRef.create({ evento: evento.event, cobranca: evento.payment!.id, em: new Date().toISOString() }).catch(() => undefined);
+    res.status(200).json({ ok: true });
+    return;
+  }
 
   const snap = await adminDb.collection('assinaturas').where('asaasSubscriptionId', '==', subscriptionId).limit(1).get();
   if (snap.empty) { res.status(200).json({ ignorado: true }); return; }

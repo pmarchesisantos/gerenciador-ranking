@@ -23,7 +23,7 @@ const chamar = async <T>(metodo: 'GET' | 'POST' | 'PUT' | 'DELETE', caminho: str
       'Content-Type': 'application/json',
       access_token: chave,
       // O Asaas exige um User-Agent identificando a aplicação.
-      'User-Agent': 'rank-manager',
+      'User-Agent': 'stack-club',
     },
     body: corpo ? JSON.stringify(corpo) : undefined,
   });
@@ -67,6 +67,40 @@ export const asaas = {
 
   cobrancasDaAssinatura: (id: string) =>
     chamar<{ data: CobrancaAsaas[] }>('GET', `/subscriptions/${id}/payments`).then(r => r.data || []),
+
+  /**
+   * Muda só esta cobrança (as próximas da assinatura seguem o valor normal).
+   * A documentação do Asaas já trouxe esse endpoint como POST e como PUT: tenta
+   * PUT e, se o método não existir, repete com POST.
+   */
+  atualizarCobranca: async (id: string, dados: { value: number; description?: string }) => {
+    try {
+      return await chamar<CobrancaAsaas>('PUT', `/payments/${id}`, dados);
+    } catch (e) {
+      if (e instanceof AsaasError && (e.status === 404 || e.status === 405)) {
+        return chamar<CobrancaAsaas>('POST', `/payments/${id}`, dados);
+      }
+      throw e;
+    }
+  },
+
+  /** Cobrança avulsa (fora da assinatura): usada na diferença de implantação do upgrade. */
+  criarCobranca: (dados: {
+    customer: string; billingType: FormaAsaas; value: number; dueDate: string;
+    description: string; externalReference: string;
+  }) => chamar<CobrancaAsaas>('POST', '/payments', dados),
+
+  removerCobranca: (id: string) => chamar<{ deleted: boolean }>('DELETE', `/payments/${id}`),
+};
+
+/** A primeira cobrança de uma assinatura recém-criada (o Asaas pode levar um instante para gerar). */
+export const primeiraCobrancaDaAssinatura = async (id: string): Promise<CobrancaAsaas | null> => {
+  for (let tentativa = 0; tentativa < 4; tentativa++) {
+    const pendente = cobrancaPendente(await asaas.cobrancasDaAssinatura(id));
+    if (pendente) return pendente;
+    await new Promise(r => setTimeout(r, 600));
+  }
+  return null;
 };
 
 /** Cobrança em aberto mais antiga (a que o cliente precisa pagar agora). */

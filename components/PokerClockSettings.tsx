@@ -121,15 +121,15 @@ const PokerClockSettings: React.FC = () => {
         </div>
         <button 
           onClick={handleSave}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-3 transition-all shadow-lg shadow-emerald-900/20 active:scale-95"
+          className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 px-8 py-4 rounded-xl font-semibold text-xs flex items-center gap-3 transition-all  active:scale-95 ring-1 ring-inset ring-emerald-500/30"
         >
           <Save size={18} /> Salvar Tudo
         </button>
       </header>
 
-      <section className="bg-gray-900 border border-gray-800 rounded-[2rem] p-6 md:p-8 space-y-5">
+      <section className="bg-gray-900 border border-gray-800 rounded-xl p-6 md:p-8 space-y-5">
         <div>
-          <h3 className="text-white font-black text-lg tracking-tight flex items-center gap-3">
+          <h3 className="text-white font-semibold text-lg tracking-tight flex items-center gap-3">
             <Coins size={18} className="text-emerald-500" /> Fichas em Jogo
           </h3>
           <p className="text-gray-500 text-xs mt-1">
@@ -148,7 +148,7 @@ const PokerClockSettings: React.FC = () => {
             { key: 'addonStack', label: 'Fichas do Add-on', hint: 'Vazio = stack inicial' },
           ] as const).map(field => (
             <div key={field.key}>
-              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-2 ml-1">
+              <label className="text-xs font-semibold text-gray-500 block mb-2 ml-1">
                 {field.label}
               </label>
               <input
@@ -161,7 +161,7 @@ const PokerClockSettings: React.FC = () => {
                   [field.key]: e.target.value === '' ? undefined : Number(e.target.value)
                 })}
               />
-              <p className="text-[9px] text-gray-600 mt-1.5 ml-1">{field.hint}</p>
+              <p className="text-xs text-gray-600 mt-1.5 ml-1">{field.hint}</p>
             </div>
           ))}
         </div>
@@ -171,10 +171,10 @@ const PokerClockSettings: React.FC = () => {
         {/* Sidebar: Structures List */}
         <div className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between mb-2 px-2">
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Estruturas</label>
+            <label className="text-xs font-semibold text-gray-500">Estruturas</label>
             <button 
               onClick={handleAddStructure}
-              className="p-1.5 bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600 hover:text-white rounded-lg transition-all"
+              className="p-1.5 bg-emerald-600/10 text-emerald-500 hover:bg-emerald-500/25 hover:text-emerald-100 rounded-lg transition-all"
             >
               <Plus size={14} />
             </button>
@@ -185,7 +185,7 @@ const PokerClockSettings: React.FC = () => {
               <div 
                 key={s.id}
                 onClick={() => setSelectedStructureId(s.id)}
-                className={`p-4 rounded-2xl border cursor-pointer transition-all relative group ${
+                className={`p-4 rounded-xl border cursor-pointer transition-all relative group ${
                   selectedStructureId === s.id 
                   ? 'bg-emerald-600/10 border-emerald-500/50' 
                   : 'bg-gray-900 border-gray-800 hover:border-gray-700'
@@ -199,7 +199,7 @@ const PokerClockSettings: React.FC = () => {
                     onClick={(e) => e.stopPropagation()}
                   />
                   <div className="flex items-center justify-between mt-2">
-                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                    <span className="text-xs font-semibold text-gray-500">
                       {s.levels.length} Níveis
                     </span>
                     <div className="flex items-center gap-2">
@@ -222,7 +222,7 @@ const PokerClockSettings: React.FC = () => {
                   </div>
                 </div>
                 {tempConfig.activeStructureId === s.id && (
-                  <div className="absolute -top-2 -right-2 bg-amber-500 text-black text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest shadow-lg">
+                  <div className="absolute -top-2 -right-2 bg-amber-500 text-black text-xs font-semibold px-2 py-1 rounded-full shadow-lg">
                     Principal
                   </div>
                 )}
@@ -233,15 +233,15 @@ const PokerClockSettings: React.FC = () => {
 
         {/* Main Content: Selected Structure Levels */}
         <div className="lg:col-span-3 space-y-6">
-          <section className="bg-gray-900 border border-gray-800 rounded-3xl p-6 space-y-6">
+          <section className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-6">
             <div className="flex items-center gap-3 border-b border-gray-800 pb-4">
               <Trophy className="text-emerald-500" size={20} />
-              <h3 className="text-white font-black text-sm uppercase tracking-widest">Configuração do Torneio</h3>
+              <h3 className="text-white font-semibold text-sm">Configuração do Torneio</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nome do Torneio</label>
+                <label className="text-xs font-semibold text-gray-500 ml-1">Nome do Torneio</label>
                 <input 
                   className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-emerald-500 transition-all"
                   value={tempConfig.tournamentName}
@@ -249,7 +249,7 @@ const PokerClockSettings: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Jogadores Restantes</label>
+                <label className="text-xs font-semibold text-gray-500 ml-1">Jogadores Restantes</label>
                 <input 
                   type="number"
                   {...inputNumericProps}
@@ -259,7 +259,7 @@ const PokerClockSettings: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Total de Entradas</label>
+                <label className="text-xs font-semibold text-gray-500 ml-1">Total de Entradas</label>
                 <input 
                   type="number"
                   {...inputNumericProps}
@@ -269,7 +269,7 @@ const PokerClockSettings: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Premiação Total (R$)</label>
+                <label className="text-xs font-semibold text-gray-500 ml-1">Premiação Total (R$)</label>
                 <input 
                   type="number"
                   {...inputNumericProps}
@@ -281,17 +281,17 @@ const PokerClockSettings: React.FC = () => {
             </div>
           </section>
 
-          <section className="bg-gray-900 border border-gray-800 rounded-3xl p-6 space-y-6">
+          <section className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-6">
             <div className="flex items-center justify-between border-b border-gray-800 pb-4">
               <div className="flex items-center gap-3">
                 <Clock className="text-emerald-500" size={20} />
-                <h3 className="text-white font-black text-sm uppercase tracking-widest">
+                <h3 className="text-white font-semibold text-sm">
                   Estrutura: <span className="text-emerald-400">{activeStructure.name}</span>
                 </h3>
               </div>
               <button 
                 onClick={() => handleAddLevel()}
-                className="p-2 bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600 hover:text-white rounded-xl transition-all flex items-center gap-2 text-[10px] font-black uppercase tracking-widest px-4"
+                className="p-2 bg-emerald-600/10 text-emerald-500 hover:bg-emerald-500/25 hover:text-emerald-100 rounded-xl transition-all flex items-center gap-2 text-xs font-semibold px-4"
               >
                 <Plus size={16} /> Adicionar Nível
               </button>
@@ -299,8 +299,8 @@ const PokerClockSettings: React.FC = () => {
 
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
               {activeStructure.levels.map((level, index) => (
-                <div key={level.id} className={`flex flex-wrap items-center gap-4 p-4 rounded-2xl border transition-all ${level.isBreak ? 'bg-amber-500/5 border-amber-500/20' : 'bg-black/20 border-gray-800 hover:border-gray-700'}`}>
-                  <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-[10px] font-black text-gray-500 shrink-0">
+                <div key={level.id} className={`flex flex-wrap items-center gap-4 p-4 rounded-xl border transition-all ${level.isBreak ? 'bg-amber-500/5 border-amber-500/20' : 'bg-black/20 border-gray-800 hover:border-gray-700'}`}>
+                  <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center text-xs font-semibold text-gray-500 shrink-0">
                     {index + 1}
                   </div>
                   
@@ -308,7 +308,7 @@ const PokerClockSettings: React.FC = () => {
                     {!level.isBreak ? (
                       <>
                         <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Small Blind</label>
+                          <label className="text-xs font-semibold text-gray-600">Small Blind</label>
                           <input 
                             type="number"
                             {...inputNumericProps}
@@ -318,7 +318,7 @@ const PokerClockSettings: React.FC = () => {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Big Blind</label>
+                          <label className="text-xs font-semibold text-gray-600">Big Blind</label>
                           <input 
                             type="number"
                             {...inputNumericProps}
@@ -328,7 +328,7 @@ const PokerClockSettings: React.FC = () => {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Ante</label>
+                          <label className="text-xs font-semibold text-gray-600">Ante</label>
                           <input 
                             type="number"
                             {...inputNumericProps}
@@ -339,12 +339,12 @@ const PokerClockSettings: React.FC = () => {
                         </div>
                       </>
                     ) : (
-                      <div className="col-span-3 flex items-center text-amber-500 font-black text-[10px] uppercase tracking-widest">
+                      <div className="col-span-3 flex items-center text-amber-500 font-semibold text-xs">
                         Intervalo / Break
                       </div>
                     )}
                     <div className="space-y-1">
-                      <label className="text-[8px] font-black text-gray-600 uppercase tracking-widest">Duração (min)</label>
+                      <label className="text-xs font-semibold text-gray-600">Duração (min)</label>
                       <input 
                         type="number"
                         {...inputNumericProps}

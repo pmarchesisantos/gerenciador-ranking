@@ -4,10 +4,11 @@ import { useAuth } from '../context/AuthContext';
 import { useRanking } from '../context/RankingContext';
 import TabelaPlanos, { SeletorPeriodo } from './TabelaPlanos';
 import AvisoPrivacidade from './AvisoPrivacidade';
-import { PLANOS, Periodo, PlanoId, ehPlano, precoDoPeriodo } from '../services/planos';
+import { PLANOS, Periodo, PlanoId, ehPlano, precoDoPeriodo, primeiraCobranca, taxaImplantacao } from '../services/planos';
 import { documentoValido, mascararDocumento, mascararTelefone, telefoneValido } from '../services/documento';
 import { apiAssinatura } from '../services/apiAssinatura';
 import { formatBRL } from '../services/stageValues';
+import Marca from './Marca';
 
 const brl = (v: number) => `R$ ${formatBRL(v)}`;
 const RASCUNHO = 'cadastro:rascunho';
@@ -29,9 +30,9 @@ let envioEmAndamento: Promise<unknown> | null = null;
 const inputCls = 'w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3.5 text-white text-sm font-bold outline-none focus:border-emerald-500 transition-colors placeholder:text-gray-700';
 const Campo: React.FC<{ label: string; children: React.ReactNode; dica?: string }> = ({ label, children, dica }) => (
   <label className="block space-y-1.5">
-    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{label}</span>
+    <span className="text-xs font-semibold text-gray-500 ml-1">{label}</span>
     {children}
-    {dica && <span className="block text-[10px] text-gray-600 ml-1">{dica}</span>}
+    {dica && <span className="block text-xs text-gray-600 ml-1">{dica}</span>}
   </label>
 );
 
@@ -126,16 +127,15 @@ const Cadastro: React.FC<{ onVoltar?: () => void; onEntrar?: () => void }> = ({ 
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white">
+    <div className="min-h-screen bg-gray-950 text-white">
       <header className="h-16 border-b border-gray-800/60 px-4 md:px-8 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center"><Trophy size={16} /></div>
-          <span className="font-black text-sm uppercase tracking-widest">Rank Manager</span>
+          <Marca tamanho="sm" />
         </div>
         {user ? (
-          <button onClick={logout} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white">Sair ({user.email})</button>
+          <button onClick={logout} className="text-xs font-semibold text-gray-500 hover:text-white">Sair ({user.email})</button>
         ) : onEntrar && (
-          <button onClick={onEntrar} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white">Já tenho conta</button>
+          <button onClick={onEntrar} className="text-xs font-semibold text-gray-500 hover:text-white">Já tenho conta</button>
         )}
       </header>
 
@@ -143,7 +143,7 @@ const Cadastro: React.FC<{ onVoltar?: () => void; onEntrar?: () => void }> = ({ 
         {etapa === 'plano' ? (
           <>
             <div className="text-center space-y-3">
-              <h1 className="text-3xl md:text-4xl font-black tracking-tight">Escolha o plano do seu clube</h1>
+              <h1 className="text-3xl md:text-4xl font-semibold tracking-tight">Escolha o plano do seu clube</h1>
               <p className="text-gray-500 text-sm max-w-xl mx-auto">Pague com Pix ou cartão. Cancele quando quiser, direto no app.</p>
               <div className="pt-2"><SeletorPeriodo periodo={periodo} onChange={setPeriodo} /></div>
             </div>
@@ -151,7 +151,7 @@ const Cadastro: React.FC<{ onVoltar?: () => void; onEntrar?: () => void }> = ({ 
                           rotuloAcao={p => `Começar com o ${PLANOS[p].nome}`} />
             {onVoltar && (
               <div className="text-center">
-                <button onClick={onVoltar} className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white inline-flex items-center gap-2">
+                <button onClick={onVoltar} className="text-xs font-semibold text-gray-500 hover:text-white inline-flex items-center gap-2">
                   <ArrowLeft size={14} /> Voltar para os rankings
                 </button>
               </div>
@@ -159,9 +159,9 @@ const Cadastro: React.FC<{ onVoltar?: () => void; onEntrar?: () => void }> = ({ 
           </>
         ) : (
           <form onSubmit={enviar} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start" noValidate>
-            <section className="bg-gray-900 border border-gray-800 rounded-3xl p-6 md:p-8 space-y-6">
+            <section className="bg-gray-900 border border-gray-800 rounded-xl p-6 md:p-8 space-y-6">
               <div>
-                <h1 className="text-2xl font-black tracking-tight">Dados do clube</h1>
+                <h1 className="text-2xl font-semibold tracking-tight">Dados do clube</h1>
                 <p className="text-gray-500 text-sm mt-1">Usamos estes dados para criar o seu acesso e emitir a cobrança.</p>
               </div>
 
@@ -180,7 +180,7 @@ const Cadastro: React.FC<{ onVoltar?: () => void; onEntrar?: () => void }> = ({ 
                 </p>
               ) : (
                 <div className="space-y-4 pt-2 border-t border-gray-800">
-                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest pt-4">Acesso ao painel</p>
+                  <p className="text-xs font-semibold text-gray-500 pt-4">Acesso ao painel</p>
                   <Campo label="E-mail"><input className={inputCls} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="voce@clube.com" autoComplete="email" /></Campo>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Campo label="Senha" dica="Mínimo de 8 caracteres."><input className={inputCls} type="password" value={senha} onChange={e => setSenha(e.target.value)} autoComplete="new-password" /></Campo>
@@ -190,20 +190,20 @@ const Cadastro: React.FC<{ onVoltar?: () => void; onEntrar?: () => void }> = ({ 
               )}
 
               <div className="space-y-2 pt-2 border-t border-gray-800">
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest pt-4">Forma de pagamento</p>
+                <p className="text-xs font-semibold text-gray-500 pt-4">Forma de pagamento</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup">
                   {([
                     { id: 'cartao', titulo: 'Cartão de crédito', texto: 'Cobrado automaticamente a cada renovação.', Icone: CreditCard },
                     { id: 'pix', titulo: 'Pix', texto: 'Você recebe um Pix para pagar a cada renovação.', Icone: QrCode },
                   ] as const).map(op => (
                     <button type="button" key={op.id} role="radio" aria-checked={forma === op.id} onClick={() => setForma(op.id)}
-                            className={`text-left rounded-2xl border p-4 transition-all ${forma === op.id ? 'border-emerald-500/50 bg-emerald-600/[0.08]' : 'border-gray-800 hover:border-gray-700'}`}>
+                            className={`text-left rounded-xl border p-4 transition-all ${forma === op.id ? 'border-emerald-500/50 bg-emerald-600/[0.08]' : 'border-gray-800 hover:border-gray-700'}`}>
                       <span className="flex items-center gap-2 font-bold text-sm"><op.Icone size={16} className={forma === op.id ? 'text-emerald-400' : 'text-gray-500'} /> {op.titulo}</span>
-                      <span className="block text-[11px] text-gray-500 mt-1">{op.texto}</span>
+                      <span className="block text-xs text-gray-500 mt-1">{op.texto}</span>
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-gray-600 flex items-center gap-1.5"><Lock size={11} /> Os dados do cartão são digitados na página segura do Asaas, nunca no nosso app.</p>
+                <p className="text-xs text-gray-600 flex items-center gap-1.5"><Lock size={11} /> Os dados do cartão são digitados na página segura do Asaas, nunca no nosso app.</p>
               </div>
 
               <label className="flex items-start gap-3 text-sm text-gray-400 cursor-pointer">
@@ -217,35 +217,46 @@ const Cadastro: React.FC<{ onVoltar?: () => void; onEntrar?: () => void }> = ({ 
                 <div className="flex items-start gap-3 rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-red-300 text-sm">
                   <AlertCircle size={16} className="shrink-0 mt-0.5" />
                   <span className="flex-1">{erro}
-                    {emailEmUso && onEntrar && <button type="button" onClick={onEntrar} className="block mt-2 font-black underline">Entrar com esta conta</button>}
+                    {emailEmUso && onEntrar && <button type="button" onClick={onEntrar} className="block mt-2 font-semibold underline">Entrar com esta conta</button>}
                   </span>
                 </div>
               )}
             </section>
 
-            <aside className="bg-gray-900 border border-gray-800 rounded-3xl p-6 space-y-5 lg:sticky lg:top-6">
+            <aside className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-5 lg:sticky lg:top-6">
               <div>
-                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Plano escolhido</p>
-                <p className="text-white font-black text-xl mt-1">{PLANOS[plano].nome}</p>
-                <button type="button" onClick={() => setEtapa('plano')} className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 mt-1">Trocar plano</button>
+                <p className="text-xs font-semibold text-gray-500">Plano escolhido</p>
+                <p className="text-white font-semibold text-xl mt-1">{PLANOS[plano].nome}</p>
+                <button type="button" onClick={() => setEtapa('plano')} className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 mt-1">Trocar plano</button>
               </div>
               <SeletorPeriodo periodo={periodo} onChange={setPeriodo} />
-              <div className="border-t border-gray-800 pt-4">
-                <div className="flex justify-between items-baseline">
-                  <span className="text-gray-400 text-sm">{periodo === 'anual' ? 'Total por ano' : 'Total por mês'}</span>
-                  <span className="text-white font-black text-2xl tabular-nums">{brl(precoDoPeriodo(plano, periodo))}</span>
+              <dl className="border-t border-gray-800 pt-4 space-y-2 text-sm tabular-nums">
+                <div className="flex justify-between gap-3">
+                  <dt className="text-gray-400">{PLANOS[plano].nome} · {periodo === 'anual' ? '12 meses' : '1º mês'}</dt>
+                  <dd className="text-gray-200">{brl(precoDoPeriodo(plano, periodo))}</dd>
                 </div>
-                {periodo === 'anual' && (
-                  <p className="text-emerald-400 text-xs font-bold text-right mt-1">
-                    economia de {brl(PLANOS[plano].mensal * 12 - precoDoPeriodo(plano, 'anual'))}
-                  </p>
-                )}
-              </div>
+                <div className="flex justify-between gap-3">
+                  <dt className="text-gray-400">Implantação</dt>
+                  <dd>{taxaImplantacao(plano, periodo) > 0
+                    ? <span className="text-gray-200">{brl(taxaImplantacao(plano, periodo))}</span>
+                    : <span className="text-green-400"><span className="text-gray-600 line-through mr-1.5">{brl(PLANOS[plano].implantacao)}</span>grátis</span>}
+                  </dd>
+                </div>
+                <div className="flex justify-between items-baseline gap-3 border-t border-gray-800 pt-3">
+                  <dt className="text-gray-300 font-medium">Total hoje</dt>
+                  <dd className="text-white font-semibold text-2xl">{brl(primeiraCobranca(plano, periodo))}</dd>
+                </div>
+                <p className="text-gray-500 text-xs text-right">
+                  {periodo === 'anual'
+                    ? <>depois {brl(precoDoPeriodo(plano, 'anual'))} por ano · <span className="text-green-400">economia de {brl(PLANOS[plano].mensal * 12 - precoDoPeriodo(plano, 'anual'))}</span></>
+                    : <>depois {brl(PLANOS[plano].mensal)} por mês · no anual a implantação é grátis</>}
+                </p>
+              </dl>
               <button type="submit" disabled={enviando}
-                      className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest transition-all">
+                      className="w-full bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-50 text-emerald-200 font-semibold py-4 rounded-xl flex items-center justify-center gap-2 text-xs transition-all ring-1 ring-inset ring-emerald-500/30">
                 {enviando ? <><Loader2 size={16} className="animate-spin" /> Criando...</> : <>Ir para o pagamento <ArrowRight size={16} /></>}
               </button>
-              <p className="text-[10px] text-gray-600 leading-relaxed">
+              <p className="text-xs text-gray-600 leading-relaxed">
                 O pagamento abre numa nova aba. O acesso é liberado assim que o pagamento é confirmado — no Pix, em instantes.
               </p>
             </aside>

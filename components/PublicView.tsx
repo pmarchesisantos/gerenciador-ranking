@@ -7,6 +7,7 @@ import StageValuesModal from './StageValuesModal';
 import ScrollArea from './ScrollArea';
 import { getStagesTotal, formatBRL } from '../services/stageValues';
 import { getStageFinance } from '../services/stageFinance';
+import Marca from './Marca';
 
 const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => void }> = ({ onLoginClick, onCadastroClick }) => {
   const { house, loadingData, setViewingHouseId } = useRanking();
@@ -60,9 +61,9 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
 
   if (loadingData && isViewingSpecificHouse) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-[#0a0a0a] space-y-4 p-6">
+      <div className="h-screen flex flex-col items-center justify-center bg-gray-950 space-y-4 p-6">
         <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-emerald-500 font-bold animate-pulse text-[10px] tracking-widest uppercase text-center">ATUALIZANDO DADOS...</p>
+        <p className="text-emerald-500 font-bold animate-pulse text-xs text-center">ATUALIZANDO DADOS...</p>
       </div>
     );
   }
@@ -71,19 +72,18 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
     const filteredHouses = allHouses.filter(h => h.name?.toLowerCase().includes(houseSearch.toLowerCase()));
     
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
+      <div className="min-h-screen bg-gray-950 flex flex-col">
         <header className="p-6 md:p-8 flex justify-between items-center border-b border-gray-800">
           <div className="flex items-center gap-3">
-             <Trophy className="text-emerald-500" />
-             <span className="text-lg md:text-xl font-black text-white tracking-tighter">Rank Manager</span>
+             <Marca />
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={onLoginClick} className="text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-white transition-all flex items-center gap-2">
+            <button onClick={onLoginClick} className="text-xs font-semibold text-gray-500 hover:text-white transition-all flex items-center gap-2">
               <LogIn size={16} /> <span className="hidden sm:inline">Administração</span>
             </button>
             {onCadastroClick && (
               <button onClick={onCadastroClick}
-                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                      className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ring-1 ring-inset ring-emerald-500/30">
                 Criar meu clube
               </button>
             )}
@@ -92,7 +92,7 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
 
         <main className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full space-y-8 md:space-y-12 flex flex-col justify-center py-12 md:py-24">
            <div className="text-center space-y-4">
-             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight">Visualize seu Ranking</h2>
+             <h2 className="text-3xl md:text-5xl font-semibold text-white tracking-tight">Visualize seu Ranking</h2>
              <p className="text-gray-500 text-sm md:text-base font-medium">Acompanhe a classificação em tempo real do seu clube.</p>
            </div>
 
@@ -111,19 +111,19 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                 <div 
                   key={h.id}
                   onClick={() => setViewingHouseId(h.slug || h.id)}
-                  className="bg-gray-900 border border-gray-800 hover:border-emerald-500/50 p-6 md:p-8 rounded-[2rem] flex items-center justify-between group transition-all cursor-pointer"
+                  className="bg-gray-900 border border-gray-800 hover:border-emerald-500/50 p-6 md:p-8 rounded-xl flex items-center justify-between group transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-4 text-left">
-                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center group-hover:bg-emerald-600 transition-all overflow-hidden border border-gray-700">
+                    <div className="w-12 h-12 bg-gray-800 rounded-xl flex items-center justify-center group-hover:bg-emerald-500/25 transition-all overflow-hidden border border-gray-700">
                        {h.profile?.logoUrl ? (
                          <img src={h.profile.logoUrl} alt="Logo" className="w-full h-full object-cover" />
                        ) : (
-                         <Home className="text-gray-400 group-hover:text-black" size={22} />
+                         <Home className="text-gray-400 group-hover:text-emerald-100" size={22} />
                        )}
                     </div>
                     <div>
-                      <h4 className="text-white font-black text-base md:text-lg leading-none">{h.name}</h4>
-                      <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mt-2">Acessar Clube</p>
+                      <h4 className="text-white font-semibold text-base md:text-lg leading-none">{h.name}</h4>
+                      <p className="text-xs font-semibold text-gray-600 mt-2">Acessar Clube</p>
                     </div>
                   </div>
                   <ChevronRight className="text-gray-700 group-hover:text-emerald-500 transition-all shrink-0" />
@@ -140,8 +140,8 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
   const selectedEntry = activeRanking?.history.find(h => h.id === selectedEntryId);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
-      <header className="border-b border-emerald-900/20 px-4 md:px-8 py-4 flex items-center justify-between bg-gray-900/50 backdrop-blur-md sticky top-0 z-40">
+    <div className="min-h-screen bg-gray-950 flex flex-col">
+      <header className="border-b border-gray-800 px-4 md:px-8 py-4 flex items-center justify-between bg-gray-900/50 backdrop-blur-md sticky top-0 z-40">
         <div className="flex items-center gap-3 shrink-0">
           <button 
             onClick={() => setViewingHouseId(null)} 
@@ -155,14 +155,14 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
             )}
             <div className="truncate max-w-[120px] xs:max-w-[200px] md:max-w-none">
               <h1 className="font-bold text-sm md:text-lg text-white tracking-tight leading-none truncate">{house.name}</h1>
-              <p className="text-emerald-500 text-[8px] font-black uppercase tracking-[0.2em] mt-1">Live Rankings</p>
+              <p className="text-emerald-500 text-xs font-semibold mt-1">Live Rankings</p>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setIsContactModalOpen(true)}
-            className="bg-amber-500 text-black p-2.5 rounded-xl transition-all active:scale-95 shadow-lg"
+            className="bg-emerald-500/15 text-emerald-200 p-2.5 rounded-xl transition-all active:scale-95 ring-1 ring-inset ring-emerald-500/30"
           >
             <MessageCircle size={18} />
           </button>
@@ -178,7 +178,7 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-6">
         <div className={`flex flex-col sm:flex-row sm:items-end justify-between gap-4 ${visibleRankings.length === 0 ? 'hidden' : ''}`}>
           <div className="w-full sm:w-80">
-            <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest block mb-2 ml-1">
+            <label className="text-xs font-semibold text-gray-600 block mb-2 ml-1">
               Ranking
             </label>
             <div className="relative">
@@ -202,13 +202,13 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
           <div className="flex bg-gray-900/80 border border-gray-800 rounded-xl p-1 shrink-0 self-start sm:self-auto">
             <button
               onClick={() => setSubView('ranking')}
-              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${subView === 'ranking' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-gray-500 hover:text-white'}`}
+              className={`px-6 py-2.5 rounded-lg text-xs font-semibold   transition-all ${subView === 'ranking' ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 'text-gray-500 hover:text-white'}`}
             >
               Ranking
             </button>
             <button
               onClick={() => setSubView('history')}
-              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${subView === 'history' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-gray-500 hover:text-white'}`}
+              className={`px-6 py-2.5 rounded-lg text-xs font-semibold   transition-all ${subView === 'history' ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 'text-gray-500 hover:text-white'}`}
             >
               Histórico
             </button>
@@ -219,17 +219,17 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
           <div className="space-y-6">
 
             {subView === 'ranking' ? (
-              <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+              <div className="bg-gray-900 border border-gray-800 rounded-xl md:rounded-xl overflow-hidden shadow-2xl relative">
                 <ScrollArea className="overflow-x-auto overflow-y-auto max-h-[600px]">
                   <table className="w-full text-left min-w-[800px]">
                     <thead className="sticky top-0 z-10">
-                      <tr className="bg-gray-800 text-gray-500 text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
-                        <th className="px-6 py-6 font-black">Pos..</th>
-                        <th className="px-6 py-6 font-black">Nome do Jogador</th>
-                        <th className="px-6 py-6 font-black text-center text-emerald-500">Pts Totais</th>
-                        <th className="px-6 py-6 font-black text-center">Pres.</th>
-                        <th className="px-6 py-6 font-black text-center">Vit.</th>
-                        <th className="px-6 py-6 font-black text-center">Dia</th>
+                      <tr className="bg-gray-800 text-gray-500 text-xs border-b border-gray-700">
+                        <th className="px-6 py-6 font-semibold">Pos..</th>
+                        <th className="px-6 py-6 font-semibold">Nome do Jogador</th>
+                        <th className="px-6 py-6 font-semibold text-center text-emerald-500">Pts Totais</th>
+                        <th className="px-6 py-6 font-semibold text-center">Pres.</th>
+                        <th className="px-6 py-6 font-semibold text-center">Vit.</th>
+                        <th className="px-6 py-6 font-semibold text-center">Dia</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
@@ -238,24 +238,24 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                         return (
                           <tr key={p.id} className="hover:bg-emerald-600/[0.02] transition-colors">
                             <td className="px-6 py-5">
-                              <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-black text-[10px] ${
-                                rank >= 1 && rank <= 3 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
-                                rank >= 4 && rank <= 8 ? 'bg-blue-600 text-white' :
+                              <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-semibold text-xs ${
+                                rank >= 1 && rank <= 3 ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 
+                                rank >= 4 && rank <= 8 ? 'bg-gray-700 text-gray-100' :
                                 rank === 9 ? 'bg-red-600 text-white' : 'bg-gray-700 text-gray-400 font-bold'
                               }`}>
                                 {rank}
                               </span>
                             </td>
                             <td className={`px-6 py-5 font-bold tracking-tight text-sm ${
-                              rank >= 1 && rank <= 3 ? 'text-amber-400' : 
-                              rank >= 4 && rank <= 8 ? 'text-blue-400' :
+                              rank >= 1 && rank <= 3 ? 'text-emerald-300' : 
+                              rank >= 4 && rank <= 8 ? 'text-gray-100' :
                               rank === 9 ? 'text-red-400' : 'text-white'
                             }`}>{p.name}</td>
-                            <td className="px-6 py-5 text-emerald-400 font-black text-center">{p.totalPoints}</td>
+                            <td className="px-6 py-5 text-emerald-400 font-semibold text-center">{p.totalPoints}</td>
                             <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.attendances}</td>
                             <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.wins}</td>
                             <td className="px-6 py-5 text-center">
-                              <span className="text-emerald-500 font-black text-xs">+{p.dayPoints}</span>
+                              <span className="text-emerald-500 font-semibold text-xs">+{p.dayPoints}</span>
                             </td>
                           </tr>
                         );
@@ -263,18 +263,18 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                     </tbody>
                     <tfoot className="sticky bottom-0 z-10 bg-gray-800 border-t border-gray-700 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
                       <tr>
-                        <td colSpan={3} className="px-6 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                        <td colSpan={3} className="px-6 py-5 text-right text-xs font-semibold text-gray-500">
                           Total Acumulado do Ranking:
                         </td>
                         <td colSpan={3} className="px-6 py-5">
                           <div className="flex items-center justify-end gap-4">
-                            <span className="font-black text-amber-500 text-lg">
+                            <span className="font-semibold text-emerald-500 text-lg">
                               R$ {formatBRL(totalAccumulated, 0)}
                             </span>
                             <button
                               onClick={() => setIsStageValuesOpen(true)}
                               title="Ver valor de cada etapa e quem venceu"
-                              className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 text-amber-500 active:bg-amber-500 active:text-black rounded-xl transition-all font-black text-[9px] uppercase tracking-widest border border-amber-500/20"
+                              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 text-emerald-500 active:bg-emerald-500/25 active:text-emerald-100 rounded-xl transition-all font-semibold text-xs border border-emerald-500/20"
                             >
                               <ListOrdered size={14} />
                               <span>Ver por Etapa</span>
@@ -293,7 +293,7 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <Calendar size={20} className="text-emerald-500" />
-                        <h3 className="text-white font-black text-lg tracking-tight">Histórico de Etapas</h3>
+                        <h3 className="text-white font-semibold text-lg tracking-tight">Histórico de Etapas</h3>
                       </div>
                       
                       <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
@@ -332,29 +332,29 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                       const termo = historySearch.trim().toLowerCase();
                       const visiveis = finance.players.filter(p => p.name.toLowerCase().includes(termo));
                       const posClass = (pos: number) =>
-                        pos >= 1 && pos <= 3 ? 'bg-amber-500 text-black' :
-                        pos >= 4 && pos <= 8 ? 'bg-blue-600 text-white' :
+                        pos >= 1 && pos <= 3 ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' :
+                        pos >= 4 && pos <= 8 ? 'bg-gray-700 text-gray-100' :
                         pos === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500';
                       const nameClass = (pos: number) =>
-                        pos >= 1 && pos <= 3 ? 'text-amber-400' :
-                        pos >= 4 && pos <= 8 ? 'text-blue-400' :
+                        pos >= 1 && pos <= 3 ? 'text-emerald-300' :
+                        pos >= 4 && pos <= 8 ? 'text-gray-100' :
                         pos === 9 ? 'text-red-400' : 'text-white';
 
                       return (
-                      <div className="bg-gray-900 border border-gray-800 rounded-[2rem] overflow-hidden shadow-2xl">
+                      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden shadow-2xl">
                         <div className="p-6 md:p-8 flex flex-wrap items-center justify-between gap-4 border-b border-gray-800">
                           <div className="space-y-1">
-                            <h4 className="text-white font-black text-xl tracking-tight">
+                            <h4 className="text-white font-semibold text-xl tracking-tight">
                               {selectedEntry.name || 'Etapa sem nome'}
                             </h4>
-                            <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">
+                            <p className="text-gray-500 text-xs font-semibold">
                               {new Date(selectedEntry.date).toLocaleDateString('pt-BR')}
                               {finance.category && <> &middot; {finance.category.name}</>}
                               {' '}&middot; {finance.players.length} jogadores
                             </p>
                           </div>
                           {selectedEntry.multiplier > 1 && (
-                            <div className="bg-amber-500 text-black px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                            <div className="bg-emerald-500/15 text-emerald-200 px-3 py-1 rounded-lg text-xs font-semibold ring-1 ring-inset ring-emerald-500/30">
                               Pontos {selectedEntry.multiplier}X
                             </div>
                           )}
@@ -363,20 +363,20 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                         {finance.category ? (
                           <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-gray-800 border-b border-gray-800">
                             <div className="bg-gray-900 p-5">
-                              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">Total Arrecadado</p>
-                              <p className="text-white font-black text-lg tracking-tight">R$ {formatBRL(finance.totalBruto)}</p>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">Total Arrecadado</p>
+                              <p className="text-white font-semibold text-lg tracking-tight">R$ {formatBRL(finance.totalBruto)}</p>
                             </div>
                             <div className="bg-gray-900 p-5">
-                              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">Rake ({finance.rakePercent}%)</p>
-                              <p className="text-red-500 font-black text-lg tracking-tight">- R$ {formatBRL(finance.rakeValue)}</p>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">Rake ({finance.rakePercent}%)</p>
+                              <p className="text-red-500 font-semibold text-lg tracking-tight">- R$ {formatBRL(finance.rakeValue)}</p>
                             </div>
                             <div className="bg-gray-900 p-5">
-                              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">Para o Ranking</p>
-                              <p className="text-amber-500 font-black text-lg tracking-tight">R$ {formatBRL(finance.rankingValue)}</p>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">Para o Ranking</p>
+                              <p className="text-emerald-500 font-semibold text-lg tracking-tight">R$ {formatBRL(finance.rankingValue)}</p>
                             </div>
                             <div className="bg-gray-900 p-5">
-                              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">Premiação</p>
-                              <p className="text-emerald-500 font-black text-lg tracking-tight">R$ {formatBRL(finance.liquido)}</p>
+                              <p className="text-xs font-semibold text-gray-600 mb-2">Premiação</p>
+                              <p className="text-emerald-500 font-semibold text-lg tracking-tight">R$ {formatBRL(finance.liquido)}</p>
                             </div>
                           </div>
                         ) : (
@@ -393,20 +393,20 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                           <div className="overflow-x-auto custom-scrollbar">
                             <table className="w-full text-left min-w-[760px]">
                               <thead>
-                                <tr className="bg-gray-800/60 text-gray-500 text-[9px] uppercase tracking-widest border-b border-gray-800">
-                                  <th className="px-6 py-4 font-black">Pos.</th>
-                                  <th className="px-4 py-4 font-black">Jogador</th>
-                                  <th className="px-4 py-4 font-black text-center">Pts</th>
+                                <tr className="bg-gray-800/60 text-gray-500 text-xs border-b border-gray-800">
+                                  <th className="px-6 py-4 font-semibold">Pos.</th>
+                                  <th className="px-4 py-4 font-semibold">Jogador</th>
+                                  <th className="px-4 py-4 font-semibold text-center">Pts</th>
                                   {finance.category && (
                                     <>
-                                      <th className="px-3 py-4 font-black text-center">Re-buy</th>
-                                      <th className="px-3 py-4 font-black text-center">Duplo</th>
-                                      <th className="px-3 py-4 font-black text-center">Add-on</th>
+                                      <th className="px-3 py-4 font-semibold text-center">Re-buy</th>
+                                      <th className="px-3 py-4 font-semibold text-center">Duplo</th>
+                                      <th className="px-3 py-4 font-semibold text-center">Add-on</th>
                                       {finance.customFields.map(f => (
-                                        <th key={f.id} className="px-3 py-4 font-black text-center">{f.name || 'Extra'}</th>
+                                        <th key={f.id} className="px-3 py-4 font-semibold text-center">{f.name || 'Extra'}</th>
                                       ))}
-                                      <th className="px-3 py-4 font-black text-center">Pago</th>
-                                      <th className="px-6 py-4 font-black text-right">Gasto</th>
+                                      <th className="px-3 py-4 font-semibold text-center">Pago</th>
+                                      <th className="px-6 py-4 font-semibold text-right">Gasto</th>
                                     </>
                                   )}
                                 </tr>
@@ -415,13 +415,13 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                                 {visiveis.map(p => (
                                   <tr key={p.playerId} className="hover:bg-emerald-600/[0.03] transition-colors">
                                     <td className="px-6 py-4">
-                                      <span className={`inline-flex w-8 h-8 items-center justify-center rounded-xl text-[11px] font-black ${posClass(p.position)}`}>
+                                      <span className={`inline-flex w-8 h-8 items-center justify-center rounded-xl text-xs font-semibold ${posClass(p.position)}`}>
                                         {p.position}º
                                       </span>
                                     </td>
                                     <td className={`px-4 py-4 font-bold text-sm ${nameClass(p.position)}`}>{p.name}</td>
                                     <td className="px-4 py-4 text-center">
-                                      <span className="text-emerald-500 font-black text-xs">+{p.pointsEarned}</span>
+                                      <span className="text-emerald-500 font-semibold text-xs">+{p.pointsEarned}</span>
                                     </td>
                                     {finance.category && (
                                       <>
@@ -434,11 +434,11 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                                           </td>
                                         ))}
                                         <td className="px-3 py-4 text-center">
-                                          <span className={`text-[9px] font-black uppercase tracking-widest ${p.paid ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                          <span className={`text-xs font-semibold   ${p.paid ? 'text-green-500' : 'text-amber-500'}`}>
                                             {p.paid ? 'Sim' : 'Pend.'}
                                           </span>
                                         </td>
-                                        <td className="px-6 py-4 text-right text-amber-500 font-black text-xs">
+                                        <td className="px-6 py-4 text-right text-emerald-500 font-semibold text-xs">
                                           R$ {formatBRL(p.gross)}
                                         </td>
                                       </>
@@ -448,18 +448,18 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                               </tbody>
                               {finance.category && (
                                 <tfoot className="bg-gray-800/60 border-t border-gray-700">
-                                  <tr className="text-[9px] uppercase tracking-widest">
-                                    <td colSpan={3} className="px-6 py-4 font-black text-gray-500 text-right">Totais da etapa:</td>
-                                    <td className="px-3 py-4 text-center text-gray-300 font-black">{finance.totals.rebuys}</td>
-                                    <td className="px-3 py-4 text-center text-gray-300 font-black">{finance.totals.doubleRebuys}</td>
-                                    <td className="px-3 py-4 text-center text-gray-300 font-black">{finance.totals.addons}</td>
+                                  <tr className="text-xs">
+                                    <td colSpan={3} className="px-6 py-4 font-semibold text-gray-500 text-right">Totais da etapa:</td>
+                                    <td className="px-3 py-4 text-center text-gray-300 font-semibold">{finance.totals.rebuys}</td>
+                                    <td className="px-3 py-4 text-center text-gray-300 font-semibold">{finance.totals.doubleRebuys}</td>
+                                    <td className="px-3 py-4 text-center text-gray-300 font-semibold">{finance.totals.addons}</td>
                                     {finance.customFields.map(f => (
-                                      <td key={f.id} className="px-3 py-4 text-center text-gray-300 font-black">
+                                      <td key={f.id} className="px-3 py-4 text-center text-gray-300 font-semibold">
                                         {finance.totals.customValues[f.id] || 0}
                                       </td>
                                     ))}
                                     <td></td>
-                                    <td className="px-6 py-4 text-right text-amber-500 font-black text-sm">
+                                    <td className="px-6 py-4 text-right text-emerald-500 font-semibold text-sm">
                                       R$ {formatBRL(finance.totalBruto)}
                                     </td>
                                   </tr>
@@ -502,11 +502,11 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
       {/* Modal Contatos */}
       {isContactModalOpen && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-[#111827] w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] border-t sm:border border-emerald-900/30 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
+          <div className="bg-gray-900 w-full max-w-md rounded-t-xl sm:rounded-xl border-t sm:border border-gray-800 shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
              <div className="p-8 pb-4 flex justify-between items-center">
                 <div>
-                   <h3 className="text-2xl font-black text-white tracking-tight">Vem pro Jogo!</h3>
-                   <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Contatos Oficiais</p>
+                   <h3 className="text-2xl font-semibold text-white tracking-tight">Vem pro Jogo!</h3>
+                   <p className="text-gray-500 text-xs font-semibold">Contatos Oficiais</p>
                 </div>
                 <button onClick={() => setIsContactModalOpen(false)} className="p-2.5 text-gray-500 hover:text-white transition-colors">
                    <X size={24} />
@@ -519,7 +519,7 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                     href={`https://wa.me/${contact.phone.replace(/\D/g, '')}`} 
                     target="_blank" 
                     rel="noreferrer"
-                    className="bg-gray-900 border border-gray-800 rounded-2xl p-5 flex items-center justify-between group hover:border-emerald-500 transition-all"
+                    className="bg-gray-900 border border-gray-800 rounded-xl p-5 flex items-center justify-between group hover:border-emerald-500 transition-all"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-emerald-600/10 rounded-xl flex items-center justify-center text-emerald-500 shrink-0">
@@ -527,7 +527,7 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                       </div>
                       <div>
                         <p className="text-white font-bold text-sm mb-0.5">{contact.name}</p>
-                        <p className="text-gray-500 text-[10px] font-bold">{contact.phone}</p>
+                        <p className="text-gray-500 text-xs font-bold">{contact.phone}</p>
                       </div>
                     </div>
                     <ChevronRight size={18} className="text-gray-700 group-hover:text-emerald-500" />
@@ -538,11 +538,11 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                     href={house.profile.instagramUrl} 
                     target="_blank" 
                     rel="noreferrer"
-                    className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-5 flex items-center justify-between group"
+                    className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl p-5 flex items-center justify-between group"
                   >
                     <div className="flex items-center gap-4">
                       <Instagram className="text-white" size={24} />
-                      <span className="text-white font-black text-xs uppercase tracking-widest">Siga no Instagram</span>
+                      <span className="text-white font-semibold text-xs">Siga no Instagram</span>
                     </div>
                     <ChevronRight className="text-white/50 group-hover:text-white" size={20} />
                   </a>

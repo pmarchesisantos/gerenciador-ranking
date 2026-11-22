@@ -37,9 +37,9 @@ type Aba = 'abertas' | 'receber' | 'encerradas';
 type Painel = 'comandas' | 'produtos' | 'conta';
 
 const STATUS_ROTULO: Record<BarComanda['status'], { texto: string; cls: string }> = {
-  aberta: { texto: 'Aberta', cls: 'bg-sky-500/10 text-sky-300' },
+  aberta: { texto: 'Aberta', cls: 'bg-white/5 text-gray-200' },
   fechada: { texto: 'Aguardando pagamento', cls: 'bg-amber-500/10 text-amber-500' },
-  paga: { texto: 'Paga', cls: 'bg-emerald-500/10 text-emerald-400' },
+  paga: { texto: 'Paga', cls: 'bg-green-500/10 text-green-400' },
   cancelada: { texto: 'Cancelada', cls: 'bg-red-500/10 text-red-400' },
 };
 
@@ -49,7 +49,7 @@ const Dialogo: React.FC<{ titulo: string; onClose: () => void; children: React.R
   ({ titulo, onClose, children, largura = 'max-w-md' }) => (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[300] flex items-center justify-center p-4 animate-in fade-in duration-150"
          onMouseDown={e => e.target === e.currentTarget && onClose()}>
-      <div className={`bg-[#111827] w-full ${largura} border border-gray-800 rounded-3xl shadow-2xl overflow-hidden`}>
+      <div className={`bg-gray-900 w-full ${largura} border border-gray-800 rounded-xl shadow-2xl overflow-hidden`}>
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-800">
           <h3 className="text-base font-bold text-white">{titulo}</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors"><X size={18} /></button>
@@ -75,14 +75,14 @@ const DialogoMotivo: React.FC<{
   return (
     <Dialogo titulo={titulo} onClose={onClose}>
       <p className="text-gray-400 text-sm leading-relaxed mb-4">{descricao}</p>
-      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Motivo *</label>
+      <label className="text-xs font-semibold text-gray-500 ml-1">Motivo *</label>
       <textarea autoFocus rows={2} value={motivo} onChange={e => setMotivo(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); } }}
                 className="mt-1.5 w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500 resize-none" />
       <div className="flex gap-3 mt-5">
-        <button onClick={onClose} className="flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-800 hover:bg-gray-700 transition-all">Voltar</button>
+        <button onClick={onClose} className="flex-1 py-3 rounded-xl text-xs font-semibold text-gray-400 bg-gray-800 hover:bg-gray-700 transition-all">Voltar</button>
         <button onClick={enviar} disabled={!motivo.trim() || enviando}
-                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-40 transition-all ${perigo ? 'bg-red-600 hover:bg-red-500' : 'bg-emerald-600 hover:bg-emerald-500'}`}>
+                className={`flex-1 py-3 rounded-xl text-xs font-semibold disabled:opacity-40 transition-all ${perigo ? 'bg-red-600 hover:bg-red-500 text-white' : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 ring-1 ring-inset ring-emerald-500/30'}`}>
           {enviando ? 'Salvando...' : confirmar}
         </button>
       </div>
@@ -357,7 +357,7 @@ const BarPDV: React.FC = () => {
   // ── Sem caixa aberto ──
 
   if (loading) {
-    return <div className="h-screen flex items-center justify-center bg-[#07090d] text-gray-500 text-sm">Carregando o bar...</div>;
+    return <div className="h-screen flex items-center justify-center bg-gray-950 text-gray-500 text-sm">Carregando o bar...</div>;
   }
   if (!caixaAberto) {
     return <TelaAbrirCaixa casa={house.name} ultimo={caixas.filter(c => c.status === 'fechado').sort((a, b) => (b.fechadoEm || '').localeCompare(a.fechadoEm || ''))[0]}
@@ -369,7 +369,7 @@ const BarPDV: React.FC = () => {
   const podeLancar = selecionada?.status === 'aberta';
 
   return (
-    <div className="h-screen flex flex-col bg-[#07090d] text-white overflow-hidden">
+    <div className="h-screen flex flex-col bg-gray-950 text-white overflow-hidden">
       {/* Barra do caixa */}
       <header className="shrink-0 border-b border-white/10 bg-black/40 px-3 md:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
@@ -377,15 +377,15 @@ const BarPDV: React.FC = () => {
             <Store size={18} />
           </div>
           <div className="min-w-0">
-            <p className="font-black text-sm truncate">PDV · {house.name}</p>
-            <p className="text-[10px] font-bold text-gray-500">Caixa aberto às {hora(caixaAberto.abertoEm)} · {new Date(caixaAberto.abertoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</p>
+            <p className="font-semibold text-sm truncate">PDV · {house.name}</p>
+            <p className="text-xs font-bold text-gray-500">Caixa aberto às {hora(caixaAberto.abertoEm)} · {new Date(caixaAberto.abertoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</p>
           </div>
         </div>
         {resumoCaixa && (
           <div className="flex items-center gap-4 md:gap-6 text-right">
-            <div><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Vendido</p><p className="font-black text-sm tabular-nums">{valorCaixa(resumoCaixa.vendido)}</p></div>
-            <div><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Recebido</p><p className={`font-black text-sm tabular-nums ${ocultarValores ? '' : 'text-emerald-400'}`}>{valorCaixa(resumoCaixa.recebido)}</p></div>
-            <div className="hidden sm:block"><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Dinheiro na gaveta</p><p className="font-black text-sm tabular-nums">{valorCaixa(resumoCaixa.dinheiro)}</p></div>
+            <div><p className="text-xs font-semibold text-gray-500">Vendido</p><p className="font-semibold text-sm tabular-nums">{valorCaixa(resumoCaixa.vendido)}</p></div>
+            <div><p className="text-xs font-semibold text-gray-500">Recebido</p><p className={`font-semibold text-sm tabular-nums ${ocultarValores ? '' : 'text-green-400'}`}>{valorCaixa(resumoCaixa.recebido)}</p></div>
+            <div className="hidden sm:block"><p className="text-xs font-semibold text-gray-500">Dinheiro na gaveta</p><p className="font-semibold text-sm tabular-nums">{valorCaixa(resumoCaixa.dinheiro)}</p></div>
             <button onClick={() => setOcultarValores(v => !v)}
                     title={ocultarValores ? 'Mostrar valores do caixa' : 'Ocultar valores do caixa'}
                     aria-pressed={ocultarValores}
@@ -396,15 +396,15 @@ const BarPDV: React.FC = () => {
         )}
         <div className="flex items-center gap-2">
           <button onClick={() => setDialogo({ tipo: 'movimento', mov: 'suprimento' })} title="Colocar dinheiro na gaveta"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/5">
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-xs font-semibold text-gray-300 hover:bg-white/5">
             <ArrowDownCircle size={14} /> <span className="hidden lg:inline">Suprimento</span>
           </button>
           <button onClick={() => setDialogo({ tipo: 'movimento', mov: 'sangria' })} title="Retirar dinheiro da gaveta"
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:bg-white/5">
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/10 text-xs font-semibold text-gray-300 hover:bg-white/5">
             <ArrowUpCircle size={14} /> <span className="hidden lg:inline">Sangria</span>
           </button>
           <button onClick={() => setDialogo({ tipo: 'fechar-caixa' })}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600/15 border border-red-500/30 text-[10px] font-black uppercase tracking-widest text-red-300 hover:bg-red-600/25">
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-600/15 border border-red-500/30 text-xs font-semibold text-red-300 hover:bg-red-600/25">
             <Lock size={14} /> Fechar caixa
           </button>
         </div>
@@ -414,7 +414,7 @@ const BarPDV: React.FC = () => {
       <div className="lg:hidden shrink-0 flex border-b border-white/10">
         {(['comandas', 'produtos', 'conta'] as Painel[]).map(p => (
           <button key={p} onClick={() => setPainel(p)}
-                  className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest transition-all ${painel === p ? 'text-white border-b-2 border-violet-500' : 'text-gray-500'}`}>
+                  className={`flex-1 py-3 text-xs font-semibold   transition-all ${painel === p ? 'text-white border-b-2 border-violet-500' : 'text-gray-500'}`}>
             {p === 'comandas' ? 'Comandas' : p === 'produtos' ? 'Produtos' : selecionada ? `#${selecionada.numero ?? ''} Conta` : 'Conta'}
           </button>
         ))}
@@ -441,7 +441,7 @@ const BarPDV: React.FC = () => {
                          className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-sm font-bold outline-none focus:border-violet-500/60" />
                 </div>
                 <button onClick={() => abrirComanda(sugestoes.find(s => normalizar(s.nome) === normalizar(novoNome)))} disabled={!novoNome.trim()}
-                        className="bg-violet-600 hover:bg-violet-500 disabled:opacity-40 rounded-xl px-3 transition-all" title="Abrir comanda">
+                        className="bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40 rounded-xl px-3 transition-all" title="Abrir comanda">
                   <Plus size={18} />
                 </button>
               </div>
@@ -451,7 +451,7 @@ const BarPDV: React.FC = () => {
                     <button key={normalizar(s.nome)} onMouseDown={e => e.preventDefault()} onClick={() => abrirComanda(s)}
                             className="w-full text-left px-3 py-2.5 flex items-center justify-between gap-3 hover:bg-violet-600/10 transition-colors">
                       <span className="text-sm font-bold truncate">{s.nome}</span>
-                      {s.jogador && <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest shrink-0">Jogador</span>}
+                      {s.jogador && <span className="text-xs font-semibold text-emerald-500 shrink-0">Jogador</span>}
                     </button>
                   ))}
                 </div>
@@ -461,7 +461,7 @@ const BarPDV: React.FC = () => {
             <div className="flex bg-white/[0.03] border border-white/10 rounded-xl p-1">
               {([['abertas', 'Abertas'], ['receber', 'A receber'], ['encerradas', 'Encerradas']] as [Aba, string][]).map(([id, rot]) => (
                 <button key={id} onClick={() => setAba(id)}
-                        className={`flex-1 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight transition-all ${aba === id ? 'bg-violet-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-semibold  tracking-tight transition-all ${aba === id ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 'text-gray-500 hover:text-gray-300'}`}>
                   {rot}{listas[id].length > 0 && <span className="opacity-70"> {listas[id].length}</span>}
                 </button>
               ))}
@@ -486,18 +486,18 @@ const BarPDV: React.FC = () => {
                 <li key={c.id}>
                   <button onClick={() => { setSelecionadaId(c.id); setPainel(c.status === 'aberta' ? 'produtos' : 'conta'); }}
                           className={`w-full text-left px-3 py-3 flex items-center gap-3 border-l-2 transition-colors ${ativa ? 'bg-violet-600/10 border-violet-500' : 'border-transparent hover:bg-white/[0.03]'}`}>
-                    <span className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-xs font-black tabular-nums shrink-0">
+                    <span className="w-9 h-9 rounded-lg bg-white/5 flex items-center justify-center text-xs font-semibold tabular-nums shrink-0">
                       {c.numero ?? '—'}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-sm font-bold truncate">{c.clienteNome}</span>
-                      <span className="block text-[10px] text-gray-500 font-bold">
+                      <span className="block text-xs text-gray-500 font-bold">
                         {deOutroCaixa ? `desde ${dataHora(c.data)}` : `aberta ${hora(c.data)}`}
                         {c.status === 'cancelada' && ' · cancelada'}
                       </span>
                     </span>
                     <span className="text-right shrink-0">
-                      <span className={`block text-sm font-black tabular-nums ${c.status === 'paga' ? 'text-emerald-400' : c.status === 'cancelada' ? 'text-gray-600 line-through' : saldo > 0 && c.status === 'fechada' ? 'text-amber-500' : 'text-white'}`}>
+                      <span className={`block text-sm font-semibold tabular-nums ${c.status === 'paga' ? 'text-green-400' : c.status === 'cancelada' ? 'text-gray-600 line-through' : saldo > 0 && c.status === 'fechada' ? 'text-amber-500' : 'text-white'}`}>
                         {brl(c.status === 'fechada' ? saldo : c.total)}
                       </span>
                     </span>
@@ -519,7 +519,7 @@ const BarPDV: React.FC = () => {
               </div>
               <div className="flex items-center bg-white/[0.03] border border-white/10 rounded-xl">
                 <button onClick={() => setQuantidade(q => Math.max(1, q - 1))} className="px-2.5 h-full text-gray-400 hover:text-white"><Minus size={14} /></button>
-                <span className="w-10 text-center text-sm font-black tabular-nums" title="Quantidade do próximo lançamento">{quantidade}×</span>
+                <span className="w-10 text-center text-sm font-semibold tabular-nums" title="Quantidade do próximo lançamento">{quantidade}×</span>
                 <button onClick={() => setQuantidade(q => Math.min(99, q + 1))} className="px-2.5 h-full text-gray-400 hover:text-white"><Plus size={14} /></button>
               </div>
             </div>
@@ -527,7 +527,7 @@ const BarPDV: React.FC = () => {
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
                 {[null, ...categorias].map(c => (
                   <button key={c ?? 'todas'} onClick={() => setCategoria(c)}
-                          className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap border transition-all ${categoria === c ? 'bg-violet-600 border-violet-500' : 'border-white/10 text-gray-500 hover:text-gray-300'}`}>
+                          className={`px-3 py-1.5 rounded-full text-xs font-semibold   whitespace-nowrap border transition-all ${categoria === c ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-200' : 'border-white/10 text-gray-500 hover:text-gray-300'}`}>
                     {c ?? 'Todos'}
                   </button>
                 ))}
@@ -560,12 +560,12 @@ const BarPDV: React.FC = () => {
                         {p.imagem
                           ? <img src={p.imagem} alt="" className="w-full h-full object-cover" />
                           : <div className="w-full h-full flex items-center justify-center text-gray-700"><Package size={22} /></div>}
-                        {est === 'zerado' && <span className="absolute top-1.5 right-1.5 bg-red-600 text-[8px] font-black uppercase rounded px-1.5 py-0.5">Sem estoque</span>}
-                        {est === 'baixo' && <span className="absolute top-1.5 right-1.5 bg-amber-500 text-black text-[8px] font-black uppercase rounded px-1.5 py-0.5">{p.estoque} rest.</span>}
+                        {est === 'zerado' && <span className="absolute top-1.5 right-1.5 bg-red-600 text-xs font-semibold rounded px-1.5 py-0.5">Sem estoque</span>}
+                        {est === 'baixo' && <span className="absolute top-1.5 right-1.5 bg-amber-500 text-gray-950 text-xs font-semibold rounded px-1.5 py-0.5">{p.estoque} rest.</span>}
                       </div>
                       <div className="p-2.5">
                         <p className="text-xs font-bold leading-tight line-clamp-2 min-h-[2rem]">{p.nome}</p>
-                        <p className="text-amber-500 text-sm font-black mt-1 tabular-nums">{brl(p.preco)}</p>
+                        <p className="text-white text-sm font-semibold mt-1 tabular-nums">{brl(p.preco)}</p>
                       </div>
                     </button>
                   );
@@ -588,21 +588,21 @@ const BarPDV: React.FC = () => {
               {selecionada ? (
                 <button onClick={() => setContaMinimizada(false)} title={`Comanda #${selecionada.numero ?? ''} — ${selecionada.clienteNome}`}
                         className="flex-1 min-h-0 flex flex-col items-center gap-3 w-full px-1 hover:bg-white/[0.02] rounded-xl transition-colors">
-                  <span className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-sm font-black tabular-nums shrink-0">
+                  <span className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-sm font-semibold tabular-nums shrink-0">
                     {selecionada.numero ?? '—'}
                   </span>
-                  <span className="flex-1 min-h-0 overflow-hidden font-black text-sm text-gray-300 [writing-mode:vertical-rl] rotate-180 truncate">
+                  <span className="flex-1 min-h-0 overflow-hidden font-semibold text-sm text-gray-300 [writing-mode:vertical-rl] rotate-180 truncate">
                     {selecionada.clienteNome}
                   </span>
                   <span className={`w-2 h-2 rounded-full shrink-0 ${
-                    selecionada.status === 'paga' ? 'bg-emerald-400' : selecionada.status === 'fechada' ? 'bg-amber-500' : selecionada.status === 'cancelada' ? 'bg-red-400' : 'bg-sky-400'
+                    selecionada.status === 'paga' ? 'bg-green-400' : selecionada.status === 'fechada' ? 'bg-amber-500' : selecionada.status === 'cancelada' ? 'bg-red-400' : 'bg-gray-400'
                   }`} title={STATUS_ROTULO[selecionada.status].texto} />
-                  <span className="text-[10px] font-black tabular-nums text-amber-500 [writing-mode:vertical-rl] rotate-180 shrink-0">
+                  <span className="text-xs font-semibold tabular-nums text-amber-500 [writing-mode:vertical-rl] rotate-180 shrink-0">
                     {brl(selecionada.status === 'aberta' ? selecionada.total : saldoComanda(selecionada))}
                   </span>
                 </button>
               ) : (
-                <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest [writing-mode:vertical-rl] rotate-180">
+                <span className="text-xs font-semibold text-gray-600 [writing-mode:vertical-rl] rotate-180">
                   Nenhuma comanda
                 </span>
               )}
@@ -626,11 +626,11 @@ const BarPDV: React.FC = () => {
               <div className="shrink-0 p-4 border-b border-white/10">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Comanda #{selecionada.numero ?? '—'}</p>
-                    <h3 className="font-black text-lg truncate">{selecionada.clienteNome}</h3>
+                    <p className="text-xs font-semibold text-gray-500">Comanda #{selecionada.numero ?? '—'}</p>
+                    <h3 className="font-semibold text-lg truncate">{selecionada.clienteNome}</h3>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <span className={`text-[9px] font-black uppercase tracking-widest rounded-md px-2 py-1 mr-1 ${STATUS_ROTULO[selecionada.status].cls}`}>
+                    <span className={`text-xs font-semibold   rounded-md px-2 py-1 mr-1 ${STATUS_ROTULO[selecionada.status].cls}`}>
                       {ehFiado(selecionada) && selecionada.caixaId !== caixaAberto.id ? 'Fiado' : STATUS_ROTULO[selecionada.status].texto}
                     </span>
                     <button onClick={() => imprimir(selecionada)} title="Imprimir conferência de consumo"
@@ -647,7 +647,7 @@ const BarPDV: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                <p className="text-[10px] text-gray-500 font-bold mt-1">Aberta em {dataHora(selecionada.data)}</p>
+                <p className="text-xs text-gray-500 font-bold mt-1">Aberta em {dataHora(selecionada.data)}</p>
               </div>
 
               <ul className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1.5">
@@ -655,14 +655,14 @@ const BarPDV: React.FC = () => {
                   <li className="py-10 text-center text-gray-600 text-xs">Nada lançado ainda.</li>
                 ) : selecionada.itens.map(i => (
                   <li key={i.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 ${i.cancelado ? 'bg-red-500/[0.04]' : 'bg-white/[0.03]'}`}>
-                    <span className={`w-7 text-sm font-black tabular-nums shrink-0 ${i.cancelado ? 'text-gray-600' : ''}`}>{i.quantidade}×</span>
+                    <span className={`w-7 text-sm font-semibold tabular-nums shrink-0 ${i.cancelado ? 'text-gray-600' : ''}`}>{i.quantidade}×</span>
                     <span className="min-w-0 flex-1">
                       <span className={`block text-sm font-bold truncate ${i.cancelado ? 'line-through text-gray-600' : ''}`}>{i.nome}</span>
-                      <span className="block text-[10px] text-gray-500">
+                      <span className="block text-xs text-gray-500">
                         {i.cancelado ? `cancelado: ${i.motivoCancelamento}` : `${brl(i.precoUnitario)} · ${hora(i.lancadoEm)}`}
                       </span>
                     </span>
-                    <span className={`text-sm font-black tabular-nums shrink-0 ${i.cancelado ? 'text-gray-600 line-through' : 'text-amber-500'}`}>
+                    <span className={`text-sm font-semibold tabular-nums shrink-0 ${i.cancelado ? 'text-gray-600 line-through' : 'text-white'}`}>
                       {brl(i.precoUnitario * i.quantidade)}
                     </span>
                     {!i.cancelado && selecionada.status === 'aberta' && (
@@ -683,19 +683,19 @@ const BarPDV: React.FC = () => {
 
               <div className="shrink-0 border-t border-white/10 bg-black/30 p-4 space-y-3">
                 <div className="grid grid-cols-3 text-center">
-                  <div><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Consumo</p><p className="font-black tabular-nums">{brl(selecionada.total)}</p></div>
-                  <div><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Pago</p><p className="font-black text-emerald-400 tabular-nums">{brl(selecionada.valorPago)}</p></div>
-                  <div><p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Saldo</p><p className="font-black text-amber-500 tabular-nums">{brl(saldoComanda(selecionada))}</p></div>
+                  <div><p className="text-xs font-semibold text-gray-500">Consumo</p><p className="font-semibold tabular-nums">{brl(selecionada.total)}</p></div>
+                  <div><p className="text-xs font-semibold text-gray-500">Pago</p><p className="font-semibold text-green-400 tabular-nums">{brl(selecionada.valorPago)}</p></div>
+                  <div><p className="text-xs font-semibold text-gray-500">Saldo</p><p className="font-semibold text-amber-500 tabular-nums">{brl(saldoComanda(selecionada))}</p></div>
                 </div>
                 {podeReceberPoker && (
                   <div className="flex items-center justify-between gap-3 rounded-xl border border-violet-500/20 bg-violet-600/[0.06] px-3 py-2">
                     <div>
-                      <p className="text-[9px] font-black text-violet-300 uppercase tracking-widest">Poker a pagar</p>
-                      <p className="font-black tabular-nums text-sm">{brl(totalPokerPendente)}</p>
+                      <p className="text-xs font-semibold text-violet-300">Poker a pagar</p>
+                      <p className="font-semibold tabular-nums text-sm">{brl(totalPokerPendente)}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Total a receber</p>
-                      <p className="font-black tabular-nums text-lg text-amber-500">{brl(saldoBar + totalPokerPendente)}</p>
+                      <p className="text-xs font-semibold text-gray-500">Total a receber</p>
+                      <p className="font-semibold tabular-nums text-lg text-amber-500">{brl(saldoBar + totalPokerPendente)}</p>
                     </div>
                   </div>
                 )}
@@ -704,7 +704,7 @@ const BarPDV: React.FC = () => {
                 {selecionada.status === 'aberta' && (
                   <button onClick={() => executar(() => bar.fecharConta(selecionada.id), 'Conta fechada')}
                           disabled={selecionada.total <= 0}
-                          className="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                          className="w-full py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white disabled:opacity-40 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
                     <Lock size={14} /> Fechar conta
                   </button>
                 )}
@@ -712,11 +712,11 @@ const BarPDV: React.FC = () => {
                 {aReceber > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-baseline justify-between gap-2">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                      <p className="text-xs font-semibold text-gray-500">
                         {selecionada.status === 'aberta' && saldoBar > 0 ? 'Receber agora (a comanda segue aberta)' : 'Receber'}
                       </p>
                       {parcelas.length > 0 && (
-                        <p className="text-[10px] font-black text-gray-500 tabular-nums shrink-0">
+                        <p className="text-xs font-semibold text-gray-500 tabular-nums shrink-0">
                           falta <span className="text-amber-500">{brl(restante)}</span>
                         </p>
                       )}
@@ -727,9 +727,9 @@ const BarPDV: React.FC = () => {
                       <ul className="space-y-1">
                         {parcelas.map(p => (
                           <li key={p.id} className="flex items-center justify-between gap-2 rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2">
-                            <span className="text-xs font-black text-gray-300">{p.forma}</span>
+                            <span className="text-xs font-semibold text-gray-300">{p.forma}</span>
                             <span className="flex items-center gap-2">
-                              <span className="text-xs font-black tabular-nums">{brl(p.valor)}</span>
+                              <span className="text-xs font-semibold tabular-nums">{brl(p.valor)}</span>
                               <button onClick={() => {
                                         setParcelas(ps => ps.filter(x => x.id !== p.id));
                                         setValor(Math.round(((valor || 0) + p.valor) * 100) / 100);
@@ -746,11 +746,11 @@ const BarPDV: React.FC = () => {
                         <input type="checkbox" checked={incluirPoker} onChange={e => setIncluirPoker(e.target.checked)}
                                className="accent-violet-500 w-4 h-4" />
                         <span className="text-xs font-bold text-gray-300 flex-1">Incluir o poker</span>
-                        <span className="text-xs font-black tabular-nums text-violet-200">{brl(totalPokerPendente)}</span>
+                        <span className="text-xs font-semibold tabular-nums text-violet-200">{brl(totalPokerPendente)}</span>
                       </label>
                     )}
                     {pokerNoRecebimento && (
-                      <p className="text-[10px] text-gray-500 leading-snug">
+                      <p className="text-xs text-gray-500 leading-snug">
                         O poker é quitado inteiro primeiro e marcado como pago no lançamento; o restante vai para o bar.
                       </p>
                     )}
@@ -758,7 +758,7 @@ const BarPDV: React.FC = () => {
                     <div className="grid grid-cols-4 gap-1">
                       {FORMAS.map(f => (
                         <button key={f} onClick={() => setForma(f)}
-                                className={`py-2 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${forma === f ? 'bg-white text-black' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
+                                className={`py-2 rounded-lg text-xs font-semibold  tracking-tight transition-all ${forma === f ? 'bg-white/10 text-white ring-1 ring-inset ring-white/25' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
                           {f}
                         </button>
                       ))}
@@ -767,22 +767,22 @@ const BarPDV: React.FC = () => {
                       <InputMoeda className="flex-1 text-white" value={valor} onChange={setValor} onEnter={receber} ariaLabel="Valor nesta forma de pagamento" />
                       <button onClick={dividir} disabled={!(valorNum > 0) || valorNum >= restante - 0.009}
                               title="Separar este valor e receber o restante em outra forma"
-                              className="shrink-0 rounded-xl px-3 border border-white/10 text-[10px] font-black uppercase tracking-widest text-gray-300 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:hover:bg-transparent flex items-center gap-1 transition-all">
+                              className="shrink-0 rounded-xl px-3 border border-white/10 text-xs font-semibold text-gray-300 hover:text-white hover:bg-white/5 disabled:opacity-30 disabled:hover:bg-transparent flex items-center gap-1 transition-all">
                         <Plus size={13} /> Dividir
                       </button>
                     </div>
                     {forma === 'Dinheiro' && (
                       <div className="space-y-1">
-                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">Dinheiro entregue (opcional, para calcular o troco)</p>
+                        <p className="text-xs font-semibold text-gray-500 ml-1">Dinheiro entregue (opcional, para calcular o troco)</p>
                         <div className="flex items-center gap-2">
                           <InputMoeda className="flex-1 text-white" value={recebidoDinheiro} onChange={setRecebidoDinheiro} ariaLabel="Dinheiro entregue" />
-                          {troco > 0 && <span className="text-sm font-black text-amber-400 shrink-0">Troco {brl(troco)}</span>}
+                          {troco > 0 && <span className="text-sm font-semibold text-amber-400 shrink-0">Troco {brl(troco)}</span>}
                         </div>
                       </div>
                     )}
 
                     <button onClick={receber} disabled={!(totalAReceber > 0)}
-                            className="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                            className="w-full py-3 rounded-xl bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
                       <Wallet size={14} />
                       Receber {brl(totalAReceber)}
                       {parcelas.length > 0 && valorNum > 0 && <span className="opacity-70 normal-case font-bold">· {parcelas.length + 1} formas</span>}
@@ -798,7 +798,7 @@ const BarPDV: React.FC = () => {
                               descricao: 'A comanda volta a aceitar consumo. A reabertura fica registrada no histórico.',
                               acao: m => bar.reabrirComanda(selecionada.id, m),
                             })}
-                            className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white flex items-center gap-1.5">
+                            className="text-xs font-semibold text-gray-500 hover:text-white flex items-center gap-1.5">
                       <Unlock size={12} /> Reabrir conta
                     </button>
                   )}
@@ -809,12 +809,12 @@ const BarPDV: React.FC = () => {
                               descricao: 'A comanda inteira é anulada e deixa de contar nas vendas. Itens com controle de estoque voltam ao estoque.',
                               acao: m => bar.cancelarComanda(selecionada.id, m),
                             })}
-                            className="text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-red-400 flex items-center gap-1.5">
+                            className="text-xs font-semibold text-gray-500 hover:text-red-400 flex items-center gap-1.5">
                       <Ban size={12} /> Cancelar comanda
                     </button>
                   )}
                   {selecionada.status === 'paga' && (
-                    <span className="text-[10px] font-bold text-emerald-500/80 flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-emerald-500/80 flex items-center gap-1.5">
                       <CheckCircle2 size={12} /> Quitada às {hora(selecionada.pagoEm)}. Somente leitura.
                     </span>
                   )}
@@ -822,7 +822,7 @@ const BarPDV: React.FC = () => {
 
                 {((selecionada.pagamentos || []).length > 0 || (selecionada.pagamentosPoker || []).length > 0) && (
                   <div className="pt-2 border-t border-white/10">
-                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">Pagamentos</p>
+                    <p className="text-xs font-semibold text-gray-500 mb-1.5">Pagamentos</p>
                     <ul className="space-y-1">
                       {(selecionada.pagamentosPoker || []).map(p => (
                         <li key={p.id} className="flex items-center justify-between gap-2 text-xs">
@@ -830,7 +830,7 @@ const BarPDV: React.FC = () => {
                             {dataHora(p.em)} · <span className="text-violet-300">Poker</span> · {p.partes.map(x => x.forma).join(' + ')}
                           </span>
                           <span className="flex items-center gap-2 shrink-0">
-                            <span className={`font-black tabular-nums ${p.estornado ? 'text-gray-600 line-through' : 'text-violet-200'}`}>{brl(p.valor)}</span>
+                            <span className={`font-semibold tabular-nums ${p.estornado ? 'text-gray-600 line-through' : 'text-violet-200'}`}>{brl(p.valor)}</span>
                             {!p.estornado && (
                               <button title="Estornar o poker"
                                       onClick={() => setDialogo({
@@ -849,7 +849,7 @@ const BarPDV: React.FC = () => {
                             {dataHora(p.em)} · {p.forma || '—'}
                           </span>
                           <span className="flex items-center gap-2">
-                            <span className={`font-black tabular-nums ${p.estornado ? 'text-gray-600 line-through' : 'text-emerald-400'}`}>{brl(p.valor)}</span>
+                            <span className={`font-semibold tabular-nums ${p.estornado ? 'text-gray-600 line-through' : 'text-emerald-400'}`}>{brl(p.valor)}</span>
                             {!p.estornado && selecionada.status !== 'cancelada' && (
                               <button title="Estornar pagamento"
                                       onClick={() => setDialogo({
@@ -869,14 +869,14 @@ const BarPDV: React.FC = () => {
                 {(selecionada.historico || []).length > 0 && (
                   <div className="pt-2 border-t border-white/10">
                     <button onClick={() => setMostrarHistorico(v => !v)}
-                            className="w-full flex items-center justify-between text-[9px] font-black text-gray-500 uppercase tracking-widest hover:text-gray-300">
+                            className="w-full flex items-center justify-between text-xs font-semibold text-gray-500 hover:text-gray-300">
                       <span className="flex items-center gap-1.5"><History size={11} /> Histórico</span>
                       {mostrarHistorico ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                     </button>
                     {mostrarHistorico && (
                       <ul className="mt-2 space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
                         {[...selecionada.historico!].reverse().map((ev, idx) => (
-                          <li key={idx} className="text-[10px] text-gray-500"><span className="text-gray-600 tabular-nums">{dataHora(ev.em)}</span> · {ev.descricao}</li>
+                          <li key={idx} className="text-xs text-gray-500"><span className="text-gray-600 tabular-nums">{dataHora(ev.em)}</span> · {ev.descricao}</li>
                         ))}
                       </ul>
                     )}
@@ -934,29 +934,29 @@ const quantos = (n: number) => (n > 0 ? `${n}×` : '—');
 const CartaoPoker: React.FC<{ gasto: GastoPoker }> = ({ gasto }) => (
   <li className="mt-3 rounded-xl border border-violet-500/20 bg-violet-600/[0.06] px-3 py-2.5">
     <div className="flex items-center justify-between gap-2 mb-1.5">
-      <p className="text-[10px] font-black uppercase tracking-widest text-violet-300 truncate">
+      <p className="text-xs font-semibold text-violet-300 truncate">
         Poker · {gasto.rankingNome}{gasto.etapaNome ? ` · ${gasto.etapaNome}` : ''}
       </p>
-      <span className={`text-[9px] font-black uppercase tracking-widest rounded-md px-1.5 py-0.5 shrink-0 ${
-        gasto.pago ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-500'}`}>
+      <span className={`text-xs font-semibold   rounded-md px-1.5 py-0.5 shrink-0 ${
+        gasto.pago ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-500'}`}>
         {gasto.pago ? 'Pago' : 'A pagar'}
       </span>
     </div>
     {gasto.linhas.map(l => (
       <div key={l.rotulo} className="flex items-center gap-2 py-0.5 text-sm">
-        <span className="w-7 font-black tabular-nums shrink-0">{l.quantidade}×</span>
+        <span className="w-7 font-semibold tabular-nums shrink-0">{l.quantidade}×</span>
         <span className="flex-1 min-w-0 truncate font-bold">
           {l.rotulo}
-          {l.unitario != null && <span className="text-[10px] text-gray-500 font-bold"> · {brl(l.unitario)}</span>}
+          {l.unitario != null && <span className="text-xs text-gray-500 font-bold"> · {brl(l.unitario)}</span>}
         </span>
-        <span className="font-black tabular-nums text-violet-200 shrink-0">{l.unitario != null ? brl(l.total) : '—'}</span>
+        <span className="font-semibold tabular-nums text-violet-200 shrink-0">{l.unitario != null ? brl(l.total) : '—'}</span>
       </div>
     ))}
     <div className="flex justify-between gap-2 border-t border-white/10 mt-1.5 pt-1.5 text-sm">
-      <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 self-center">
+      <span className="text-xs font-semibold text-gray-500 self-center">
         Total poker{gasto.rascunho ? ' · lançamento em andamento' : ''}
       </span>
-      <span className="font-black tabular-nums">{brl(gasto.total)}</span>
+      <span className="font-semibold tabular-nums">{brl(gasto.total)}</span>
     </div>
   </li>
 );
@@ -974,7 +974,7 @@ const TabelaPokerDoDia: React.FC<{ gastos: GastoPoker[] }> = ({ gastos }) => {
     g.linhas.filter(l => !COLUNAS_FIXAS.includes(l.rotulo)).reduce((a, l) => a + l.total, 0);
   const valor = (g: GastoPoker, rotulo: string) => g.linhas.find(l => l.rotulo === rotulo)?.total || 0;
   const celula = (qtd: number, total: number) => qtd > 0
-    ? <><span className="font-black text-white">{quantos(qtd)}</span> <span className="text-gray-400">{formatBRL(total)}</span></>
+    ? <><span className="font-semibold text-white">{quantos(qtd)}</span> <span className="text-gray-400">{formatBRL(total)}</span></>
     : <span className="text-gray-700">—</span>;
   const dia = (d: string) => d.split('-').reverse().slice(0, 2).join('/');
 
@@ -987,15 +987,15 @@ const TabelaPokerDoDia: React.FC<{ gastos: GastoPoker[] }> = ({ gastos }) => {
         return (
           <section key={chave}>
             <div className="flex items-baseline justify-between gap-3 mb-2">
-              <p className="text-[10px] font-black text-violet-300 uppercase tracking-widest">
+              <p className="text-xs font-semibold text-violet-300">
                 Poker do dia · {g0.rankingNome}{g0.etapaNome ? ` · ${g0.etapaNome}` : ''} · {dia(g0.dia)}
               </p>
-              {g0.rascunho && <span className="text-[9px] font-black uppercase tracking-widest text-amber-500 shrink-0">lançamento em andamento</span>}
+              {g0.rascunho && <span className="text-xs font-semibold text-amber-500 shrink-0">lançamento em andamento</span>}
             </div>
             <div className="overflow-x-auto custom-scrollbar">
               <table className="w-full text-xs tabular-nums whitespace-nowrap">
                 <thead>
-                  <tr className="text-[9px] font-black text-gray-500 uppercase tracking-widest text-right">
+                  <tr className="text-xs font-semibold text-gray-500 text-right">
                     <th className="text-left pb-2 pr-3">Jogador</th>
                     <th className="pb-2 px-2">Buy-in</th>
                     <th className="pb-2 px-2">Rebuy</th>
@@ -1015,9 +1015,9 @@ const TabelaPokerDoDia: React.FC<{ gastos: GastoPoker[] }> = ({ gastos }) => {
                       <td className="py-1.5 px-2">{celula(g.rebuysDuplos, valor(g, 'Rebuy duplo'))}</td>
                       <td className="py-1.5 px-2">{celula(g.addons, valor(g, 'Add-on'))}</td>
                       {temExtras && <td className="py-1.5 px-2 text-gray-400">{extras(g) > 0 ? formatBRL(extras(g)) : '—'}</td>}
-                      <td className="py-1.5 px-2 font-black text-white">{formatBRL(g.total)}</td>
+                      <td className="py-1.5 px-2 font-semibold text-white">{formatBRL(g.total)}</td>
                       <td className="py-1.5 pl-2 text-center">
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${g.pago ? 'text-emerald-400' : 'text-amber-500'}`}>
+                        <span className={`text-xs font-semibold   ${g.pago ? 'text-green-400' : 'text-amber-500'}`}>
                           {g.pago ? 'Pago' : 'A pagar'}
                         </span>
                       </td>
@@ -1026,14 +1026,14 @@ const TabelaPokerDoDia: React.FC<{ gastos: GastoPoker[] }> = ({ gastos }) => {
                 </tbody>
                 <tfoot>
                   <tr className="text-right border-t border-gray-600">
-                    <td className="pt-2 pr-3 text-left text-[9px] font-black text-gray-500 uppercase tracking-widest">{lista.length} jogador(es)</td>
+                    <td className="pt-2 pr-3 text-left text-xs font-semibold text-gray-500">{lista.length} jogador(es)</td>
                     <td className="pt-2 px-2">{celula(soma(g => g.buyIns), soma(g => valor(g, 'Buy-in')))}</td>
                     <td className="pt-2 px-2">{celula(soma(g => g.rebuys), soma(g => valor(g, 'Rebuy')))}</td>
                     <td className="pt-2 px-2">{celula(soma(g => g.rebuysDuplos), soma(g => valor(g, 'Rebuy duplo')))}</td>
                     <td className="pt-2 px-2">{celula(soma(g => g.addons), soma(g => valor(g, 'Add-on')))}</td>
                     {temExtras && <td className="pt-2 px-2 text-gray-400">{formatBRL(soma(extras))}</td>}
-                    <td className="pt-2 px-2 font-black text-violet-200">{formatBRL(soma(g => g.total))}</td>
-                    <td className="pt-2 pl-2 text-center text-[9px] font-black text-amber-500 uppercase tracking-widest">
+                    <td className="pt-2 px-2 font-semibold text-violet-200">{formatBRL(soma(g => g.total))}</td>
+                    <td className="pt-2 pl-2 text-center text-xs font-semibold text-amber-500">
                       {formatBRL(soma(g => (g.pago ? 0 : g.total)))} a pagar
                     </td>
                   </tr>
@@ -1050,7 +1050,7 @@ const TabelaPokerDoDia: React.FC<{ gastos: GastoPoker[] }> = ({ gastos }) => {
 
 const Toast: React.FC<{ tipo: 'ok' | 'erro'; texto: string }> = ({ tipo, texto }) => (
   <div className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[400] max-w-[92vw] flex items-center gap-2 rounded-xl px-4 py-3 shadow-2xl text-sm font-bold animate-in slide-in-from-bottom-2 duration-200 ${
-    tipo === 'ok' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+    tipo === 'ok' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'
   }`}>
     {tipo === 'ok' ? <CheckCircle2 size={16} className="shrink-0" /> : <AlertTriangle size={16} className="shrink-0" />}
     {texto}
@@ -1070,24 +1070,24 @@ const TelaAbrirCaixa: React.FC<{
     setEnviando(false);
   };
   return (
-    <div className="h-screen flex items-center justify-center bg-[#07090d] text-white p-4">
-      <div className="w-full max-w-sm bg-white/[0.02] border border-white/10 rounded-3xl p-8 space-y-6">
+    <div className="h-screen flex items-center justify-center bg-gray-950 text-white p-4">
+      <div className="w-full max-w-sm bg-white/[0.02] border border-white/10 rounded-xl p-8 space-y-6">
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-violet-600/15 border border-violet-500/30 flex items-center justify-center text-violet-300 mx-auto"><Store size={26} /></div>
-          <h1 className="text-xl font-black">Abrir caixa do bar</h1>
+          <div className="w-14 h-14 rounded-xl bg-violet-600/15 border border-violet-500/30 flex items-center justify-center text-violet-300 mx-auto"><Store size={26} /></div>
+          <h1 className="text-xl font-semibold">Abrir caixa do bar</h1>
           <p className="text-gray-500 text-sm">{casa}</p>
         </div>
         <div className="space-y-1.5">
-          <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Fundo de troco (dinheiro na gaveta)</label>
+          <label className="text-xs font-semibold text-gray-500 ml-1">Fundo de troco (dinheiro na gaveta)</label>
           <InputMoeda autoFocus className="text-white text-lg" value={fundo} onChange={setFundo} onEnter={abrir} ariaLabel="Fundo de troco" />
-          <p className="text-[10px] text-gray-600 ml-1">O dinheiro que já está na gaveta antes da primeira venda.</p>
+          <p className="text-xs text-gray-600 ml-1">O dinheiro que já está na gaveta antes da primeira venda.</p>
         </div>
         <button onClick={abrir} disabled={enviando}
-                className="w-full py-3.5 rounded-xl bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
+                className="w-full py-3.5 rounded-xl bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
           <Unlock size={15} /> {enviando ? 'Abrindo...' : 'Abrir caixa'}
         </button>
         {ultimo?.fechadoEm && (
-          <p className="text-center text-[10px] text-gray-600">Último caixa fechado em {dataHora(ultimo.fechadoEm)}.</p>
+          <p className="text-center text-xs text-gray-600">Último caixa fechado em {dataHora(ultimo.fechadoEm)}.</p>
         )}
       </div>
       {toast && <Toast {...toast} />}
@@ -1122,7 +1122,7 @@ const DialogoMovimento: React.FC<{
                className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-emerald-500" />
       </div>
       <button onClick={enviar} disabled={!(v > 0) || !motivo.trim() || enviando}
-              className="w-full mt-5 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-[10px] font-black uppercase tracking-widest text-white transition-all">
+              className="w-full mt-5 py-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-40 text-xs font-semibold text-emerald-200 transition-all ring-1 ring-inset ring-emerald-500/30">
         {enviando ? 'Salvando...' : 'Registrar'}
       </button>
     </Dialogo>
@@ -1163,7 +1163,7 @@ const DialogoFecharCaixa: React.FC<{
         </div>
       ) : (
         <>
-          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2">
+          <p className="text-xs font-semibold text-gray-500 mb-2">
             {formasPoker.length > 0 ? `Bar · ${brl(totalBar)}` : 'Recebido neste caixa'}
           </p>
           {formasBar.length === 0 ? (
@@ -1180,7 +1180,7 @@ const DialogoFecharCaixa: React.FC<{
           )}
           {formasPoker.length > 0 && (
             <>
-              <p className="text-[10px] font-black text-violet-300 uppercase tracking-widest mt-4 mb-2">Poker recebido no bar · {brl(totalPoker)}</p>
+              <p className="text-xs font-semibold text-violet-300 mt-4 mb-2">Poker recebido no bar · {brl(totalPoker)}</p>
               <ul className="divide-y divide-gray-800">
                 {formasPoker.map(([forma, valor]) => (
                   <li key={forma} className="flex justify-between py-2 text-sm">
@@ -1192,17 +1192,17 @@ const DialogoFecharCaixa: React.FC<{
             </>
           )}
           <div className="flex justify-between pt-3 mt-1 border-t border-gray-700">
-            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Total</span>
-            <span className="tabular-nums font-black text-emerald-400">{brl(total)}</span>
+            <span className="text-xs font-semibold text-gray-500">Total</span>
+            <span className="tabular-nums font-semibold text-emerald-400">{brl(total)}</span>
           </div>
           <button onClick={enviar} disabled={enviando}
-                  className="w-full mt-5 py-3 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-40 text-[10px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-2 transition-all">
+                  className="w-full mt-5 py-3 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-40 text-xs font-semibold text-white flex items-center justify-center gap-2 transition-all">
             <Lock size={14} /> {enviando ? 'Fechando...' : 'Fechar caixa'}
           </button>
         </>
       )}
       <button onClick={onCancelarCaixa}
-              className="w-full mt-4 text-[11px] text-gray-500 hover:text-red-400 transition-colors">
+              className="w-full mt-4 text-xs text-gray-500 hover:text-red-400 transition-colors">
 <span className="underline underline-offset-2">Cancelar caixa</span>
       </button>
       </div>

@@ -10,7 +10,7 @@ import { LISTA_PLANOS, PLANOS, PlanoId, StatusAssinatura, ehPlano } from '../ser
 
 const STATUS_TEXTO: Record<StatusAssinatura, { texto: string; cls: string }> = {
   pendente: { texto: 'Aguardando pagamento', cls: 'text-amber-400' },
-  ativa: { texto: 'Assinatura ativa', cls: 'text-emerald-500' },
+  ativa: { texto: 'Assinatura ativa', cls: 'text-green-500' },
   atrasada: { texto: 'Pagamento atrasado', cls: 'text-red-400' },
   cancelada: { texto: 'Cancelada', cls: 'text-gray-400' },
 };
@@ -171,9 +171,9 @@ const SuperAdminDashboard: React.FC = () => {
         <div>
           <div className="flex items-center gap-3 mb-2 text-amber-500">
             <Shield size={20} />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em]">Painel de Administração</span>
+            <span className="text-xs font-semibold">Painel de Administração</span>
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tighter">Gerenciamento Global</h1>
+          <h1 className="text-4xl font-semibold text-white tracking-tight">Gerenciamento Global</h1>
           <p className="text-gray-500 mt-2 max-w-2xl">
             Autorize novos clubes ou gerencie os rankings existentes clicando em "Testar Painel".
           </p>
@@ -181,7 +181,7 @@ const SuperAdminDashboard: React.FC = () => {
         <button 
           onClick={handleClearAll}
           disabled={isProcessing || houses.length === 0}
-          className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white px-4 py-2.5 rounded-xl text-xs font-black transition-all border border-red-500/20 disabled:opacity-30 uppercase tracking-widest"
+          className="flex items-center gap-2 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white px-4 py-2.5 rounded-xl text-xs font-semibold transition-all border border-red-500/20 disabled:opacity-30"
         >
           <Eraser size={14} />
           Limpar Todos
@@ -189,17 +189,17 @@ const SuperAdminDashboard: React.FC = () => {
       </header>
 
       {comSenhaExposta.length > 0 && (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-3xl border border-red-500/30 bg-red-500/[0.06] p-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-red-500/30 bg-red-500/[0.06] p-6">
           <div className="flex items-start gap-3">
             <ShieldAlert className="text-red-400 shrink-0 mt-0.5" size={20} />
             <div>
-              <p className="text-white font-black">{comSenhaExposta.length} clube(s) com senha exposta</p>
+              <p className="text-white font-semibold">{comSenhaExposta.length} clube(s) com senha exposta</p>
               <p className="text-gray-400 text-sm mt-1">A senha inicial foi gravada em texto puro no documento do clube, que qualquer pessoa pode ler.
                 Remova-a dos registros e peça aos donos que troquem a senha em "Dados do Perfil".</p>
             </div>
           </div>
           <button onClick={removerSenhasExpostas} disabled={isProcessing}
-                  className="shrink-0 bg-red-600 hover:bg-red-500 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-40">
+                  className="shrink-0 bg-red-600 hover:bg-red-500 text-white px-5 py-3 rounded-xl text-xs font-semibold disabled:opacity-40">
             Remover senhas expostas
           </button>
         </div>
@@ -207,27 +207,27 @@ const SuperAdminDashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <section className="lg:col-span-4">
-          <div className="bg-gray-900 border border-gray-800 rounded-[2.5rem] p-8 space-y-6 sticky top-24 shadow-2xl">
-            <h2 className="text-xl font-black text-white flex items-center gap-3">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 space-y-6 sticky top-24 shadow-2xl">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-3">
               <Plus className="text-emerald-500" /> Autorizar Clube
             </h2>
             
             <form onSubmit={handleAddHouse} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nome do Clube</label>
+                <label className="text-xs font-semibold text-gray-500 ml-1">Nome do Clube</label>
                 <input 
                   disabled={isProcessing}
-                  className="w-full bg-black/40 border border-gray-800 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-all disabled:opacity-50"
+                  className="w-full bg-black/40 border border-gray-800 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-all disabled:opacity-50"
                   placeholder="Ex: Diamond Poker Club"
                   value={newHouseName}
                   onChange={(e) => setNewHouseName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">E-mail do Proprietário</label>
+                <label className="text-xs font-semibold text-gray-500 ml-1">E-mail do Proprietário</label>
                 <input 
                   disabled={isProcessing}
-                  className="w-full bg-black/40 border border-gray-800 rounded-2xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-all disabled:opacity-50"
+                  className="w-full bg-black/40 border border-gray-800 rounded-xl px-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-all disabled:opacity-50"
                   placeholder="dono@exemplo.com"
                   type="email"
                   value={newHouseEmail}
@@ -235,12 +235,12 @@ const SuperAdminDashboard: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Senha de Acesso</label>
+                <label className="text-xs font-semibold text-gray-500 ml-1">Senha de Acesso</label>
                 <div className="relative">
                   <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={16} />
                   <input 
                     disabled={isProcessing}
-                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-all disabled:opacity-50"
+                    className="w-full bg-black/40 border border-gray-800 rounded-xl pl-12 pr-5 py-4 text-white font-bold outline-none focus:border-emerald-500 transition-all disabled:opacity-50"
                     placeholder="Senha inicial"
                     type="password"
                     value={tempPassword}
@@ -250,8 +250,8 @@ const SuperAdminDashboard: React.FC = () => {
               </div>
 
               {status && (
-                <div className={`p-4 rounded-2xl text-xs font-bold flex items-start gap-3 animate-in zoom-in-95 ${
-                  status.type === 'success' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'
+                <div className={`p-4 rounded-xl text-xs font-bold flex items-start gap-3 animate-in zoom-in-95 ${
+                  status.type === 'success' ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'
                 }`}>
                   <Info size={16} className="shrink-0 mt-0.5" />
                   <span>{status.msg}</span>
@@ -260,7 +260,7 @@ const SuperAdminDashboard: React.FC = () => {
 
               <button 
                 disabled={isProcessing}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl shadow-xl shadow-emerald-900/20 transition-all uppercase text-xs tracking-widest flex items-center justify-center gap-2"
+                className="w-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 font-semibold py-4 rounded-xl  transition-all text-xs flex items-center justify-center gap-2 ring-1 ring-inset ring-emerald-500/30"
               >
                 {isProcessing ? <Loader2 className="animate-spin" size={18} /> : 'Liberar Acesso Agora'}
               </button>
@@ -270,7 +270,7 @@ const SuperAdminDashboard: React.FC = () => {
 
         <section className="lg:col-span-8 space-y-6">
           <div className="flex items-center justify-between ml-2">
-            <h2 className="text-xl font-black text-white flex items-center gap-3">
+            <h2 className="text-xl font-semibold text-white flex items-center gap-3">
               <Home className="text-amber-500" /> Clubes Autorizados ({houses.length})
             </h2>
           </div>
@@ -279,11 +279,11 @@ const SuperAdminDashboard: React.FC = () => {
             {loading ? (
               <div className="col-span-full py-20 text-center text-gray-600">Carregando clubes...</div>
             ) : houses.map(houseRecord => (
-              <div key={houseRecord.id} className="bg-gray-900 border border-gray-800 rounded-3xl p-6 group transition-all hover:border-emerald-500/30 relative shadow-lg">
+              <div key={houseRecord.id} className="bg-gray-900 border border-gray-800 rounded-xl p-6 group transition-all hover:border-emerald-500/30 relative shadow-lg">
                 <div className="absolute top-6 right-6 flex gap-2">
                   <button 
                     onClick={() => setViewingHouseId(houseRecord.slug || houseRecord.id)} 
-                    className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 transition-all hover:text-white flex items-center gap-2 px-3 text-[10px] font-black uppercase tracking-widest"
+                    className="p-2 bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500/25 transition-all hover:text-emerald-100 flex items-center gap-2 px-3 text-xs font-semibold"
                     title="Simular Acesso"
                   >
                     <Eye size={14}/> Testar Painel
@@ -297,26 +297,26 @@ const SuperAdminDashboard: React.FC = () => {
                   </button>
                 </div>
                 <div className="flex items-start mb-4">
-                  <div className="w-12 h-12 bg-gray-800/50 rounded-2xl flex items-center justify-center border border-gray-800">
+                  <div className="w-12 h-12 bg-gray-800/50 rounded-xl flex items-center justify-center border border-gray-800">
                     <Trophy className="text-emerald-500" size={24} />
                   </div>
                 </div>
-                <h3 className="text-white font-black text-lg mb-1">{houseRecord.name}</h3>
+                <h3 className="text-white font-semibold text-lg mb-1">{houseRecord.name}</h3>
                 <p className="text-gray-500 text-xs mb-4 font-medium">{houseRecord.ownerEmail}</p>
                 <div className="mb-3 flex items-center justify-between gap-3">
                   {houseRecord.assinatura ? (
                     <>
                       <span className="text-xs font-bold text-white">{houseRecord.plano ? PLANOS[houseRecord.plano].nome : '—'}</span>
-                      <span className={`text-[10px] font-black uppercase tracking-widest ${STATUS_TEXTO[houseRecord.assinatura.status]?.cls || 'text-gray-400'}`}>
+                      <span className={`text-xs font-semibold   ${STATUS_TEXTO[houseRecord.assinatura.status]?.cls || 'text-gray-400'}`}>
                         {STATUS_TEXTO[houseRecord.assinatura.status]?.texto || houseRecord.assinatura.status}
                       </span>
                     </>
                   ) : (
                     <label className="flex items-center gap-2 w-full">
-                      <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest shrink-0">Cortesia</span>
+                      <span className="text-xs font-semibold text-gray-600 shrink-0">Cortesia</span>
                       <select value={houseRecord.plano || ''} onChange={e => definirPlano(houseRecord, e.target.value)}
                               className="flex-1 bg-black/40 border border-gray-800 rounded-lg px-2 py-1.5 text-xs font-bold text-white outline-none">
-                        <option value="">Completo (sem plano)</option>
+                        <option value="">Black (sem plano)</option>
                         {LISTA_PLANOS.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                       </select>
                     </label>
@@ -325,16 +325,16 @@ const SuperAdminDashboard: React.FC = () => {
                 <div className="bg-black/40 rounded-xl p-3 border border-gray-800 flex items-center justify-between">
                    <div className="flex items-center gap-2">
                      <UserCheck size={12} className="text-emerald-500" />
-                     <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">{houseRecord.assinatura ? 'Assinante' : 'Acesso Ativo'}</span>
+                     <span className="text-xs font-semibold text-gray-600">{houseRecord.assinatura ? 'Assinante' : 'Acesso Ativo'}</span>
                    </div>
-                   <span className="text-[10px] font-bold text-emerald-500/60 font-mono">URL: /c/{houseRecord.slug || houseRecord.id}</span>
+                   <span className="text-xs font-bold text-emerald-500/60 font-mono">URL: /c/{houseRecord.slug || houseRecord.id}</span>
                 </div>
               </div>
             ))}
             {!loading && houses.length === 0 && (
-              <div className="col-span-full py-20 text-center bg-gray-900/50 rounded-[2.5rem] border border-dashed border-gray-800 flex flex-col items-center gap-4">
+              <div className="col-span-full py-20 text-center bg-gray-900/50 rounded-xl border border-dashed border-gray-800 flex flex-col items-center gap-4">
                 <AlertCircle size={32} className="text-gray-700" />
-                <p className="text-gray-600 font-bold uppercase text-[10px] tracking-widest">Nenhum clube autorizado encontrado.</p>
+                <p className="text-gray-600 font-bold text-xs">Nenhum clube autorizado encontrado.</p>
               </div>
             )}
           </div>

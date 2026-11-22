@@ -115,19 +115,19 @@ const Settings: React.FC = () => {
       <div className="flex gap-4 border-b border-gray-800 overflow-x-auto no-scrollbar">
         <button 
           onClick={() => setActiveTab('scoring')}
-          className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'scoring' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`pb-4 px-6 text-xs font-semibold   transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'scoring' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
         >
           <SettingsIcon size={16} /> Pontuação
         </button>
         <button 
           onClick={() => setActiveTab('values')}
-          className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'values' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`pb-4 px-6 text-xs font-semibold   transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'values' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
         >
           <Wallet size={16} /> Parametrização de Valores
         </button>
         <button 
           onClick={() => setActiveTab('security')}
-          className={`pb-4 px-6 text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'security' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
+          className={`pb-4 px-6 text-xs font-semibold   transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'security' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500 hover:text-gray-300'}`}
         >
           <Key size={16} /> Segurança
         </button>
@@ -135,7 +135,7 @@ const Settings: React.FC = () => {
 
       {activeTab === 'scoring' && (
         <div className="animate-in fade-in duration-300 space-y-8">
-          <div className="bg-amber-600/10 border border-amber-600/30 rounded-2xl p-6 flex gap-4 items-start">
+          <div className="bg-amber-600/10 border border-amber-600/30 rounded-xl p-6 flex gap-4 items-start">
             <Info className="text-amber-500 mt-1 shrink-0" />
             <div>
               <h4 className="text-amber-500 font-bold mb-1">Regra de Cálculo</h4>
@@ -146,14 +146,14 @@ const Settings: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6">
+            <div className="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-8 space-y-6">
               <div className="flex justify-between items-center border-b border-gray-800 pb-4">
                 <h3 className="text-xl font-bold text-white">Pontos por Posição</h3>
                 {tempScoring && (
                   <button 
                     onClick={handleSaveScoring} 
                     disabled={isSavingScoring}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                    className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 px-4 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-2 ring-1 ring-inset ring-emerald-500/30"
                   >
                     <Save size={14} /> {isSavingScoring ? 'Salvando...' : 'Salvar Alterações'}
                   </button>
@@ -163,8 +163,8 @@ const Settings: React.FC = () => {
                 {positions.map(pos => (
                   <div key={pos} className="flex items-center justify-between border-b border-gray-800/50 pb-2">
                     <label className="text-gray-400 font-medium">
-                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded mr-3 text-[10px] font-black ${
-                        pos === 1 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
+                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded mr-3 text-xs font-semibold ${
+                        pos === 1 ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 
                         pos <= 3 ? 'bg-emerald-600/20 text-emerald-500 border border-emerald-500/30' :
                         'bg-gray-800 text-gray-500'
                       }`}>
@@ -184,7 +184,7 @@ const Settings: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 space-y-6 h-fit">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 space-y-6 h-fit">
               <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-4">Bônus de Presença</h3>
               <div className="mt-6 flex items-center justify-between">
                 <label className="text-gray-400 font-medium text-sm">Pontos Base</label>
@@ -200,7 +200,7 @@ const Settings: React.FC = () => {
                 <button 
                   onClick={handleSaveScoring} 
                   disabled={isSavingScoring}
-                  className="w-full mt-4 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                  className="w-full mt-4 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 py-3 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-2 ring-1 ring-inset ring-emerald-500/30"
                 >
                   <Save size={14} /> Salvar Regras
                 </button>
@@ -216,18 +216,18 @@ const Settings: React.FC = () => {
              <h3 className="text-xl font-bold text-white">Categorias de Jogos</h3>
              <button 
                onClick={() => setEditingCategory({ name: '', buyIn: 0, reBuy: 0, reBuyDuplo: 0, addOn: 0, customValues: [], rake: 0, rankingPercent: 0 })}
-               className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all"
+               className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ring-1 ring-inset ring-emerald-500/30"
              >
                <Plus size={16} /> Nova Categoria
              </button>
            </div>
 
            {editingCategory && (
-             <div className="bg-gray-900 border border-emerald-500/50 rounded-3xl p-8 space-y-6 animate-in zoom-in-95">
-                <h4 className="text-lg font-black text-white uppercase tracking-widest">{editingCategory.id ? 'Editar' : 'Nova'} Categoria</h4>
+             <div className="bg-gray-900 border border-emerald-500/50 rounded-xl p-8 space-y-6 animate-in zoom-in-95">
+                <h4 className="text-lg font-semibold text-white">{editingCategory.id ? 'Editar' : 'Nova'} Categoria</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nome</label>
+                     <label className="text-xs font-semibold text-gray-500 ml-1">Nome</label>
                      <input 
                         className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
                         placeholder="Ex: Jogo de Segunda"
@@ -242,7 +242,7 @@ const Settings: React.FC = () => {
                      { valueKey: 'addOn', chipsKey: 'addOnChips', label: 'Add-on' },
                    ] as const).map(campo => (
                      <div key={campo.valueKey} className="space-y-2">
-                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{campo.label} (R$)</label>
+                       <label className="text-xs font-semibold text-gray-500 ml-1">{campo.label} (R$)</label>
                        <input
                           type="number" {...inputNumericProps}
                           className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
@@ -269,7 +269,7 @@ const Settings: React.FC = () => {
                 {/* Campos Personalizados */}
                 <div className="space-y-4 pt-4 border-t border-gray-800/50">
                   <div className="flex justify-between items-center">
-                    <h5 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Campos de Valores Personalizados</h5>
+                    <h5 className="text-xs font-semibold text-gray-400">Campos de Valores Personalizados</h5>
                     <button 
                       onClick={() => {
                         const currentCustom = editingCategory.customValues || [];
@@ -278,7 +278,7 @@ const Settings: React.FC = () => {
                           customValues: [...currentCustom, { id: Date.now().toString(), name: '', value: 0 }]
                         });
                       }}
-                      className="text-emerald-500 hover:text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-1"
+                      className="text-emerald-500 hover:text-emerald-400 text-xs font-semibold flex items-center gap-1"
                     >
                       <Plus size={12} /> Adicionar Campo
                     </button>
@@ -286,7 +286,7 @@ const Settings: React.FC = () => {
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {(editingCategory.customValues || []).map((field, idx) => (
-                      <div key={field.id} className="bg-black/20 p-4 rounded-2xl border border-gray-800/50 space-y-3 relative group">
+                      <div key={field.id} className="bg-black/20 p-4 rounded-xl border border-gray-800/50 space-y-3 relative group">
                         <button 
                           onClick={() => {
                             const updated = (editingCategory.customValues || []).filter((_, i) => i !== idx);
@@ -297,7 +297,7 @@ const Settings: React.FC = () => {
                           <Trash2 size={14} />
                         </button>
                         <div className="space-y-1">
-                          <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Nome do Campo</label>
+                          <label className="text-xs font-semibold text-gray-600 ml-1">Nome do Campo</label>
                           <input 
                             className="w-full bg-black/40 border border-gray-800 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500"
                             placeholder="Ex: Buy-in Dobrado"
@@ -310,7 +310,7 @@ const Settings: React.FC = () => {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Valor (R$)</label>
+                          <label className="text-xs font-semibold text-gray-600 ml-1">Valor (R$)</label>
                           <input
                             type="number" {...inputNumericProps}
                             className="w-full bg-black/40 border border-gray-800 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500"
@@ -323,7 +323,7 @@ const Settings: React.FC = () => {
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Fichas</label>
+                          <label className="text-xs font-semibold text-gray-600 ml-1">Fichas</label>
                           <div className="flex items-center gap-2 bg-black/40 border border-gray-800 rounded-lg px-3 py-2 focus-within:border-emerald-500">
                             <Coins size={12} className="text-amber-500/70 shrink-0" />
                             <input
@@ -345,7 +345,7 @@ const Settings: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl">
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">RAKE (%)</label>
+                     <label className="text-xs font-semibold text-gray-500 ml-1">RAKE (%)</label>
                      <input 
                         type="number" {...inputNumericProps}
                         className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
@@ -354,7 +354,7 @@ const Settings: React.FC = () => {
                      />
                    </div>
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">% Ranking</label>
+                     <label className="text-xs font-semibold text-gray-500 ml-1">% Ranking</label>
                      <input 
                         type="number" {...inputNumericProps}
                         className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
@@ -364,19 +364,19 @@ const Settings: React.FC = () => {
                    </div>
                 </div>
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-800">
-                   <button onClick={() => setEditingCategory(null)} className="px-6 py-3 text-gray-500 font-bold uppercase text-[10px]">Cancelar</button>
-                   <button onClick={handleSaveCategory} className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-3 rounded-xl font-black uppercase text-[10px]">Salvar</button>
+                   <button onClick={() => setEditingCategory(null)} className="px-6 py-3 text-gray-500 font-bold text-xs">Cancelar</button>
+                   <button onClick={handleSaveCategory} className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 px-8 py-3 rounded-xl font-semibold text-xs ring-1 ring-inset ring-emerald-500/30">Salvar</button>
                 </div>
              </div>
            )}
 
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
              {(activeRanking.gameCategories || []).map(cat => (
-               <div key={cat.id} className="bg-gray-900 border border-gray-800 rounded-3xl p-6 space-y-4 group transition-all">
+               <div key={cat.id} className="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4 group transition-all">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h4 className="text-white font-black text-lg">{cat.name}</h4>
-                      <p className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mt-1">Rake: {cat.rake}% | Rank: {cat.rankingPercent}%</p>
+                      <h4 className="text-white font-semibold text-lg">{cat.name}</h4>
+                      <p className="text-emerald-500 text-xs font-semibold mt-1">Rake: {cat.rake}% | Rank: {cat.rankingPercent}%</p>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                       <button onClick={() => setEditingCategory(cat)} className="p-2 text-gray-500 hover:text-white"><Edit2 size={14} /></button>
@@ -384,10 +384,10 @@ const Settings: React.FC = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800 text-[11px]"><p className="text-gray-600 mb-1">Buy-in</p>R$ {cat.buyIn.toFixed(2)}</div>
-                    <div className="bg-black/30 p-3 rounded-2xl border border-gray-800 text-[11px]"><p className="text-gray-600 mb-1">Re-buy</p>R$ {cat.reBuy.toFixed(2)}</div>
+                    <div className="bg-black/30 p-3 rounded-xl border border-gray-800 text-xs"><p className="text-gray-600 mb-1">Buy-in</p>R$ {cat.buyIn.toFixed(2)}</div>
+                    <div className="bg-black/30 p-3 rounded-xl border border-gray-800 text-xs"><p className="text-gray-600 mb-1">Re-buy</p>R$ {cat.reBuy.toFixed(2)}</div>
                     {(cat.customValues || []).map(field => (
-                      <div key={field.id} className="bg-black/30 p-3 rounded-2xl border border-gray-800 text-[11px]"><p className="text-gray-600 mb-1">{field.name}</p>R$ {field.value.toFixed(2)}</div>
+                      <div key={field.id} className="bg-black/30 p-3 rounded-xl border border-gray-800 text-xs"><p className="text-gray-600 mb-1">{field.name}</p>R$ {field.value.toFixed(2)}</div>
                     ))}
                   </div>
                </div>
@@ -398,25 +398,25 @@ const Settings: React.FC = () => {
 
       {activeTab === 'security' && (
         <div className="animate-in fade-in duration-300 max-w-2xl">
-          <div className="bg-gray-900 border border-gray-800 rounded-3xl p-8 space-y-8">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 space-y-8">
             <div className="flex items-center gap-4 border-b border-gray-800 pb-6">
-              <div className="w-12 h-12 bg-emerald-600/20 rounded-2xl flex items-center justify-center text-emerald-500">
+              <div className="w-12 h-12 bg-emerald-600/20 rounded-xl flex items-center justify-center text-emerald-500">
                 <ShieldCheck size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tight">Alterar Senha</h3>
-                <p className="text-gray-500 text-xs uppercase font-bold tracking-widest mt-1">Mantenha sua conta protegida</p>
+                <h3 className="text-xl font-semibold text-white tracking-tight">Alterar Senha</h3>
+                <p className="text-gray-500 text-xs font-bold mt-1">Mantenha sua conta protegida</p>
               </div>
             </div>
 
             <form onSubmit={handlePasswordUpdate} className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Nova Senha</label>
+                <label className="text-xs font-semibold text-gray-500 ml-1">Nova Senha</label>
                 <div className="relative">
                   <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-700" size={18} />
                   <input 
                     type="password"
-                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all"
+                    className="w-full bg-black/40 border border-gray-800 rounded-xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all"
                     placeholder="Mínimo 6 caracteres"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -425,12 +425,12 @@ const Settings: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Confirmar Nova Senha</label>
+                <label className="text-xs font-semibold text-gray-500 ml-1">Confirmar Nova Senha</label>
                 <div className="relative">
                   <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-700" size={18} />
                   <input 
                     type="password"
-                    className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all"
+                    className="w-full bg-black/40 border border-gray-800 rounded-xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all"
                     placeholder="Repita a nova senha"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -439,18 +439,18 @@ const Settings: React.FC = () => {
               </div>
 
               {pwdStatus && (
-                <div className={`p-4 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2 ${
-                  pwdStatus.type === 'success' ? 'bg-emerald-600/10 border border-emerald-500/20 text-emerald-500' : 'bg-red-600/10 border border-red-500/20 text-red-500'
+                <div className={`p-4 rounded-xl flex items-center gap-3 animate-in slide-in-from-top-2 ${
+                  pwdStatus.type === 'success' ? 'bg-green-600/10 border border-green-500/20 text-green-500' : 'bg-red-600/10 border border-red-500/20 text-red-500'
                 }`}>
                   {pwdStatus.type === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
-                  <span className="text-xs font-bold uppercase tracking-tight">{pwdStatus.msg}</span>
+                  <span className="text-xs font-bold tracking-tight">{pwdStatus.msg}</span>
                 </div>
               )}
 
               <button 
                 type="submit"
                 disabled={isUpdating}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-900/30 uppercase text-xs tracking-widest"
+                className="w-full bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-50 text-emerald-200 font-semibold py-5 rounded-xl flex items-center justify-center gap-3 transition-all  text-xs ring-1 ring-inset ring-emerald-500/30"
               >
                 {isUpdating ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

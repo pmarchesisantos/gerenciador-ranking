@@ -139,10 +139,10 @@ const Dashboard: React.FC = () => {
   };
 
   const getNameColor = (rank: number) => {
-    if (rank >= 1 && rank <= 3) return 'text-amber-400';
-    if (rank >= 4 && rank <= 8) return 'text-blue-400';
+    if (rank >= 1 && rank <= 3) return 'text-emerald-300';
+    if (rank >= 4 && rank <= 8) return 'text-gray-100';
     if (rank === 9) return 'text-red-400';
-    return 'text-white';
+    return 'text-gray-400';
   };
 
   return (
@@ -157,13 +157,13 @@ const Dashboard: React.FC = () => {
           <div className="flex bg-gray-900/50 border border-gray-800 rounded-xl p-1 shrink-0">
             <button 
               onClick={() => setStatusFilter('active')}
-              className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${statusFilter === 'active' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold  tracking-tight transition-all ${statusFilter === 'active' ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 'text-gray-500 hover:text-gray-300'}`}
             >
               Ativos
             </button>
             <button 
               onClick={() => setStatusFilter('inactive')}
-              className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${statusFilter === 'inactive' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
+              className={`px-4 py-2 rounded-lg text-xs font-semibold  tracking-tight transition-all ${statusFilter === 'inactive' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}
             >
               Inativos
             </button>
@@ -182,10 +182,10 @@ const Dashboard: React.FC = () => {
 
           <button 
             onClick={() => setIsAddModalOpen(true)}
-            className={`px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 transition-all transform active:scale-95 shadow-lg shrink-0 ${
+            className={`px-6 py-3.5 rounded-xl font-semibold text-xs   flex items-center justify-center gap-3 transition-all transform active:scale-95  shrink-0 ${
               hasDraft 
-              ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-amber-900/20 animate-pulse' 
-              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20'
+              ? 'bg-amber-600 hover:bg-amber-500 text-emerald-200 animate-pulse' 
+              : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 ring-1 ring-inset ring-emerald-500/30'
             }`}
           >
             {hasDraft ? <><PlayCircle size={16} /> Continuar Lançamento</> : <>Adicionar Resultado</>}
@@ -193,7 +193,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-gray-900/30 border border-gray-800/50 p-3 rounded-2xl">
+      <div className="bg-gray-900/30 border border-gray-800/50 p-3 rounded-xl">
         <form onSubmit={handleAddPlayer} className="space-y-3">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 flex items-center gap-3 bg-black/20 rounded-xl px-4 border border-gray-800 focus-within:border-emerald-500/50 transition-all">
@@ -213,7 +213,7 @@ const Dashboard: React.FC = () => {
                 {showExtraFields ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
               </button>
             </div>
-            <button type="submit" className="bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-emerald-500 transition-all shadow-md shrink-0">
+            <button type="submit" className="bg-emerald-500/15 text-emerald-200 px-6 py-2.5 rounded-xl font-semibold text-xs hover:bg-emerald-500/25 transition-all shadow-md shrink-0 ring-1 ring-inset ring-emerald-500/30">
               Cadastrar
             </button>
           </div>
@@ -221,19 +221,19 @@ const Dashboard: React.FC = () => {
           {showExtraFields && (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 animate-in slide-in-from-top-2 duration-200">
                <input 
-                 className="bg-black/20 border border-gray-800 rounded-xl px-4 py-2 text-[10px] text-white outline-none focus:border-emerald-500/50" 
+                 className="bg-black/20 border border-gray-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-emerald-500/50" 
                  placeholder="Celular (DDD + Número)" 
                  value={extraData.phone} 
                  onChange={e => setExtraData({...extraData, phone: formatPhone(e.target.value)})}
                />
                <input 
                  type="date"
-                 className="bg-black/20 border border-gray-800 rounded-xl px-4 py-2 text-[10px] text-white outline-none focus:border-emerald-500/50" 
+                 className="bg-black/20 border border-gray-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-emerald-500/50" 
                  value={extraData.birthDate} 
                  onChange={e => setExtraData({...extraData, birthDate: e.target.value})}
                />
                <input 
-                 className="bg-black/20 border border-gray-800 rounded-xl px-4 py-2 text-[10px] text-white outline-none focus:border-emerald-500/50" 
+                 className="bg-black/20 border border-gray-800 rounded-xl px-4 py-2 text-xs text-white outline-none focus:border-emerald-500/50" 
                  placeholder="Time do Coração" 
                  value={extraData.favoriteTeam} 
                  onChange={e => setExtraData({...extraData, favoriteTeam: e.target.value})}
@@ -247,15 +247,15 @@ const Dashboard: React.FC = () => {
         <ScrollArea className="overflow-x-auto overflow-y-auto max-h-[500px] md:max-h-[600px]">
           <table className="w-full text-left min-w-[900px]">
             <thead className="sticky top-0 z-10">
-              <tr className="bg-gray-800 text-gray-500 text-[9px] md:text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
-                <th className="px-6 py-5 font-black">Pos..</th>
-                <th className="px-6 py-5 font-black">Nome do Jogador</th>
-                <th className="px-6 py-5 font-black text-center">Pontos Totais</th>
-                <th className="px-6 py-5 font-black text-center">Ant.</th>
-                <th className="px-6 py-5 font-black text-center">Pres.</th>
-                <th className="px-6 py-5 font-black text-center">Vit.</th>
-                <th className="px-6 py-5 font-black text-center">Dia</th>
-                <th className="px-6 py-5 font-black text-center"></th>
+              <tr className="bg-gray-800 text-gray-500 text-xs md:text-[10px] border-b border-gray-700">
+                <th className="px-6 py-5 font-semibold">Pos..</th>
+                <th className="px-6 py-5 font-semibold">Nome do Jogador</th>
+                <th className="px-6 py-5 font-semibold text-center">Pontos Totais</th>
+                <th className="px-6 py-5 font-semibold text-center">Ant.</th>
+                <th className="px-6 py-5 font-semibold text-center">Pres.</th>
+                <th className="px-6 py-5 font-semibold text-center">Vit.</th>
+                <th className="px-6 py-5 font-semibold text-center">Dia</th>
+                <th className="px-6 py-5 font-semibold text-center"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-800 bg-gray-900/50">
@@ -266,9 +266,9 @@ const Dashboard: React.FC = () => {
                 return (
                   <tr key={player.id} className="hover:bg-emerald-600/[0.03] transition-colors group">
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-black text-[10px] ${
-                        rank >= 1 && rank <= 3 ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/20' : 
-                        rank >= 4 && rank <= 8 ? 'bg-blue-600 text-white' :
+                      <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-semibold text-xs ${
+                        rank >= 1 && rank <= 3 ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 
+                        rank >= 4 && rank <= 8 ? 'bg-gray-700 text-gray-100' :
                         rank === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500'
                       }`}>
                         {rank}
@@ -285,7 +285,7 @@ const Dashboard: React.FC = () => {
                       <EditableCell 
                         value={player.totalPoints}
                         inputNumericProps={inputNumericProps}
-                        className="bg-transparent border-none text-emerald-400 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[80px] text-center font-black"
+                        className="bg-transparent border-none text-white focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-full max-w-[80px] text-center font-semibold"
                         onSave={(val) => updatePlayer(player.id, { totalPoints: val })}
                       />
                     </td>
@@ -307,7 +307,7 @@ const Dashboard: React.FC = () => {
                       />
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <span className="bg-emerald-600/10 text-emerald-500 px-2 py-1 rounded-md text-[9px] font-black uppercase">
+                      <span className="bg-emerald-600/10 text-emerald-500 px-2 py-1 rounded-md text-xs font-semibold">
                         +{player.dayPoints}
                       </span>
                     </td>
@@ -319,7 +319,7 @@ const Dashboard: React.FC = () => {
                           className={`p-2 rounded-lg transition-all md:opacity-0 md:group-hover:opacity-100 ${
                             player.active === false 
                             ? 'text-emerald-500 hover:bg-emerald-500/10' 
-                            : 'text-gray-600 hover:text-amber-500 hover:bg-amber-500/10'
+                            : 'text-gray-600 hover:text-emerald-500 hover:bg-emerald-500/10'
                           }`}
                         >
                           {player.active === false ? <UserCheck size={16} /> : <UserMinus size={16} />}
@@ -332,17 +332,17 @@ const Dashboard: React.FC = () => {
             </tbody>
             <tfoot className="sticky bottom-0 z-10 bg-gray-800 border-t border-gray-700 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
               <tr>
-                <td colSpan={4} className="px-6 py-5 text-right text-[9px] font-black text-gray-500 uppercase tracking-widest">Total Acumulado do Ranking:</td>
+                <td colSpan={4} className="px-6 py-5 text-right text-xs font-semibold text-gray-500">Total Acumulado do Ranking:</td>
                 <td colSpan={4} className="px-6 py-5">
                    <div className="flex items-center justify-end gap-4">
                       <div className="flex items-center gap-2">
-                        <span className="text-amber-500/50 text-[10px] font-black">R$</span>
-                        <span className="text-amber-500 font-black text-lg tracking-tighter">{formatBRL(totalAccumulated)}</span>
+                        <span className="text-emerald-500/60 text-xs font-semibold">R$</span>
+                        <span className="text-emerald-400 font-semibold text-lg tracking-tight">{formatBRL(totalAccumulated)}</span>
                       </div>
                       <button
                         onClick={() => setIsStageValuesOpen(true)}
                         title="Ver valor de cada etapa e quem venceu"
-                        className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-black rounded-xl transition-all font-black text-[9px] uppercase tracking-widest border border-amber-500/20"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/25 hover:text-emerald-100 rounded-xl transition-all font-semibold text-xs border border-emerald-500/20"
                       >
                         <ListOrdered size={14} />
                         <span>Ver por Etapa</span>
