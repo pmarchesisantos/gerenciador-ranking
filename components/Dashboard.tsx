@@ -8,6 +8,7 @@ import StageValuesModal from './StageValuesModal';
 import ScrollArea from './ScrollArea';
 import { getStagesTotal, formatBRL } from '../services/stageValues';
 import { inputNumericProps } from '../services/inputNumeric';
+import { CadastroError } from '../services/jogadores';
 
 interface EditableCellProps {
   value: number;
@@ -128,12 +129,12 @@ const Dashboard: React.FC = () => {
 
     try {
       await addPlayer(name, wasShowingExtras ? previousExtras : {});
-    } catch {
+    } catch (e) {
       // Devolve o que foi digitado para o usuário poder tentar de novo.
       setNewPlayerName(name);
       setExtraData(previousExtras);
       setShowExtraFields(wasShowingExtras);
-      alert('Não foi possível cadastrar o jogador. Verifique a conexão e tente novamente.');
+      alert(e instanceof CadastroError ? e.message : 'Não foi possível cadastrar o jogador. Verifique a conexão e tente novamente.');
     }
   };
 

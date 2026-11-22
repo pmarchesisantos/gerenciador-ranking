@@ -14,6 +14,11 @@ import PokerClock from './components/PokerClock';
 import PokerClockSettings from './components/PokerClockSettings';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
+import BarProdutos from './components/BarProdutos';
+import BarCaixa from './components/BarCaixa';
+import BarPDV from './components/BarPDV';
+import Financeiro from './components/Financeiro';
+import { BarProvider } from './context/BarContext';
 import { LogOut, User, Menu, Shield, ArrowLeft, X } from 'lucide-react';
 
 const AdminLayout: React.FC = () => {
@@ -53,6 +58,9 @@ const AdminLayout: React.FC = () => {
       case 'profile': return <ProfileSettings />;
       case 'poker-clock': return <PokerClock />;
       case 'poker-clock-settings': return <PokerClockSettings />;
+      case 'bar-produtos': return <BarProdutos />;
+      case 'bar-caixa': return <BarCaixa />;
+      case 'financeiro': return <Financeiro />;
       default: return <Dashboard />;
     }
   };
@@ -60,7 +68,10 @@ const AdminLayout: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-[#0a0a0a] relative">
       {isSidebarOpen && <div className="fixed inset-0 bg-black/60 z-[60] lg:hidden backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />}
-      <div className={`fixed inset-y-0 left-0 z-[70] transition-transform duration-300 transform lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}><Sidebar onClose={() => setIsSidebarOpen(false)} /></div>
+      {/* No celular o menu desliza por cima do conteúdo; no desktop ele ocupa
+          espaço na linha e some de vez quando fechado. Antes, o lg:translate-x-0
+          forçava o menu visível no desktop e o botão de fechar não fazia nada. */}
+      <div className={`fixed inset-y-0 left-0 z-[70] transition-transform duration-300 transform lg:sticky lg:top-0 lg:h-screen lg:transform-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:hidden'}`}><Sidebar onClose={() => setIsSidebarOpen(false)} /></div>
 
       <div className="flex-1 flex flex-col overflow-y-auto min-w-0">
         <header className="h-16 border-b border-emerald-900/20 px-8 flex items-center justify-between bg-[#0a0a0a]/80 backdrop-blur-md sticky top-0 z-50">
@@ -100,12 +111,18 @@ const AdminLayout: React.FC = () => {
   );
 };
 
+/**
+ * Janela externa pedida pela URL (?view=...). Lida uma vez, no carregamento:
+ * o contexto reescreve o endereço para /c/{slug} logo depois, e a decisão de
+ * qual tela mostrar não pode depender de quando o React voltar a renderizar.
+ */
+const VIEW_EXTERNA = new URLSearchParams(window.location.search).get('view');
+
 const RootContent: React.FC = () => {
   const { isAdmin, loading } = useAuth();
   const [showLogin, setShowLogin] = useState(false);
 
-  // Check for external clock view via query param
-  const isExternalClock = window.location.search.includes('view=poker-clock-external');
+  const isExternalClock = VIEW_EXTERNA === 'poker-clock-external';
 
   if (loading) return (
     <div className="h-screen flex flex-col items-center justify-center bg-[#0a0a0a] space-y-4 p-6">
@@ -122,7 +139,14 @@ const RootContent: React.FC = () => {
     );
   }
 
-  if (isAdmin) return <AdminLayout />;
+  // PDV do bar em janela própria. Exige login: os dados do bar são privados.
+  if (VIEW_EXTERNA === 'bar-pdv') {
+    if (!isAdmin) return <Login onBack={() => { window.location.href = '/'; }} />;
+    return <BarProvider><BarPDV /></BarProvider>;
+  }
+
+  // O bar só existe para o dono logado: as coleções dele são privadas.
+  if (isAdmin) return <BarProvider><AdminLayout /></BarProvider>;
   return (
     <>
       <PublicView onLoginClick={() => setShowLogin(true)} />
