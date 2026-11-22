@@ -1,8 +1,12 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { db, collection, onSnapshot, handleFirestoreError, OperationType } from '../services/firebase';
-import { Trophy, Calendar, LogIn, ChevronRight, Search, Home, Instagram, Phone, X, MessageCircle } from 'lucide-react';
+import { Trophy, Calendar, LogIn, ChevronRight, Search, Home, Instagram, Phone, X, MessageCircle, ListOrdered } from 'lucide-react';
+import StageValuesModal from './StageValuesModal';
+import ScrollArea from './ScrollArea';
+import { getStagesTotal, formatBRL } from '../services/stageValues';
+import { getStageFinance } from '../services/stageFinance';
 
 const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) => {
   const { house, loadingData, setViewingHouseId } = useRanking();
@@ -12,6 +16,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
   const [houseSearch, setHouseSearch] = useState('');
   const [historySearch, setHistorySearch] = useState('');
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isStageValuesOpen, setIsStageValuesOpen] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<string>('');
 
   useEffect(() => {
@@ -24,16 +29,22 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
     return unsub;
   }, []);
 
+  // Rankings que o admin marcou como ocultos não aparecem aqui.
+  const visibleRankings = useMemo(
+    () => house.rankings.filter(r => r.active !== false),
+    [house.rankings]
+  );
+
   useEffect(() => {
-    if (house.rankings.length > 0) {
-      const currentActive = house.rankings.find(r => r.id === activeTabId);
+    if (visibleRankings.length > 0) {
+      const currentActive = visibleRankings.find(r => r.id === activeTabId);
       if (!currentActive) {
-        setActiveTabId(house.rankings[0].id);
+        setActiveTabId(visibleRankings[0].id);
       }
     }
-  }, [house.rankings, activeTabId]);
+  }, [visibleRankings, activeTabId]);
 
-  const activeRanking = house.rankings.find(r => r.id === activeTabId);
+  const activeRanking = visibleRankings.find(r => r.id === activeTabId);
 
   useEffect(() => {
     if (activeRanking && activeRanking.history.length > 0) {
@@ -116,7 +127,7 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
     );
   }
 
-  const totalAccumulated = activeRanking?.players.reduce((acc, p) => acc + (p.accumulatedValue || 0), 0) || 0;
+  const totalAccumulated = getStagesTotal(activeRanking || null);
 
   const selectedEntry = activeRanking?.history.find(h => h.id === selectedEntryId);
 
@@ -157,45 +168,53 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
       </header>
 
       <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full space-y-6">
-        {/* Rankings Horizontal Scroll */}
-        <div className="flex gap-2 p-1.5 bg-gray-900/80 border border-gray-800 rounded-2xl overflow-x-auto no-scrollbar">
-          {house.rankings.map(r => (
+        <div className={`flex flex-col sm:flex-row sm:items-end justify-between gap-4 ${visibleRankings.length === 0 ? 'hidden' : ''}`}>
+          <div className="w-full sm:w-80">
+            <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest block mb-2 ml-1">
+              Ranking
+            </label>
+            <div className="relative">
+              <Trophy size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 pointer-events-none" />
+              <select
+                value={activeTabId}
+                onChange={(e) => {
+                  setActiveTabId(e.target.value);
+                  setSubView('ranking');
+                }}
+                className="w-full bg-gray-900 border border-gray-800 text-white text-xs font-bold py-3.5 pl-11 pr-10 rounded-xl outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+              >
+                {visibleRankings.map(r => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+              <ChevronRight size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 rotate-90 pointer-events-none" />
+            </div>
+          </div>
+
+          <div className="flex bg-gray-900/80 border border-gray-800 rounded-xl p-1 shrink-0 self-start sm:self-auto">
             <button
-              key={r.id}
-              onClick={() => setActiveTabId(r.id)}
-              className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
-                activeTabId === r.id 
-                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' 
-                : 'text-gray-500 hover:text-white hover:bg-gray-800'
-              }`}
+              onClick={() => setSubView('ranking')}
+              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${subView === 'ranking' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-gray-500 hover:text-white'}`}
             >
-              {r.name}
+              Ranking
             </button>
-          ))}
+            <button
+              onClick={() => setSubView('history')}
+              className={`px-6 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${subView === 'history' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/40' : 'text-gray-500 hover:text-white'}`}
+            >
+              Histórico
+            </button>
+          </div>
         </div>
 
         {activeRanking ? (
           <div className="space-y-6">
-            <div className="flex items-center gap-2 border-b border-gray-800">
-              <button 
-                onClick={() => setSubView('ranking')}
-                className={`pb-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'ranking' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-              >
-                Ranking
-              </button>
-              <button 
-                onClick={() => setSubView('history')}
-                className={`pb-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all ${subView === 'history' ? 'border-amber-500 text-amber-500' : 'border-transparent text-gray-500 hover:text-gray-300'}`}
-              >
-                Histórico
-              </button>
-            </div>
 
             {subView === 'ranking' ? (
               <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] md:rounded-[2.5rem] overflow-hidden shadow-2xl relative">
-                <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar">
-                  <table className="w-full text-left min-w-[900px]">
-                    <thead>
+                <ScrollArea className="overflow-x-auto overflow-y-auto max-h-[600px]">
+                  <table className="w-full text-left min-w-[800px]">
+                    <thead className="sticky top-0 z-10">
                       <tr className="bg-gray-800 text-gray-500 text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
                         <th className="px-6 py-6 font-black">Pos..</th>
                         <th className="px-6 py-6 font-black">Nome do Jogador</th>
@@ -203,7 +222,6 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                         <th className="px-6 py-6 font-black text-center">Pres.</th>
                         <th className="px-6 py-6 font-black text-center">Vit.</th>
                         <th className="px-6 py-6 font-black text-center">Dia</th>
-                        <th className="px-6 py-6 font-black text-right text-amber-500">Acumulado</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
@@ -231,25 +249,34 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                             <td className="px-6 py-5 text-center">
                               <span className="text-emerald-500 font-black text-xs">+{p.dayPoints}</span>
                             </td>
-                            <td className="px-6 py-5 text-right font-black text-amber-500 text-sm">
-                              R$ {p.accumulatedValue.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
-                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                     <tfoot className="sticky bottom-0 z-10 bg-gray-800 border-t border-gray-700 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
                       <tr>
-                        <td colSpan={6} className="px-6 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                        <td colSpan={3} className="px-6 py-5 text-right text-[10px] font-black text-gray-500 uppercase tracking-widest">
                           Total Acumulado do Ranking:
                         </td>
-                        <td className="px-6 py-5 text-right font-black text-amber-500 text-lg">
-                          R$ {totalAccumulated.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                        <td colSpan={3} className="px-6 py-5">
+                          <div className="flex items-center justify-end gap-4">
+                            <span className="font-black text-amber-500 text-lg">
+                              R$ {formatBRL(totalAccumulated, 0)}
+                            </span>
+                            <button
+                              onClick={() => setIsStageValuesOpen(true)}
+                              title="Ver valor de cada etapa e quem venceu"
+                              className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 text-amber-500 active:bg-amber-500 active:text-black rounded-xl transition-all font-black text-[9px] uppercase tracking-widest border border-amber-500/20"
+                            >
+                              <ListOrdered size={14} />
+                              <span>Ver por Etapa</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     </tfoot>
                   </table>
-                </div>
+                </ScrollArea>
               </div>
             ) : (
               <div className="space-y-6">
@@ -292,15 +319,30 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                       </div>
                     </div>
 
-                    {selectedEntry ? (
-                      <div className="bg-gray-900 border border-gray-800 rounded-[2rem] p-6 md:p-8 space-y-6 shadow-2xl">
-                        <div className="flex items-center justify-between border-b border-gray-800 pb-6">
+                    {selectedEntry ? (() => {
+                      const finance = getStageFinance(activeRanking, selectedEntry);
+                      const termo = historySearch.trim().toLowerCase();
+                      const visiveis = finance.players.filter(p => p.name.toLowerCase().includes(termo));
+                      const posClass = (pos: number) =>
+                        pos >= 1 && pos <= 3 ? 'bg-amber-500 text-black' :
+                        pos >= 4 && pos <= 8 ? 'bg-blue-600 text-white' :
+                        pos === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500';
+                      const nameClass = (pos: number) =>
+                        pos >= 1 && pos <= 3 ? 'text-amber-400' :
+                        pos >= 4 && pos <= 8 ? 'text-blue-400' :
+                        pos === 9 ? 'text-red-400' : 'text-white';
+
+                      return (
+                      <div className="bg-gray-900 border border-gray-800 rounded-[2rem] overflow-hidden shadow-2xl">
+                        <div className="p-6 md:p-8 flex flex-wrap items-center justify-between gap-4 border-b border-gray-800">
                           <div className="space-y-1">
                             <h4 className="text-white font-black text-xl tracking-tight">
                               {selectedEntry.name || 'Etapa sem nome'}
                             </h4>
                             <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">
                               {new Date(selectedEntry.date).toLocaleDateString('pt-BR')}
+                              {finance.category && <> &middot; {finance.category.name}</>}
+                              {' '}&middot; {finance.players.length} jogadores
                             </p>
                           </div>
                           {selectedEntry.multiplier > 1 && (
@@ -310,49 +352,117 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
                           )}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-2">
-                          {selectedEntry.results
-                            .filter(res => {
-                              const player = activeRanking.players.find(p => p.id === res.playerId);
-                              return player?.name.toLowerCase().includes(historySearch.toLowerCase());
-                            })
-                            .sort((a,b) => a.position - b.position)
-                            .map(res => {
-                              const player = activeRanking.players.find(p => p.id === res.playerId);
-                              return (
-                                <div key={res.playerId} className="bg-black/40 border border-gray-800/50 p-4 rounded-2xl flex items-center justify-between group hover:bg-emerald-600/[0.03] transition-all">
-                                  <div className="flex items-center gap-4">
-                                    <span className={`w-8 h-8 flex items-center justify-center rounded-xl text-[11px] font-black shadow-sm ${
-                                        res.position >= 1 && res.position <= 3 ? 'bg-amber-500 text-black' : 
-                                        res.position >= 4 && res.position <= 8 ? 'bg-blue-600 text-white' :
-                                        res.position === 9 ? 'bg-red-600 text-white' : 'bg-gray-800 text-gray-500'
-                                    }`}>
-                                      {res.position}º
-                                    </span>
-                                    <span className={`font-bold text-sm ${
-                                        res.position >= 1 && res.position <= 3 ? 'text-amber-400' : 
-                                        res.position >= 4 && res.position <= 8 ? 'text-blue-400' :
-                                        res.position === 9 ? 'text-red-400' : 'text-white'
-                                    }`}>
-                                      {player?.name || 'Jogador Removido'}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-emerald-500 font-black text-sm">+{res.pointsEarned}</span>
-                                    <span className="text-gray-600 text-[9px] font-black uppercase tracking-widest">pts</span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          {selectedEntry.results.filter(res => {
-                              const player = activeRanking.players.find(p => p.id === res.playerId);
-                              return player?.name.toLowerCase().includes(historySearch.toLowerCase());
-                            }).length === 0 && (
-                              <div className="py-10 text-center text-gray-600 italic">Nenhum jogador encontrado com este nome nesta etapa.</div>
-                            )}
-                        </div>
+                        {finance.category ? (
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-gray-800 border-b border-gray-800">
+                            <div className="bg-gray-900 p-5">
+                              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">Total Arrecadado</p>
+                              <p className="text-white font-black text-lg tracking-tight">R$ {formatBRL(finance.totalBruto)}</p>
+                            </div>
+                            <div className="bg-gray-900 p-5">
+                              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">Rake ({finance.rakePercent}%)</p>
+                              <p className="text-red-500 font-black text-lg tracking-tight">- R$ {formatBRL(finance.rakeValue)}</p>
+                            </div>
+                            <div className="bg-gray-900 p-5">
+                              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">Para o Ranking</p>
+                              <p className="text-amber-500 font-black text-lg tracking-tight">R$ {formatBRL(finance.rankingValue)}</p>
+                            </div>
+                            <div className="bg-gray-900 p-5">
+                              <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest mb-2">Premiação</p>
+                              <p className="text-emerald-500 font-black text-lg tracking-tight">R$ {formatBRL(finance.liquido)}</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="px-6 md:px-8 py-4 bg-amber-500/[0.06] border-b border-amber-500/20 text-amber-500/90 text-xs">
+                            Esta etapa foi lançada sem categoria de jogo, então os valores por jogador não podem ser calculados.
+                          </div>
+                        )}
+
+                        {visiveis.length === 0 ? (
+                          <div className="py-16 text-center text-gray-600 italic">
+                            Nenhum jogador encontrado com este nome nesta etapa.
+                          </div>
+                        ) : (
+                          <div className="overflow-x-auto custom-scrollbar">
+                            <table className="w-full text-left min-w-[760px]">
+                              <thead>
+                                <tr className="bg-gray-800/60 text-gray-500 text-[9px] uppercase tracking-widest border-b border-gray-800">
+                                  <th className="px-6 py-4 font-black">Pos.</th>
+                                  <th className="px-4 py-4 font-black">Jogador</th>
+                                  <th className="px-4 py-4 font-black text-center">Pts</th>
+                                  {finance.category && (
+                                    <>
+                                      <th className="px-3 py-4 font-black text-center">Re-buy</th>
+                                      <th className="px-3 py-4 font-black text-center">Duplo</th>
+                                      <th className="px-3 py-4 font-black text-center">Add-on</th>
+                                      {finance.customFields.map(f => (
+                                        <th key={f.id} className="px-3 py-4 font-black text-center">{f.name || 'Extra'}</th>
+                                      ))}
+                                      <th className="px-3 py-4 font-black text-center">Pago</th>
+                                      <th className="px-6 py-4 font-black text-right">Gasto</th>
+                                    </>
+                                  )}
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-800/60">
+                                {visiveis.map(p => (
+                                  <tr key={p.playerId} className="hover:bg-emerald-600/[0.03] transition-colors">
+                                    <td className="px-6 py-4">
+                                      <span className={`inline-flex w-8 h-8 items-center justify-center rounded-xl text-[11px] font-black ${posClass(p.position)}`}>
+                                        {p.position}º
+                                      </span>
+                                    </td>
+                                    <td className={`px-4 py-4 font-bold text-sm ${nameClass(p.position)}`}>{p.name}</td>
+                                    <td className="px-4 py-4 text-center">
+                                      <span className="text-emerald-500 font-black text-xs">+{p.pointsEarned}</span>
+                                    </td>
+                                    {finance.category && (
+                                      <>
+                                        <td className="px-3 py-4 text-center text-gray-400 font-bold text-xs">{p.rebuys || '—'}</td>
+                                        <td className="px-3 py-4 text-center text-gray-400 font-bold text-xs">{p.doubleRebuys || '—'}</td>
+                                        <td className="px-3 py-4 text-center text-gray-400 font-bold text-xs">{p.addons || '—'}</td>
+                                        {finance.customFields.map(f => (
+                                          <td key={f.id} className="px-3 py-4 text-center text-gray-400 font-bold text-xs">
+                                            {p.customValues[f.id] || '—'}
+                                          </td>
+                                        ))}
+                                        <td className="px-3 py-4 text-center">
+                                          <span className={`text-[9px] font-black uppercase tracking-widest ${p.paid ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                            {p.paid ? 'Sim' : 'Pend.'}
+                                          </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-right text-amber-500 font-black text-xs">
+                                          R$ {formatBRL(p.gross)}
+                                        </td>
+                                      </>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                              {finance.category && (
+                                <tfoot className="bg-gray-800/60 border-t border-gray-700">
+                                  <tr className="text-[9px] uppercase tracking-widest">
+                                    <td colSpan={3} className="px-6 py-4 font-black text-gray-500 text-right">Totais da etapa:</td>
+                                    <td className="px-3 py-4 text-center text-gray-300 font-black">{finance.totals.rebuys}</td>
+                                    <td className="px-3 py-4 text-center text-gray-300 font-black">{finance.totals.doubleRebuys}</td>
+                                    <td className="px-3 py-4 text-center text-gray-300 font-black">{finance.totals.addons}</td>
+                                    {finance.customFields.map(f => (
+                                      <td key={f.id} className="px-3 py-4 text-center text-gray-300 font-black">
+                                        {finance.totals.customValues[f.id] || 0}
+                                      </td>
+                                    ))}
+                                    <td></td>
+                                    <td className="px-6 py-4 text-right text-amber-500 font-black text-sm">
+                                      R$ {formatBRL(finance.totalBruto)}
+                                    </td>
+                                  </tr>
+                                </tfoot>
+                              )}
+                            </table>
+                          </div>
+                        )}
                       </div>
-                    ) : (
+                      );
+                    })() : (
                       <div className="py-20 text-center text-gray-600 italic">Etapa não encontrada...</div>
                     )}
                   </>
@@ -362,10 +472,24 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
               </div>
             )}
           </div>
+        ) : visibleRankings.length === 0 ? (
+          <div className="py-24 text-center space-y-4">
+            <div className="bg-gray-900 w-16 h-16 rounded-full flex items-center justify-center mx-auto text-gray-700 border border-gray-800">
+              <Trophy size={28} />
+            </div>
+            <div>
+              <h3 className="text-white font-bold text-lg">Nenhum ranking disponível</h3>
+              <p className="text-gray-500 text-sm">Este clube ainda não publicou nenhum ranking.</p>
+            </div>
+          </div>
         ) : (
           <div className="py-20 text-center text-gray-600 italic">Nenhum dado para exibir...</div>
         )}
       </main>
+
+      {isStageValuesOpen && activeRanking && (
+        <StageValuesModal ranking={activeRanking} onClose={() => setIsStageValuesOpen(false)} />
+      )}
 
       {/* Modal Contatos */}
       {isContactModalOpen && (

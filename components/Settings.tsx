@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { useAuth } from '../context/AuthContext';
-import { Save, Info, Key, ShieldCheck, Settings as SettingsIcon, AlertCircle, CheckCircle, Wallet, Plus, Trash2, Edit2, Percent, Trophy } from 'lucide-react';
+import { Save, Info, Key, ShieldCheck, Settings as SettingsIcon, AlertCircle, CheckCircle, Wallet, Plus, Trash2, Edit2, Percent, Trophy, Coins } from 'lucide-react';
 import { GameCategory } from '../types';
 import ConfirmationModal from './ConfirmationModal';
+import { inputNumericProps } from '../services/inputNumeric';
 
 const Settings: React.FC = () => {
   const { activeRanking, updateScoringConfig, updateGameCategories } = useRanking();
@@ -100,13 +101,6 @@ const Settings: React.FC = () => {
   const handleDeleteCategory = async (id: string) => {
     const updatedCategories = (activeRanking.gameCategories || []).filter(c => c.id !== id);
     await updateGameCategories(updatedCategories);
-  };
-
-  // Helper Senior para inputs numéricos: Seleção automática e bloqueio de scroll
-  const inputNumericProps = {
-    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
-    onWheel: (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(),
-    inputMode: "numeric" as const,
   };
 
   const positions = Array.from({ length: 25 }, (_, i) => i + 1);
@@ -241,42 +235,35 @@ const Settings: React.FC = () => {
                         onChange={(e) => setEditingCategory({...editingCategory, name: e.target.value})}
                      />
                    </div>
-                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Buy-in (R$)</label>
-                     <input 
-                        type="number" {...inputNumericProps}
-                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
-                        value={editingCategory.buyIn}
-                        onChange={(e) => setEditingCategory({...editingCategory, buyIn: Number(e.target.value)})}
-                     />
-                   </div>
-                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Re-buy (R$)</label>
-                     <input 
-                        type="number" {...inputNumericProps}
-                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
-                        value={editingCategory.reBuy}
-                        onChange={(e) => setEditingCategory({...editingCategory, reBuy: Number(e.target.value)})}
-                     />
-                   </div>
-                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Re-buy Duplo (R$)</label>
-                     <input 
-                        type="number" {...inputNumericProps}
-                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
-                        value={editingCategory.reBuyDuplo}
-                        onChange={(e) => setEditingCategory({...editingCategory, reBuyDuplo: Number(e.target.value)})}
-                     />
-                   </div>
-                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Add-on (R$)</label>
-                     <input 
-                        type="number" {...inputNumericProps}
-                        className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
-                        value={editingCategory.addOn}
-                        onChange={(e) => setEditingCategory({...editingCategory, addOn: Number(e.target.value)})}
-                     />
-                   </div>
+                   {([
+                     { valueKey: 'buyIn', chipsKey: 'buyInChips', label: 'Buy-in' },
+                     { valueKey: 'reBuy', chipsKey: 'reBuyChips', label: 'Re-buy' },
+                     { valueKey: 'reBuyDuplo', chipsKey: 'reBuyDuploChips', label: 'Re-buy Duplo' },
+                     { valueKey: 'addOn', chipsKey: 'addOnChips', label: 'Add-on' },
+                   ] as const).map(campo => (
+                     <div key={campo.valueKey} className="space-y-2">
+                       <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{campo.label} (R$)</label>
+                       <input
+                          type="number" {...inputNumericProps}
+                          className="w-full bg-black/40 border border-gray-800 rounded-xl px-4 py-3 text-white text-sm font-bold outline-none focus:border-emerald-500"
+                          value={editingCategory[campo.valueKey]}
+                          onChange={(e) => setEditingCategory({ ...editingCategory, [campo.valueKey]: Number(e.target.value) })}
+                       />
+                       <div className="flex items-center gap-2 bg-black/20 border border-gray-800/60 rounded-xl px-3 py-2">
+                         <Coins size={12} className="text-amber-500/70 shrink-0" />
+                         <input
+                            type="number" {...inputNumericProps}
+                            className="w-full bg-transparent border-none text-amber-500 text-xs font-bold outline-none"
+                            placeholder="Fichas"
+                            value={editingCategory[campo.chipsKey] ?? ''}
+                            onChange={(e) => setEditingCategory({
+                              ...editingCategory,
+                              [campo.chipsKey]: e.target.value === '' ? undefined : Number(e.target.value)
+                            })}
+                         />
+                       </div>
+                     </div>
+                   ))}
                 </div>
 
                 {/* Campos Personalizados */}
@@ -324,7 +311,7 @@ const Settings: React.FC = () => {
                         </div>
                         <div className="space-y-1">
                           <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Valor (R$)</label>
-                          <input 
+                          <input
                             type="number" {...inputNumericProps}
                             className="w-full bg-black/40 border border-gray-800 rounded-lg px-3 py-2 text-white text-xs font-bold outline-none focus:border-emerald-500"
                             value={field.value}
@@ -334,6 +321,23 @@ const Settings: React.FC = () => {
                               setEditingCategory({ ...editingCategory, customValues: updated });
                             }}
                           />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-gray-600 uppercase tracking-widest ml-1">Fichas</label>
+                          <div className="flex items-center gap-2 bg-black/40 border border-gray-800 rounded-lg px-3 py-2 focus-within:border-emerald-500">
+                            <Coins size={12} className="text-amber-500/70 shrink-0" />
+                            <input
+                              type="number" {...inputNumericProps}
+                              className="w-full bg-transparent border-none text-amber-500 text-xs font-bold outline-none"
+                              placeholder="0"
+                              value={field.chips ?? ''}
+                              onChange={(e) => {
+                                const updated = [...(editingCategory.customValues || [])];
+                                updated[idx] = { ...updated[idx], chips: e.target.value === '' ? undefined : Number(e.target.value) };
+                                setEditingCategory({ ...editingCategory, customValues: updated });
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
                     ))}

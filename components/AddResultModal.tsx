@@ -1,8 +1,10 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { X, Search, ChevronRight, Wallet, Check, UserPlus, Trash2, Trophy, Loader2, Info, DollarSign, AlertTriangle, Save, ChevronDown, ChevronUp, Clock, ExternalLink } from 'lucide-react';
+import { X, Search, ChevronRight, Wallet, Check, Trash2, Trophy, Loader2, Info, DollarSign, AlertTriangle, Save, ChevronDown, ChevronUp, Clock, Eye, EyeOff } from 'lucide-react';
 import { Player, PokerClockConfig } from '../types';
+import { inputNumericProps } from '../services/inputNumeric';
+import { getChipsFromCategory } from '../services/clockStats';
 
 interface AddResultModalProps {
   onClose: () => void;
@@ -49,6 +51,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   const [showPrizeTooltip, setShowPrizeTooltip] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [isClockActive, setIsClockActive] = useState(false);
+  const [showPrizeOnClock, setShowPrizeOnClock] = useState(true);
 
   // Estados para novo jogador
   const [showExtraNewPlayer, setShowExtraNewPlayer] = useState(false);
@@ -227,12 +230,6 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     setSelectedPlayers(prev => prev.map(p => p.playerId === playerId ? { ...p, [field]: value } : p));
   };
 
-  const inputNumericProps = {
-    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
-    onWheel: (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(),
-    inputMode: "numeric" as const,
-  };
-
   const formatCurrency = (val: number) => {
     return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
@@ -320,6 +317,23 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
         updatePokerClockConfig({
           playersRemaining: selectedPlayers.length - eliminatedCount,
           totalPlayers: selectedPlayers.length,
+          // Contagens que alimentam fichas totais e stack médio no clock.
+          entries: selectedPlayers.length,
+          rebuys: totals.rebuys,
+          doubleRebuys: totals.doubleRebuys,
+          addons: totals.addons,
+          // Total exato de fichas pelos valores parametrizados na categoria.
+          totalChips: getChipsFromCategory(selectedCategory, {
+            entries: selectedPlayers.length,
+            rebuys: totals.rebuys,
+            doubleRebuys: totals.doubleRebuys,
+            addons: totals.addons,
+            customValues: (selectedCategory?.customValues || []).reduce((acc, field) => {
+              acc[field.id] = selectedPlayers.reduce((sum, p) => sum + (p.customValues[field.id] || 0), 0);
+              return acc;
+            }, {} as { [fieldId: string]: number }),
+          }),
+          showPrize: showPrizeOnClock,
           totalPrize: valorLiquido,
           prizeDistribution: finalPrizes.map((p, idx) => ({
             position: idx + 1,
@@ -330,7 +344,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
       }, 1000); // 1 second debounce
       return () => clearTimeout(timer);
     }
-  }, [selectedPlayers, valorLiquido, isClockActive, activeRanking, updatePokerClockConfig, finalPrizes]);
+  }, [selectedPlayers, valorLiquido, isClockActive, activeRanking, updatePokerClockConfig, finalPrizes, totals, showPrizeOnClock, selectedCategory]);
 
   const handleSave = async () => {
     // Se houver apenas um jogador sem posição definida, ele é o vencedor (1º lugar)
@@ -343,14 +357,21 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
       );
     }
 
-    const valid = finalPlayers.filter(p => p.position > 0).map(p => ({ 
-      ...p, 
-      playerName: p.name, 
-      totalValue: p.position === 1 ? valorRanking : 0,
+    const positioned = finalPlayers.filter(p => p.position > 0);
+    if (positioned.length === 0) return alert('Defina a posição de ao menos um jogador.');
+
+    // Em acordos ninguém fica em 1º. O valor do ranking vai para um sorteado
+    // entre os empatados na melhor posição — sem isso o valor se perderia.
+    const bestPosition = Math.min(...positioned.map(p => p.position));
+    const topGroup = positioned.filter(p => p.position === bestPosition);
+    const recipient = topGroup[Math.floor(Math.random() * topGroup.length)];
+
+    const valid = positioned.map(p => ({
+      ...p,
+      playerName: p.name,
+      totalValue: p.playerId === recipient.playerId ? valorRanking : 0,
       customValues: p.customValues
     }));
-    
-    if (valid.length === 0) return alert('Defina a posição de ao menos um jogador.');
     setIsSaving(true);
     try {
       // Convert stageDate to ISO string with current time to maintain sorting if multiple entries on same day
@@ -402,13 +423,31 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
               <Wallet className="text-emerald-500 hidden xs:block" size={16} />
               <h3 className="text-xs md:text-lg font-black text-white uppercase tracking-widest">Lançamento de Resultados</h3>
             </div>
-            <button 
-              onClick={openExternalClock}
-              className="flex items-center gap-2 bg-cyan-500/10 hover:bg-cyan-500 text-cyan-500 hover:text-white px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border border-cyan-500/20"
-            >
-              <Clock size={14} />
-              Start Clock (TV)
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={openExternalClock}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${
+                  isClockActive
+                    ? 'bg-cyan-500 text-white border-cyan-400'
+                    : 'bg-cyan-500/10 hover:bg-cyan-500 text-cyan-500 hover:text-white border-cyan-500/20'
+                }`}
+              >
+                <Clock size={14} />
+                {isClockActive ? 'Clock Ativo' : 'Start Clock (TV)'}
+              </button>
+              <button
+                onClick={() => setShowPrizeOnClock(v => !v)}
+                title={showPrizeOnClock ? 'Premiação visível no clock' : 'Premiação oculta no clock'}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${
+                  showPrizeOnClock
+                    ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                    : 'bg-gray-800/60 text-gray-600 border-gray-700'
+                }`}
+              >
+                {showPrizeOnClock ? <Eye size={14} /> : <EyeOff size={14} />}
+                <span className="hidden sm:inline">Premiação</span>
+              </button>
+            </div>
           </div>
           <button onClick={() => setShowExitConfirm(true)} className="p-2 text-gray-500 hover:text-white transition-all"><X size={20} /></button>
         </div>

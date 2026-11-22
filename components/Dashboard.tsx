@@ -1,19 +1,22 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { Trash2, UserPlus, Search, PlayCircle, ChevronDown, ChevronUp, UserCheck, UserMinus } from 'lucide-react';
+import { UserPlus, Search, PlayCircle, ChevronDown, ChevronUp, UserCheck, UserMinus, ListOrdered } from 'lucide-react';
 import AddResultModal from './AddResultModal';
 import ConfirmationModal from './ConfirmationModal';
+import StageValuesModal from './StageValuesModal';
+import ScrollArea from './ScrollArea';
+import { getStagesTotal, formatBRL } from '../services/stageValues';
+import { inputNumericProps } from '../services/inputNumeric';
 
 interface EditableCellProps {
   value: number;
   onSave: (val: number) => void;
   className?: string;
-  prefix?: string;
   inputNumericProps?: any;
 }
 
-const EditableCell: React.FC<EditableCellProps> = ({ value, onSave, className, prefix, inputNumericProps }) => {
+const EditableCell: React.FC<EditableCellProps> = ({ value, onSave, className, inputNumericProps }) => {
   const [localValue, setLocalValue] = useState<string>(value.toString());
   const [isFocused, setIsFocused] = useState(false);
 
@@ -33,8 +36,7 @@ const EditableCell: React.FC<EditableCellProps> = ({ value, onSave, className, p
 
   return (
     <div className="flex items-center justify-end gap-1">
-      {prefix && <span className={className?.includes('text-amber-500') ? "text-gray-600 text-[10px] font-black" : ""}>{prefix}</span>}
-      <input 
+      <input
         type="number"
         {...inputNumericProps}
         className={className}
@@ -62,6 +64,7 @@ const Dashboard: React.FC = () => {
   const [extraData, setExtraData] = useState({ phone: '', birthDate: '', favoriteTeam: '' });
   
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isStageValuesOpen, setIsStageValuesOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [hasDraft, setHasDraft] = useState(false);
   const [statusFilter, setStatusFilter] = useState<'active' | 'inactive'>('active');
@@ -101,9 +104,7 @@ const Dashboard: React.FC = () => {
     });
   }, [sortedPlayers, searchTerm, statusFilter]);
 
-  const totalAccumulated = useMemo(() => {
-    return sortedPlayers.filter(p => p.active !== false).reduce((acc, p) => acc + (p.accumulatedValue || 0), 0);
-  }, [sortedPlayers]);
+  const totalAccumulated = useMemo(() => getStagesTotal(activeRanking), [activeRanking]);
 
   if (!activeRanking) return (
     <div className="h-full flex items-center justify-center p-8 text-gray-500 text-center">
@@ -113,11 +114,27 @@ const Dashboard: React.FC = () => {
 
   const handleAddPlayer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPlayerName.trim()) return;
-    await addPlayer(newPlayerName, showExtraFields ? extraData : {});
+    const name = newPlayerName.trim();
+    if (!name) return;
+    const previousExtras = extraData;
+    const wasShowingExtras = showExtraFields;
+
+    // Limpa na hora: o Firestore já aplicou no cache local e a grid atualiza
+    // sozinha. Esperar a confirmação do servidor deixava o campo preso quando
+    // a conexão estava lenta ou ausente.
     setNewPlayerName('');
     setExtraData({ phone: '', birthDate: '', favoriteTeam: '' });
     setShowExtraFields(false);
+
+    try {
+      await addPlayer(name, wasShowingExtras ? previousExtras : {});
+    } catch {
+      // Devolve o que foi digitado para o usuário poder tentar de novo.
+      setNewPlayerName(name);
+      setExtraData(previousExtras);
+      setShowExtraFields(wasShowingExtras);
+      alert('Não foi possível cadastrar o jogador. Verifique a conexão e tente novamente.');
+    }
   };
 
   const getNameColor = (rank: number) => {
@@ -125,12 +142,6 @@ const Dashboard: React.FC = () => {
     if (rank >= 4 && rank <= 8) return 'text-blue-400';
     if (rank === 9) return 'text-red-400';
     return 'text-white';
-  };
-
-  const inputNumericProps = {
-    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.target.select(),
-    onWheel: (e: React.WheelEvent<HTMLInputElement>) => e.currentTarget.blur(),
-    inputMode: "numeric" as const,
   };
 
   return (
@@ -232,8 +243,8 @@ const Dashboard: React.FC = () => {
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] md:rounded-3xl overflow-hidden shadow-2xl relative">
-        <div className="overflow-x-auto overflow-y-auto max-h-[500px] md:max-h-[600px] custom-scrollbar">
-          <table className="w-full text-left min-w-[1000px]">
+        <ScrollArea className="overflow-x-auto overflow-y-auto max-h-[500px] md:max-h-[600px]">
+          <table className="w-full text-left min-w-[900px]">
             <thead className="sticky top-0 z-10">
               <tr className="bg-gray-800 text-gray-500 text-[9px] md:text-[10px] uppercase tracking-[0.2em] border-b border-gray-700">
                 <th className="px-6 py-5 font-black">Pos..</th>
@@ -243,7 +254,6 @@ const Dashboard: React.FC = () => {
                 <th className="px-6 py-5 font-black text-center">Pres.</th>
                 <th className="px-6 py-5 font-black text-center">Vit.</th>
                 <th className="px-6 py-5 font-black text-center">Dia</th>
-                <th className="px-6 py-5 font-black text-right">Valor Acumulado</th>
                 <th className="px-6 py-5 font-black text-center"></th>
               </tr>
             </thead>
@@ -300,15 +310,6 @@ const Dashboard: React.FC = () => {
                         +{player.dayPoints}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <EditableCell 
-                        value={player.accumulatedValue || 0}
-                        prefix="R$"
-                        inputNumericProps={inputNumericProps}
-                        className="bg-transparent border-none text-amber-500 focus:ring-1 focus:ring-emerald-500/50 rounded px-1 w-24 text-right font-black text-sm"
-                        onSave={(val) => updatePlayer(player.id, { accumulatedValue: val })}
-                      />
-                    </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button 
@@ -330,21 +331,33 @@ const Dashboard: React.FC = () => {
             </tbody>
             <tfoot className="sticky bottom-0 z-10 bg-gray-800 border-t border-gray-700 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
               <tr>
-                <td colSpan={7} className="px-6 py-5 text-right text-[9px] font-black text-gray-500 uppercase tracking-widest">Total Acumulado do Ranking:</td>
-                <td className="px-6 py-5 text-right">
-                   <div className="flex items-center justify-end gap-2">
-                      <span className="text-amber-500/50 text-[10px] font-black">R$</span>
-                      <span className="text-amber-500 font-black text-lg tracking-tighter">{totalAccumulated.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                <td colSpan={4} className="px-6 py-5 text-right text-[9px] font-black text-gray-500 uppercase tracking-widest">Total Acumulado do Ranking:</td>
+                <td colSpan={4} className="px-6 py-5">
+                   <div className="flex items-center justify-end gap-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-amber-500/50 text-[10px] font-black">R$</span>
+                        <span className="text-amber-500 font-black text-lg tracking-tighter">{formatBRL(totalAccumulated)}</span>
+                      </div>
+                      <button
+                        onClick={() => setIsStageValuesOpen(true)}
+                        title="Ver valor de cada etapa e quem venceu"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500 hover:text-black rounded-xl transition-all font-black text-[9px] uppercase tracking-widest border border-amber-500/20"
+                      >
+                        <ListOrdered size={14} />
+                        <span>Ver por Etapa</span>
+                      </button>
                    </div>
                 </td>
-                <td></td>
               </tr>
             </tfoot>
           </table>
-        </div>
+        </ScrollArea>
       </div>
 
       {isAddModalOpen && <AddResultModal onClose={() => setIsAddModalOpen(false)} />}
+      {isStageValuesOpen && (
+        <StageValuesModal ranking={activeRanking} editable onClose={() => setIsStageValuesOpen(false)} />
+      )}
     </div>
   );
 };
