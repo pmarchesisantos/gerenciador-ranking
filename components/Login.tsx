@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Trophy, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 
-const Login: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+const Login: React.FC<{ onBack: () => void; onCadastro?: () => void }> = ({ onBack, onCadastro }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +18,7 @@ const Login: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       await login(email, password);
     } catch (err: any) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('E-mail ou senha incorretos. Verifique se seu acesso foi liberado pelo administrador.');
+        setError('E-mail ou senha incorretos.');
       } else {
         setError('Erro ao tentar entrar. Tente novamente mais tarde.');
       }
@@ -108,9 +108,13 @@ const Login: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
         <div className="mt-8 text-center">
           <p className="text-gray-600 text-[9px] font-bold uppercase tracking-widest leading-relaxed">
-            Seu clube ainda não tem acesso? <br/>
-            Entre em contato com o suporte técnico.
+            Seu clube ainda não tem acesso?
           </p>
+          {onCadastro && (
+            <button type="button" onClick={onCadastro} className="mt-2 text-emerald-400 hover:text-emerald-300 text-[10px] font-black uppercase tracking-widest">
+              Criar meu clube
+            </button>
+          )}
         </div>
       </div>
     </div>

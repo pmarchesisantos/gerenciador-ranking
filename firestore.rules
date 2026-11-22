@@ -19,57 +19,108 @@ service cloud.firestore {
         casaData.ownerEmail.lower() == request.auth.token.email.lower();
     }
 
+    function casa(casaId) {
+      return get(/databases/$(database)/documents/casas/$(casaId)).data;
+    }
+
+    // ── Planos (espelho de services/planos.ts — mude os dois juntos) ──
+    // Casa sem "assinatura" é cortesia, criada pelo administrador: liberada.
+    // Com assinatura, vale até a data paga (gravada só pelo servidor).
+    function acessoAtivo(c) {
+      return !('assinatura' in c) ||
+        ('ate' in c.assinatura && c.assinatura.ate > request.time);
+    }
+    // Casa sem "plano" é cortesia completa ('legado').
+    function planoDe(c) {
+      return ('plano' in c) ? c.plano : 'legado';
+    }
+    function temClock(c) {
+      return acessoAtivo(c) && planoDe(c) in ['legado', 'profissional', 'completo'];
+    }
+    function temBar(c) {
+      return acessoAtivo(c) && planoDe(c) in ['legado', 'completo'];
+    }
+
     // Regras para a coleção de Casas (Clubes)
     match /casas/{casaId} {
-      // Qualquer pessoa pode ver a lista de casas e os detalhes (necessário para o PublicView)
+      // Qualquer pessoa pode ver a lista de casas e os detalhes (necessário para o PublicView).
+      // Por isso NADA sensível fica neste documento (senha, CPF, dados de cobrança).
       allow read: if true;
 
-      // Apenas SuperAdmin ou o próprio dono pode criar a casa
-      allow create: if isAuthenticated() &&
-        (isSuperAdmin() || request.resource.data.ownerEmail.lower() == request.auth.token.email.lower());
+      // Clubes pagos são criados pelo servidor (/api/assinar), que não passa por
+      // estas regras. Pelo app, só o administrador cria (clubes de cortesia).
+      allow create: if isSuperAdmin();
 
-      // Apenas SuperAdmin ou o dono pode editar ou excluir
-      allow update, delete: if isAuthenticated() && (isSuperAdmin() || isOwner(resource.data));
+      // O dono edita o próprio clube, mas nunca o plano, a assinatura ou o dono —
+      // esses campos só o servidor (pagamento confirmado) e o administrador mudam.
+      allow update: if isSuperAdmin() || (
+        isOwner(resource.data) &&
+        acessoAtivo(resource.data) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['plano', 'assinatura', 'ownerEmail']) &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['pokerClockConfig']) || temClock(resource.data))
+      );
+
+      // Excluir um clube com assinatura ativa deixaria a cobrança rodando sem
+      // clube: fica com o administrador.
+      allow delete: if isSuperAdmin();
 
       // Regras para os Rankings dentro de cada Casa
       match /rankings/{rankingId} {
         // Rankings são públicos para que os jogadores vejam a tabela
         allow read: if true;
 
-        // Apenas o dono da casa ou SuperAdmin pode gerenciar os rankings
-        allow create, update, delete: if isAuthenticated() &&
-          (isSuperAdmin() || isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
+        // Dono com acesso em dia (ou SuperAdmin) gerencia os rankings
+        allow create, update, delete: if isSuperAdmin() ||
+          (isOwner(casa(casaId)) && acessoAtivo(casa(casaId)));
       }
 
       // Cadastro geral de jogadores: telefone e nascimento são dados pessoais,
       // então, ao contrário dos rankings, não há leitura pública.
       match /jogadores/{jogadorId} {
-        allow read, write: if isSuperAdmin() ||
-          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data);
+        allow read: if isSuperAdmin() || isOwner(casa(casaId));
+        allow write: if isSuperAdmin() ||
+          (isOwner(casa(casaId)) && acessoAtivo(casa(casaId)));
       }
 
       // Bar: dados comerciais e de clientes (quem consumiu e quanto deve).
-      // Ao contrário dos rankings, NÃO tem leitura pública.
+      // NÃO tem leitura pública, e só existe no plano Completo.
       match /bar_produtos/{produtoId} {
         allow read, write: if isSuperAdmin() ||
-          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data);
+          (isOwner(casa(casaId)) && temBar(casa(casaId)));
       }
 
       match /bar_comandas/{comandaId} {
         allow read, write: if isSuperAdmin() ||
-          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data);
+          (isOwner(casa(casaId)) && temBar(casa(casaId)));
       }
 
       // Caixa encerrado não pode ser reescrito. O dono pode excluí-lo (caixas
       // de teste); o caixa aberto precisa ser fechado ou cancelado antes.
       match /bar_caixas/{caixaId} {
         allow read, create: if isSuperAdmin() ||
-          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data);
+          (isOwner(casa(casaId)) && temBar(casa(casaId)));
         allow update: if resource.data.status == 'aberto' && (isSuperAdmin() ||
-          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
+          (isOwner(casa(casaId)) && temBar(casa(casaId))));
         allow delete: if resource.data.status != 'aberto' && (isSuperAdmin() ||
-          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
+          (isOwner(casa(casaId)) && temBar(casa(casaId))));
       }
+    }
+
+    // Dados privados da assinatura (ids do gateway, titular, documento mascarado).
+    // Só o servidor escreve; o dono e o administrador leem.
+    match /assinaturas/{casaId} {
+      allow read: if isSuperAdmin() || isOwner(casa(casaId));
+      allow write: if false;
+
+      // Eventos do gateway já processados (controle de duplicidade): só o servidor.
+      match /eventos/{eventoId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Trava de cadastro em andamento: só o servidor.
+    match /cadastros_em_andamento/{uid} {
+      allow read, write: if false;
     }
   }
 }

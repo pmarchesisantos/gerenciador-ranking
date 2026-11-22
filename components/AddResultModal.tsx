@@ -1,4 +1,5 @@
 
+import { temRecurso } from '../services/planos';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { X, Search, ChevronRight, Wallet, Check, Trash2, Trophy, Loader2, Info, DollarSign, AlertTriangle, Save, ChevronDown, ChevronUp, Clock, Eye, EyeOff } from 'lucide-react';
@@ -273,8 +274,8 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
       const maxOrder = Math.max(0, ...selectedPlayers.map(p => p.eliminatedOrder || 0));
       const newOrder = maxOrder + 1;
       
-      // Trigger elimination update on TV
-      updatePokerClockConfig({ lastEliminationTime: Date.now() });
+      // Trigger elimination update on TV (só quando o plano tem o poker clock)
+      if (temClock) updatePokerClockConfig({ lastEliminationTime: Date.now() });
       
       // Update all positions based on new elimination
       const totalPlayers = selectedPlayers.length;
@@ -289,6 +290,8 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
       }));
     }
   };
+
+  const temClock = temRecurso(house, 'pokerClock');
 
   const openExternalClock = () => {
     setIsClockActive(true);
@@ -503,7 +506,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
               <Wallet className="text-emerald-500 hidden xs:block" size={16} />
               <h3 className="text-xs md:text-lg font-black text-white uppercase tracking-widest">Lançamento de Resultados</h3>
             </div>
-            <div className="flex items-center gap-2">
+            {temClock && <div className="flex items-center gap-2">
               <button
                 onClick={openExternalClock}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${
@@ -527,7 +530,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                 {showPrizeOnClock ? <Eye size={14} /> : <EyeOff size={14} />}
                 <span className="hidden sm:inline">Premiação</span>
               </button>
-            </div>
+            </div>}
           </div>
           <button onClick={() => setShowExitConfirm(true)} className="p-2 text-gray-500 hover:text-white transition-all"><X size={20} /></button>
         </div>

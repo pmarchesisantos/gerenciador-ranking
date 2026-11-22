@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Segredos (chaves do Asaas, conta de serviço do Firebase)
+.env
+.env.*
+!.env.example
+.vercel

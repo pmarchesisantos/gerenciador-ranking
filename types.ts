@@ -1,3 +1,4 @@
+import type { AssinaturaPublica, PlanoId } from './services/planos';
 
 export interface Player {
   id: string;
@@ -135,6 +136,10 @@ export interface PokerHouse {
   name: string;
   rankings: Ranking[];
   profile?: ProfileData;
+  /** Ausente nas casas de cortesia, criadas pelo administrador: acesso completo. */
+  plano?: PlanoId;
+  /** Gravada só pelo servidor. `ate` chega aqui já convertido para ISO. */
+  assinatura?: AssinaturaPublica;
 }
 
 export interface BlindLevel {
@@ -347,4 +352,4 @@ export interface BarCaixa {
   motivoCancelamento?: string;
 }
 
-export type View = 'dashboard' | 'settings' | 'history' | 'profile' | 'player-data' | 'poker-clock' | 'poker-clock-settings' | 'bar-produtos' | 'bar-caixa' | 'financeiro';
+export type View = 'dashboard' | 'settings' | 'history' | 'profile' | 'player-data' | 'poker-clock' | 'poker-clock-settings' | 'bar-produtos' | 'bar-caixa' | 'financeiro' | 'assinatura';

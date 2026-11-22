@@ -8,6 +8,7 @@ import {
   resumoBar, seriePorDia, escalaEixo,
 } from '../services/financeiro';
 import { formatBRL } from '../services/stageValues';
+import { temRecurso } from '../services/planos';
 
 // Validadas no fundo do cartão (#111827): faixa de luminosidade, croma,
 // separação para daltonismo e contraste — todas passam.
@@ -20,7 +21,10 @@ const diaSemana = (d: Date) => d.toLocaleDateString('pt-BR', { weekday: 'short' 
 
 const Financeiro: React.FC = () => {
   const { house } = useRanking();
-  const { comandas } = useBar();
+  const { comandas: todasComandas } = useBar();
+  // Plano sem bar (Profissional): o financeiro é só do poker.
+  const temBar = temRecurso(house, 'bar');
+  const comandas = useMemo(() => (temBar ? todasComandas : []), [temBar, todasComandas]);
 
   const [periodo, setPeriodo] = useState<Periodo>('mes');
   const [referencia, setReferencia] = useState(() => new Date());
@@ -68,7 +72,7 @@ const Financeiro: React.FC = () => {
       <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight">Financeiro</h2>
-          <p className="text-gray-500 text-sm mt-1">Movimentação da casa entre poker e bar.</p>
+          <p className="text-gray-500 text-sm mt-1">{temBar ? 'Movimentação da casa entre poker e bar.' : 'Movimentação do poker da casa.'}</p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
@@ -107,14 +111,14 @@ const Financeiro: React.FC = () => {
       </header>
 
       {/* Indicadores */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className={`grid grid-cols-2 gap-3 ${temBar ? 'lg:grid-cols-4' : ''}`}>
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-5">
           <div className="flex items-center gap-2 mb-2">
             <Landmark size={13} className="text-gray-500" />
             <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Receita da casa</p>
           </div>
           <p className="text-white font-black text-xl md:text-2xl tracking-tight tabular-nums">{brl(poker.casa + bar.vendas)}</p>
-          <p className="text-gray-600 text-[10px] font-bold mt-1">poker + vendas do bar</p>
+          <p className="text-gray-600 text-[10px] font-bold mt-1">{temBar ? 'poker + vendas do bar' : 'rake + administrativo'}</p>
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-5">
           <div className="flex items-center gap-2 mb-2">
@@ -126,6 +130,7 @@ const Financeiro: React.FC = () => {
             {etapas.length} etapa(s) · {brl(poker.bruto)} na mesa
           </p>
         </div>
+        {temBar && <>
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 md:p-5">
           <div className="flex items-center gap-2 mb-2">
             <span className="w-2 h-2 rounded-full" style={{ background: COR.bar }} />
@@ -142,6 +147,7 @@ const Financeiro: React.FC = () => {
           <p className="text-amber-500 font-black text-xl md:text-2xl tracking-tight tabular-nums">{brl(aReceber)}</p>
           <p className="text-gray-600 text-[10px] font-bold mt-1">todas as comandas abertas</p>
         </div>
+        </>}
       </div>
 
       {etapasSemAdm > 0 && (
@@ -168,10 +174,12 @@ const Financeiro: React.FC = () => {
                   <span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: COR.poker }} />
                   {metrica === 'receita' ? 'Poker (rake + adm.)' : 'Poker (na mesa)'}
                 </span>
-                <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
-                  <span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: COR.bar }} />
-                  Bar (vendas)
-                </span>
+                {temBar && (
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-gray-400">
+                    <span className="w-2.5 h-2.5 rounded-[3px]" style={{ background: COR.bar }} />
+                    Bar (vendas)
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex gap-2">
@@ -268,10 +276,12 @@ const Financeiro: React.FC = () => {
                       <span className="flex items-center gap-1.5 text-gray-400"><span className="w-2 h-2 rounded-[2px]" style={{ background: COR.poker }} />Poker</span>
                       <span className="text-white font-bold tabular-nums">{brl(pontoHover.poker)}</span>
                     </p>
-                    <p className="flex items-center justify-between gap-4 text-xs mt-0.5">
-                      <span className="flex items-center gap-1.5 text-gray-400"><span className="w-2 h-2 rounded-[2px]" style={{ background: COR.bar }} />Bar</span>
-                      <span className="text-white font-bold tabular-nums">{brl(pontoHover.bar)}</span>
-                    </p>
+                    {temBar && (
+                      <p className="flex items-center justify-between gap-4 text-xs mt-0.5">
+                        <span className="flex items-center gap-1.5 text-gray-400"><span className="w-2 h-2 rounded-[2px]" style={{ background: COR.bar }} />Bar</span>
+                        <span className="text-white font-bold tabular-nums">{brl(pontoHover.bar)}</span>
+                      </p>
+                    )}
                     <p className="flex items-center justify-between gap-4 text-xs mt-1.5 pt-1.5 border-t border-gray-800">
                       <span className="text-gray-500 font-bold">Total</span>
                       <span className="text-white font-black tabular-nums">{brl(pontoHover.poker + pontoHover.bar)}</span>
@@ -293,7 +303,7 @@ const Financeiro: React.FC = () => {
         </section>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] gap-6 items-start">
+      <div className={`grid grid-cols-1 gap-6 items-start ${temBar ? 'lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]' : ''}`}>
         {/* Poker */}
         <section className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden">
           <div className="p-5 md:p-6 border-b border-gray-800 flex items-center justify-between gap-3">
@@ -357,7 +367,7 @@ const Financeiro: React.FC = () => {
         </section>
 
         {/* Bar */}
-        <div className="space-y-6">
+        {temBar && <div className="space-y-6">
           <section className="bg-gray-900 border border-gray-800 rounded-3xl p-5 md:p-6">
             <div className="flex items-center justify-between gap-3 mb-4">
               <h3 className="text-white font-black text-sm tracking-tight flex items-center gap-2">
@@ -407,7 +417,7 @@ const Financeiro: React.FC = () => {
               </ul>
             )}
           </section>
-        </div>
+        </div>}
       </div>
     </div>
   );

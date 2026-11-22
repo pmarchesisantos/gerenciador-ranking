@@ -4,15 +4,27 @@ import { db, collection, onSnapshot, setDoc, doc, deleteDoc, getDocs, firebaseCo
 import { useRanking } from '../context/RankingContext';
 import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { Trophy, Plus, Mail, Shield, Trash2, Home, UserCheck, Info, ExternalLink, Key, Loader2, Eraser, AlertCircle, Eye } from 'lucide-react';
+import { Trophy, Plus, Mail, Shield, Trash2, Home, UserCheck, Info, ExternalLink, Key, Loader2, Eraser, AlertCircle, Eye, ShieldAlert } from 'lucide-react';
+import { updateDoc, deleteField } from 'firebase/firestore';
+import { LISTA_PLANOS, PLANOS, PlanoId, StatusAssinatura, ehPlano } from '../services/planos';
+
+const STATUS_TEXTO: Record<StatusAssinatura, { texto: string; cls: string }> = {
+  pendente: { texto: 'Aguardando pagamento', cls: 'text-amber-400' },
+  ativa: { texto: 'Assinatura ativa', cls: 'text-emerald-500' },
+  atrasada: { texto: 'Pagamento atrasado', cls: 'text-red-400' },
+  cancelada: { texto: 'Cancelada', cls: 'text-gray-400' },
+};
 
 interface HouseRecord {
   id: string;
   name: string;
   slug: string;
   ownerEmail: string;
+  /** Legado: senha inicial gravada em texto puro num documento público. Não é mais gravada. */
   tempPassword?: string;
   createdAt: string;
+  plano?: PlanoId;
+  assinatura?: { status: StatusAssinatura };
 }
 
 const SuperAdminDashboard: React.FC = () => {
@@ -84,7 +96,7 @@ const SuperAdminDashboard: React.FC = () => {
         name: newHouseName,
         slug: sanitizedSlug,
         ownerEmail: newHouseEmail.toLowerCase().trim(),
-        tempPassword: tempPassword,
+        // A senha NÃO é gravada: este documento tem leitura pública.
         createdAt: new Date().toISOString()
       });
       
@@ -111,6 +123,30 @@ const SuperAdminDashboard: React.FC = () => {
       } catch (err) {
         alert('Erro ao remover acesso.');
       }
+    }
+  };
+
+  /** Plano de uma casa de cortesia (sem assinatura). Vazio = acesso completo. */
+  const definirPlano = async (casa: HouseRecord, valor: string) => {
+    try {
+      await updateDoc(doc(db, 'casas', casa.id), { plano: ehPlano(valor) ? valor : deleteField() });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `casas/${casa.id}`);
+      setStatus({ type: 'error', msg: 'Não foi possível alterar o plano.' });
+    }
+  };
+
+  const comSenhaExposta = houses.filter(h => h.tempPassword);
+  const removerSenhasExpostas = async () => {
+    if (!confirm(`Remover a senha em texto puro de ${comSenhaExposta.length} clube(s)? As senhas de acesso dos donos NÃO mudam; só deixam de ficar visíveis no banco.`)) return;
+    setIsProcessing(true);
+    try {
+      await Promise.all(comSenhaExposta.map(h => updateDoc(doc(db, 'casas', h.id), { tempPassword: deleteField() })));
+      setStatus({ type: 'success', msg: 'Senhas removidas dos registros públicos.' });
+    } catch (err) {
+      setStatus({ type: 'error', msg: 'Erro ao remover as senhas.' });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -151,6 +187,23 @@ const SuperAdminDashboard: React.FC = () => {
           Limpar Todos
         </button>
       </header>
+
+      {comSenhaExposta.length > 0 && (
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-3xl border border-red-500/30 bg-red-500/[0.06] p-6">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="text-red-400 shrink-0 mt-0.5" size={20} />
+            <div>
+              <p className="text-white font-black">{comSenhaExposta.length} clube(s) com senha exposta</p>
+              <p className="text-gray-400 text-sm mt-1">A senha inicial foi gravada em texto puro no documento do clube, que qualquer pessoa pode ler.
+                Remova-a dos registros e peça aos donos que troquem a senha em "Dados do Perfil".</p>
+            </div>
+          </div>
+          <button onClick={removerSenhasExpostas} disabled={isProcessing}
+                  className="shrink-0 bg-red-600 hover:bg-red-500 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest disabled:opacity-40">
+            Remover senhas expostas
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <section className="lg:col-span-4">
@@ -250,10 +303,29 @@ const SuperAdminDashboard: React.FC = () => {
                 </div>
                 <h3 className="text-white font-black text-lg mb-1">{houseRecord.name}</h3>
                 <p className="text-gray-500 text-xs mb-4 font-medium">{houseRecord.ownerEmail}</p>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  {houseRecord.assinatura ? (
+                    <>
+                      <span className="text-xs font-bold text-white">{houseRecord.plano ? PLANOS[houseRecord.plano].nome : '—'}</span>
+                      <span className={`text-[10px] font-black uppercase tracking-widest ${STATUS_TEXTO[houseRecord.assinatura.status]?.cls || 'text-gray-400'}`}>
+                        {STATUS_TEXTO[houseRecord.assinatura.status]?.texto || houseRecord.assinatura.status}
+                      </span>
+                    </>
+                  ) : (
+                    <label className="flex items-center gap-2 w-full">
+                      <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest shrink-0">Cortesia</span>
+                      <select value={houseRecord.plano || ''} onChange={e => definirPlano(houseRecord, e.target.value)}
+                              className="flex-1 bg-black/40 border border-gray-800 rounded-lg px-2 py-1.5 text-xs font-bold text-white outline-none">
+                        <option value="">Completo (sem plano)</option>
+                        {LISTA_PLANOS.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                      </select>
+                    </label>
+                  )}
+                </div>
                 <div className="bg-black/40 rounded-xl p-3 border border-gray-800 flex items-center justify-between">
                    <div className="flex items-center gap-2">
                      <UserCheck size={12} className="text-emerald-500" />
-                     <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Acesso Ativo</span>
+                     <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">{houseRecord.assinatura ? 'Assinante' : 'Acesso Ativo'}</span>
                    </div>
                    <span className="text-[10px] font-bold text-emerald-500/60 font-mono">URL: /c/{houseRecord.slug || houseRecord.id}</span>
                 </div>

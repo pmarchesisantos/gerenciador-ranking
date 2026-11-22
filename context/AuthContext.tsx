@@ -4,6 +4,7 @@ import { auth } from '../services/firebase';
 import { 
   onAuthStateChanged, 
   signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
   signOut,
   updatePassword,
   User 
@@ -15,12 +16,17 @@ interface AuthContextType {
   isAdmin: boolean;
   isSuperAdmin: boolean;
   login: (email: string, pass: string) => Promise<void>;
+  /** Cria a conta de um dono de clube novo (cadastro com assinatura). */
+  cadastrar: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUserPassword: (newPassword: string) => Promise<void>;
 }
 
-// DEFINIÇÃO DOS E-MAILS DE ADMINISTRADOR MESTRE
-const SUPER_ADMIN_EMAILS = ['admin@gmail.com', 'pedro.marchesi2000@gmail.com', 'pmarchesi.santos@gmail.com'];
+// E-mails de administrador mestre. Com o cadastro aberto ao público, qualquer
+// um pode criar conta com um e-mail ainda não usado: por isso a lista só tem
+// contas que já existem e são suas. A segurança de verdade está nas regras do
+// Firestore (isSuperAdmin), que só reconhecem pmarchesi.santos@gmail.com.
+const SUPER_ADMIN_EMAILS = ['pedro.marchesi2000@gmail.com', 'pmarchesi.santos@gmail.com'];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -38,6 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, pass: string) => {
     await signInWithEmailAndPassword(auth, email.toLowerCase().trim(), pass);
+  };
+
+  const cadastrar = async (email: string, pass: string) => {
+    await createUserWithEmailAndPassword(auth, email.toLowerCase().trim(), pass);
   };
 
   const logout = async () => {
@@ -59,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isAdmin = !!user; // Qualquer um logado é considerado um admin de clube (ou super admin)
 
   return (
-    <AuthContext.Provider value={{ user, loading, isAdmin, isSuperAdmin, login, logout, updateUserPassword }}>
+    <AuthContext.Provider value={{ user, loading, isAdmin, isSuperAdmin, login, cadastrar, logout, updateUserPassword }}>
       {children}
     </AuthContext.Provider>
   );

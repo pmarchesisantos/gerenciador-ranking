@@ -19,7 +19,28 @@ import BarCaixa from './components/BarCaixa';
 import BarPDV from './components/BarPDV';
 import Financeiro from './components/Financeiro';
 import { BarProvider } from './context/BarContext';
-import { LogOut, User, Menu, Shield, ArrowLeft, X } from 'lucide-react';
+import Cadastro from './components/Cadastro';
+import Assinatura from './components/Assinatura';
+import RecursoBloqueado from './components/RecursoBloqueado';
+import { Recurso, acessoLiberado, temRecurso } from './services/planos';
+import { LogOut, User, Menu, Shield, ArrowLeft, X, Lock } from 'lucide-react';
+
+/** Tela que o plano exige, por view. As demais são do plano básico. */
+const RECURSO_DA_VIEW: Partial<Record<string, Recurso>> = {
+  'poker-clock': 'pokerClock',
+  'poker-clock-settings': 'pokerClock',
+  'financeiro': 'financeiro',
+  'bar-caixa': 'bar',
+  'bar-produtos': 'bar',
+};
+
+/** Aviso para janelas externas (TV, PDV) de um recurso fora do plano ou sem pagamento. */
+const JanelaIndisponivel: React.FC<{ texto: string }> = ({ texto }) => (
+  <div className="h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0a0a] text-gray-400 p-6 text-center">
+    <Lock size={28} className="text-gray-600" />
+    <p className="text-sm max-w-sm">{texto}</p>
+  </div>
+);
 
 const AdminLayout: React.FC = () => {
   const { currentView, loadingData, house, setViewingHouseId } = useRanking();
@@ -49,7 +70,15 @@ const AdminLayout: React.FC = () => {
     );
   }
 
+  // Sem pagamento em dia (ou aguardando o primeiro), o painel dá lugar à
+  // assinatura. O administrador mestre navega por qualquer clube.
+  if (!isSuperAdmin && house.id && !loadingData && !acessoLiberado(house)) {
+    return <Assinatura bloqueado />;
+  }
+
   const renderView = () => {
+    const exigido = RECURSO_DA_VIEW[currentView];
+    if (exigido && !temRecurso(house, exigido)) return <RecursoBloqueado recurso={exigido} />;
     switch (currentView) {
       case 'dashboard': return <Dashboard />;
       case 'player-data': return <PlayerData />;
@@ -61,6 +90,7 @@ const AdminLayout: React.FC = () => {
       case 'bar-produtos': return <BarProdutos />;
       case 'bar-caixa': return <BarCaixa />;
       case 'financeiro': return <Financeiro />;
+      case 'assinatura': return <Assinatura />;
       default: return <Dashboard />;
     }
   };
@@ -119,8 +149,10 @@ const AdminLayout: React.FC = () => {
 const VIEW_EXTERNA = new URLSearchParams(window.location.search).get('view');
 
 const RootContent: React.FC = () => {
-  const { isAdmin, loading } = useAuth();
+  const { isAdmin, isSuperAdmin, loading } = useAuth();
+  const { house, semCasa } = useRanking();
   const [showLogin, setShowLogin] = useState(false);
+  const [showCadastro, setShowCadastro] = useState(false);
 
   const isExternalClock = VIEW_EXTERNA === 'poker-clock-external';
 
@@ -132,6 +164,9 @@ const RootContent: React.FC = () => {
   );
 
   if (isExternalClock) {
+    if (house.id && !temRecurso(house, 'pokerClock')) {
+      return <JanelaIndisponivel texto="O poker clock não faz parte do plano deste clube." />;
+    }
     return (
       <div className="h-screen bg-black">
         <PokerClock />
@@ -142,15 +177,24 @@ const RootContent: React.FC = () => {
   // PDV do bar em janela própria. Exige login: os dados do bar são privados.
   if (VIEW_EXTERNA === 'bar-pdv') {
     if (!isAdmin) return <Login onBack={() => { window.location.href = '/'; }} />;
+    if (house.id && !isSuperAdmin && (!temRecurso(house, 'bar') || !acessoLiberado(house))) {
+      return <JanelaIndisponivel texto="O bar não está disponível para este clube. Confira o plano em Minha assinatura." />;
+    }
     return <BarProvider><BarPDV /></BarProvider>;
   }
 
+  // Conta criada sem clube (cadastro interrompido, ou conta nova): termina o cadastro.
+  if (isAdmin && !isSuperAdmin && semCasa) return <Cadastro />;
+
   // O bar só existe para o dono logado: as coleções dele são privadas.
   if (isAdmin) return <BarProvider><AdminLayout /></BarProvider>;
+  if (showCadastro) {
+    return <Cadastro onVoltar={() => setShowCadastro(false)} onEntrar={() => { setShowCadastro(false); setShowLogin(true); }} />;
+  }
   return (
     <>
-      <PublicView onLoginClick={() => setShowLogin(true)} />
-      {showLogin && <Login onBack={() => setShowLogin(false)} />}
+      <PublicView onLoginClick={() => setShowLogin(true)} onCadastroClick={() => setShowCadastro(true)} />
+      {showLogin && <Login onBack={() => setShowLogin(false)} onCadastro={() => { setShowLogin(false); setShowCadastro(true); }} />}
     </>
   );
 };

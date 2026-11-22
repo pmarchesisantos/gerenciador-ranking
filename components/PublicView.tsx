@@ -8,7 +8,7 @@ import ScrollArea from './ScrollArea';
 import { getStagesTotal, formatBRL } from '../services/stageValues';
 import { getStageFinance } from '../services/stageFinance';
 
-const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) => {
+const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => void }> = ({ onLoginClick, onCadastroClick }) => {
   const { house, loadingData, setViewingHouseId } = useRanking();
   const [allHouses, setAllHouses] = useState<any[]>([]);
   const [activeTabId, setActiveTabId] = useState('');
@@ -77,9 +77,17 @@ const PublicView: React.FC<{ onLoginClick: () => void }> = ({ onLoginClick }) =>
              <Trophy className="text-emerald-500" />
              <span className="text-lg md:text-xl font-black text-white tracking-tighter">Rank Manager</span>
           </div>
-          <button onClick={onLoginClick} className="text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-white transition-all flex items-center gap-2">
-            <LogIn size={16} /> <span className="hidden sm:inline">Administração</span>
-          </button>
+          <div className="flex items-center gap-4">
+            <button onClick={onLoginClick} className="text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-white transition-all flex items-center gap-2">
+              <LogIn size={16} /> <span className="hidden sm:inline">Administração</span>
+            </button>
+            {onCadastroClick && (
+              <button onClick={onCadastroClick}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                Criar meu clube
+              </button>
+            )}
+          </div>
         </header>
 
         <main className="flex-1 p-4 md:p-8 max-w-4xl mx-auto w-full space-y-8 md:space-y-12 flex flex-col justify-center py-12 md:py-24">
