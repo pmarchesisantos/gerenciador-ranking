@@ -498,21 +498,21 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[100] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-300 overflow-hidden">
-      <div className="bg-[#0b0f1a] w-full max-w-7xl rounded-t-[1.5rem] md:rounded-[2rem] border-t md:border border-emerald-900/30 shadow-2xl flex flex-col h-[98dvh] md:h-auto md:max-h-[92vh] overflow-hidden">
+      <div className="bg-gray-950 w-full max-w-7xl rounded-t-xl md:rounded-xl border-t md:border border-gray-800 shadow-2xl flex flex-col h-[98dvh] md:h-auto md:max-h-[92vh] overflow-hidden">
         
         <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/40 shrink-0">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Wallet className="text-emerald-500 hidden xs:block" size={16} />
-              <h3 className="text-xs md:text-lg font-black text-white uppercase tracking-widest">Lançamento de Resultados</h3>
+              <h3 className="text-xs md:text-lg font-semibold text-white">Lançamento de Resultados</h3>
             </div>
             {temClock && <div className="flex items-center gap-2">
               <button
                 onClick={openExternalClock}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold   transition-all border ${
                   isClockActive
-                    ? 'bg-cyan-500 text-white border-cyan-400'
-                    : 'bg-cyan-500/10 hover:bg-cyan-500 text-cyan-500 hover:text-white border-cyan-500/20'
+                    ? 'bg-emerald-500/15 text-emerald-200 border-cyan-400 ring-1 ring-inset ring-emerald-500/30'
+                    : 'bg-cyan-500/10 hover:bg-emerald-500/25 text-cyan-500 hover:text-emerald-100 border-cyan-500/20'
                 }`}
               >
                 <Clock size={14} />
@@ -521,7 +521,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
               <button
                 onClick={() => setShowPrizeOnClock(v => !v)}
                 title={showPrizeOnClock ? 'Premiação visível no clock' : 'Premiação oculta no clock'}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all border ${
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold   transition-all border ${
                   showPrizeOnClock
                     ? 'bg-amber-500/10 text-amber-500 border-amber-500/20'
                     : 'bg-gray-800/60 text-gray-600 border-gray-700'
@@ -571,43 +571,43 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                      <button key={p.chave} onClick={() => addPessoaToStage(p.nome, p.jogador?.id)}
                              className="w-full px-4 py-3 text-left hover:bg-emerald-600/10 border-b border-gray-800 flex items-center justify-between gap-3">
                        <span className="text-white font-bold text-xs truncate">{p.nome}</span>
-                       <span className="text-[8px] font-black text-sky-400 uppercase tracking-widest shrink-0">Do cadastro · entra no ranking</span>
+                       <span className="text-xs font-semibold text-gray-400 shrink-0">Do cadastro · entra no ranking</span>
                      </button>
                    ))}
                    {!busca.existeExato && (
-                     <div className="bg-emerald-900/10 border-b border-emerald-500/20">
+                     <div className="bg-gray-800/30 border-b border-emerald-500/20">
                         <div className="flex items-center justify-between px-4 py-3">
-                           <span className="text-emerald-500 font-black text-[10px] uppercase">Novo: {searchTerm}</span>
+                           <span className="text-emerald-500 font-semibold text-xs">Novo: {searchTerm}</span>
                            <button 
                              onClick={() => setShowExtraNewPlayer(!showExtraNewPlayer)}
                              className="text-emerald-400 hover:text-emerald-200 transition-colors"
                            >
-                             {showExtraNewPlayer ? <ChevronUp size={16} /> : <div className="flex items-center gap-1 text-[8px] font-black uppercase bg-emerald-500/20 px-2 py-1 rounded">Expandir Cadastro <ChevronDown size={12}/></div>}
+                             {showExtraNewPlayer ? <ChevronUp size={16} /> : <div className="flex items-center gap-1 text-xs font-semibold bg-emerald-500/20 px-2 py-1 rounded">Expandir Cadastro <ChevronDown size={12}/></div>}
                            </button>
                         </div>
                         {showExtraNewPlayer && (
                           <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                             <input className="bg-black/60 border border-emerald-500/30 rounded-lg px-3 py-2 text-[10px] text-white outline-none" placeholder="Celular" value={extraNewPlayer.phone} onChange={e => setExtraNewPlayer({...extraNewPlayer, phone: formatPhone(e.target.value)})} />
-                             <input type="date" className="bg-black/60 border border-emerald-500/30 rounded-lg px-3 py-2 text-[10px] text-white outline-none" value={extraNewPlayer.birthDate} onChange={e => setExtraNewPlayer({...extraNewPlayer, birthDate: e.target.value})} />
-                             <input className="bg-black/60 border border-emerald-500/30 rounded-lg px-3 py-2 text-[10px] text-white outline-none" placeholder="Time" value={extraNewPlayer.favoriteTeam} onChange={e => setExtraNewPlayer({...extraNewPlayer, favoriteTeam: e.target.value})} />
+                             <input className="bg-black/60 border border-emerald-500/30 rounded-lg px-3 py-2 text-xs text-white outline-none" placeholder="Celular" value={extraNewPlayer.phone} onChange={e => setExtraNewPlayer({...extraNewPlayer, phone: formatPhone(e.target.value)})} />
+                             <input type="date" className="bg-black/60 border border-emerald-500/30 rounded-lg px-3 py-2 text-xs text-white outline-none" value={extraNewPlayer.birthDate} onChange={e => setExtraNewPlayer({...extraNewPlayer, birthDate: e.target.value})} />
+                             <input className="bg-black/60 border border-emerald-500/30 rounded-lg px-3 py-2 text-xs text-white outline-none" placeholder="Time" value={extraNewPlayer.favoriteTeam} onChange={e => setExtraNewPlayer({...extraNewPlayer, favoriteTeam: e.target.value})} />
                           </div>
                         )}
-                        <button onClick={addNewPlayerToStage} className="w-full px-4 py-2 bg-emerald-600 text-white font-black text-[9px] uppercase tracking-widest text-center hover:bg-emerald-500">Adicionar Jogador</button>
+                        <button onClick={addNewPlayerToStage} className="w-full px-4 py-2 bg-emerald-500/15 text-emerald-200 font-semibold text-xs text-center hover:bg-emerald-500/25 ring-1 ring-inset ring-emerald-500/30">Adicionar Jogador</button>
                      </div>
                    )}
                  </div>
                )}
             </div>
             <div className="md:col-span-2 flex bg-gray-900 p-0.5 rounded-lg border border-gray-800">
-              {[1, 2].map(m => <button key={m} onClick={() => setMultiplier(m)} className={`flex-1 py-1 rounded-md text-[10px] font-black ${multiplier === m ? 'bg-emerald-600 text-white shadow-md' : 'text-gray-600'}`}>{m}X</button>)}
+              {[1, 2].map(m => <button key={m} onClick={() => setMultiplier(m)} className={`flex-1 py-1 rounded-md text-xs font-semibold ${multiplier === m ? 'bg-emerald-500/15 text-emerald-200 shadow-md ring-1 ring-inset ring-emerald-500/30' : 'text-gray-600'}`}>{m}X</button>)}
             </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-[#080b14] custom-scrollbar">
+        <div className="flex-1 overflow-auto bg-gray-950 custom-scrollbar">
           <table className="w-full text-left min-w-[1000px]">
-            <thead className="sticky top-0 bg-[#080b14] z-20 border-b border-gray-800">
-              <tr className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+            <thead className="sticky top-0 bg-gray-950 z-20 border-b border-gray-800">
+              <tr className="text-xs font-semibold text-gray-500">
                 <th className="px-8 py-4">Jogador</th>
                 <th className="px-2 py-4 text-center w-24">Eliminado</th>
                 <th className="px-2 py-4 text-center w-28">Re-buy</th>
@@ -626,7 +626,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                 <tr key={p.playerId} className="hover:bg-emerald-600/[0.03] group transition-colors">
                   <td className="px-8 py-3">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-[10px] ${p.position === 1 ? 'bg-amber-500 text-black' : p.position > 1 ? 'bg-emerald-600 text-white' : 'bg-gray-800 text-gray-500'}`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-xs ${p.position === 1 ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : p.position > 1 ? 'bg-gray-700 text-gray-100' : 'bg-gray-800 text-gray-500'}`}>
                         {p.position === 1 ? <Trophy size={14} /> : p.position || p.name[0]}
                       </div>
                       <span className="text-white font-bold text-xs">{p.name}</span>
@@ -644,7 +644,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                         <input 
                           type="number"
                           {...inputNumericProps}
-                          className="w-10 bg-gray-900 border border-gray-800 rounded text-center text-white text-[10px] font-black py-1.5 outline-none focus:border-red-500"
+                          className="w-10 bg-gray-900 border border-gray-800 rounded text-center text-white text-xs font-semibold py-1.5 outline-none focus:border-red-500"
                           value={p.position}
                           onChange={(e) => handleEntryChange(p.playerId, 'position', Number(e.target.value))}
                         />
@@ -664,7 +664,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                     />
                   </td>
                   <td className="px-2 py-3 text-center">
-                    <button onClick={() => handleEntryChange(p.playerId, 'addons', p.addons > 0 ? 0 : 1)} className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.addons > 0 ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent'}`}><Check size={16} /></button>
+                    <button onClick={() => handleEntryChange(p.playerId, 'addons', p.addons > 0 ? 0 : 1)} className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.addons > 0 ? 'bg-emerald-500/15 text-emerald-200 border-emerald-500 ring-1 ring-inset ring-emerald-500/30' : 'bg-black/40 border-gray-800 text-transparent'}`}><Check size={16} /></button>
                   </td>
                   {selectedCategory?.customValues?.map(field => (
                     <td key={field.id} className="px-2 py-3">
@@ -678,9 +678,9 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                     </td>
                   ))}
                   <td className="px-2 py-3 text-center">
-                    <button onClick={() => handleEntryChange(p.playerId, 'paid', !p.paid)} className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.paid ? 'bg-emerald-600 text-white border-emerald-500 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent'}`}><Check size={16} /></button>
+                    <button onClick={() => handleEntryChange(p.playerId, 'paid', !p.paid)} className={`w-9 h-9 rounded-lg flex items-center justify-center mx-auto border transition-all ${p.paid ? 'bg-green-600 text-white border-green-500 shadow-lg' : 'bg-black/40 border-gray-800 text-transparent'}`}><Check size={16} /></button>
                   </td>
-                  <td className="px-4 py-3 text-right text-amber-500 font-black text-xs">R$ {formatCurrency(calculatePlayerGross(p))}</td>
+                  <td className="px-4 py-3 text-right text-amber-500 font-semibold text-xs">R$ {formatCurrency(calculatePlayerGross(p))}</td>
                   <td className="px-4 py-3 text-center"><button onClick={() => setSelectedPlayers(prev => prev.filter(x => x.playerId !== p.playerId))} className="text-gray-700 hover:text-red-500 transition-all opacity-40 hover:opacity-100"><Trash2 size={16} /></button></td>
                 </tr>
               ))}
@@ -688,43 +688,43 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           </table>
         </div>
 
-        <div className="px-4 py-3 md:px-8 md:py-5 border-t border-gray-800 bg-[#0f1422] shrink-0 overflow-visible relative">
+        <div className="px-4 py-3 md:px-8 md:py-5 border-t border-gray-800 bg-gray-900 shrink-0 overflow-visible relative">
           <div className="flex justify-between items-center">
              <div className="flex items-center gap-4 md:gap-12">
                 
                 <div className="flex flex-col relative overflow-visible" ref={financialRef}>
                    <div className="flex items-center gap-1.5 mb-1">
-                      <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Valor Líquido</p>
+                      <p className="text-xs font-semibold text-gray-600">Valor Líquido</p>
                       <button onClick={() => { setShowFinancialTooltip(!showFinancialTooltip); setShowPrizeTooltip(false); }} className={`p-1 rounded transition-colors ${showFinancialTooltip ? 'text-emerald-500 bg-emerald-500/10' : 'text-gray-600 hover:text-emerald-500'}`}><Info size={14} /></button>
                       
                       {showFinancialTooltip && (
-                        <div className="absolute bottom-full left-0 mb-4 w-72 bg-gray-900 border border-emerald-500/40 rounded-2xl p-5 shadow-2xl z-[150] animate-in zoom-in-95">
-                           <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-widest border-b border-gray-800 pb-2 mb-3">Resumo Financeiro</h4>
-                           <div className="space-y-3 text-[11px] font-bold">
+                        <div className="absolute bottom-full left-0 mb-4 w-72 bg-gray-900 border border-emerald-500/40 rounded-xl p-5 shadow-2xl z-[150] animate-in zoom-in-95">
+                           <h4 className="text-xs font-semibold text-emerald-500 border-b border-gray-800 pb-2 mb-3">Resumo Financeiro</h4>
+                           <div className="space-y-3 text-xs font-bold">
                               <div className="flex justify-between items-center text-white border-b border-gray-800 pb-1">
-                                <span className="uppercase text-[9px] text-gray-500">Arrecadação</span>
+                                <span className="text-xs text-gray-500">Arrecadação</span>
                                 <span>R$ {formatCurrency(totalBruto)}</span>
                               </div>
 
                               <div className="space-y-1 pl-2">
-                                <div className="flex justify-between items-center text-[10px]">
+                                <div className="flex justify-between items-center text-xs">
                                   <span className="text-gray-600">Buy-in:</span>
                                   <span className="text-gray-400">{totals.buyins}</span>
                                 </div>
                                 {totals.rebuys > 0 && (
-                                  <div className="flex justify-between items-center text-[10px]">
+                                  <div className="flex justify-between items-center text-xs">
                                     <span className="text-gray-600">Re-buy:</span>
                                     <span className="text-gray-400">{totals.rebuys}</span>
                                   </div>
                                 )}
                                 {totals.doubleRebuys > 0 && (
-                                  <div className="flex justify-between items-center text-[10px]">
+                                  <div className="flex justify-between items-center text-xs">
                                     <span className="text-gray-600">Re-buy Duplo:</span>
                                     <span className="text-gray-400">{totals.doubleRebuys}</span>
                                   </div>
                                 )}
                                 {totals.addons > 0 && (
-                                  <div className="flex justify-between items-center text-[10px]">
+                                  <div className="flex justify-between items-center text-xs">
                                     <span className="text-gray-600">Add-on:</span>
                                     <span className="text-gray-400">{totals.addons}</span>
                                   </div>
@@ -733,7 +733,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                                   const totalQty = selectedPlayers.reduce((acc, p) => acc + (p.customValues[field.id] || 0), 0);
                                   if (totalQty === 0) return null;
                                   return (
-                                    <div key={field.id} className="flex justify-between items-center text-[10px]">
+                                    <div key={field.id} className="flex justify-between items-center text-xs">
                                       <span className="text-gray-600">{field.name}:</span>
                                       <span className="text-gray-400">{totalQty}</span>
                                     </div>
@@ -749,7 +749,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                               <div className="flex justify-between items-center group">
                                 <span className="text-gray-500">Ranking ({selectedCategory?.rankingPercent || 0}%):</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-gray-400 text-[10px]">- R$</span>
+                                  <span className="text-gray-400 text-xs">- R$</span>
                                   <input 
                                     type="number" 
                                     {...inputNumericProps}
@@ -763,7 +763,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                               <div className="flex justify-between items-center">
                                 <span className="text-gray-500">Administrativo:</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="text-gray-400 text-[10px]">- R$</span>
+                                  <span className="text-gray-400 text-xs">- R$</span>
                                   <input 
                                     type="number" 
                                     {...inputNumericProps}
@@ -775,8 +775,8 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                                 </div>
                               </div>
 
-                              <div className="pt-2 border-t border-gray-800 flex justify-between font-black">
-                                 <span className="text-emerald-500 uppercase">Líquido Final:</span> 
+                              <div className="pt-2 border-t border-gray-800 flex justify-between font-semibold">
+                                 <span className="text-emerald-500">Líquido Final:</span> 
                                  <span className="text-emerald-500">R$ {formatCurrency(valorLiquido)}</span>
                               </div>
                            </div>
@@ -784,24 +784,24 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                         </div>
                       )}
                    </div>
-                   <span className="text-lg md:text-2xl font-black text-emerald-500">R$ {formatCurrency(valorLiquido)}</span>
+                   <span className="text-lg md:text-2xl font-semibold text-emerald-500">R$ {formatCurrency(valorLiquido)}</span>
                 </div>
                 
                 <div className="flex flex-col border-l border-gray-800 pl-4 md:pl-12 relative overflow-visible" ref={prizeRef}>
                    <div className="flex items-center gap-1.5 mb-1">
-                      <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Pote Ranking</p>
+                      <p className="text-xs font-semibold text-gray-600">Pote Ranking</p>
                       <button onClick={() => { setShowPrizeTooltip(!showPrizeTooltip); setShowFinancialTooltip(false); }} className={`p-1 rounded transition-colors ${showPrizeTooltip ? 'text-amber-500 bg-amber-500/10' : 'text-gray-600 hover:text-amber-500'}`}><DollarSign size={14} /></button>
                       
                       {showPrizeTooltip && (
-                        <div className="absolute bottom-full left-0 mb-4 w-72 bg-gray-900 border border-amber-500/40 rounded-2xl p-5 shadow-2xl z-[150] animate-in zoom-in-95">
+                        <div className="absolute bottom-full left-0 mb-4 w-72 bg-gray-900 border border-amber-500/40 rounded-xl p-5 shadow-2xl z-[150] animate-in zoom-in-95">
                            <div className="flex justify-between items-center mb-4 border-b border-gray-800 pb-3">
-                              <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Premiação ITM</h4>
+                              <h4 className="text-xs font-semibold text-amber-500">Premiação ITM</h4>
                               <div className="flex items-center gap-2 bg-black/40 border border-gray-700 rounded-lg px-2 py-1">
-                                 <span className="text-[8px] font-black text-gray-500 uppercase">Pagos:</span>
+                                 <span className="text-xs font-semibold text-gray-500">Pagos:</span>
                                  <input 
                                    type="number" 
                                    {...inputNumericProps}
-                                   className="w-10 bg-transparent text-white font-black text-xs text-center outline-none border-b border-amber-500/30 focus:border-amber-500" 
+                                   className="w-10 bg-transparent text-white font-semibold text-xs text-center outline-none border-b border-amber-500/30 focus:border-amber-500" 
                                    value={customPaidPlaces} 
                                    onChange={(e) => setCustomPaidPlaces(e.target.value === '' ? '' : Number(e.target.value))} 
                                    placeholder={prizeSuggestions.length.toString()} 
@@ -811,8 +811,8 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
 
                            <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-2">
                                {finalPrizes.map((p, idx) => (
-                                <div key={idx} className="flex justify-between items-center text-[10px] bg-black/20 p-2.5 rounded-xl border border-gray-800/30">
-                                   <span className="font-black text-gray-500">{idx + 1}º Lugar ({p.percent}%):</span>
+                                <div key={idx} className="flex justify-between items-center text-xs bg-black/20 p-2.5 rounded-xl border border-gray-800/30">
+                                   <span className="font-semibold text-gray-500">{idx + 1}º Lugar ({p.percent}%):</span>
                                     <div className="flex items-center gap-1">
                                       <span className="text-gray-600">R$</span>
                                       <input 
@@ -831,11 +831,11 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                       )}
                    </div>
                    <div className="flex items-center gap-2">
-                     <span className="text-lg md:text-2xl font-black text-amber-500">R$</span>
+                     <span className="text-lg md:text-2xl font-semibold text-amber-500">R$</span>
                      <input 
                        type="number" 
                        {...inputNumericProps}
-                       className="w-32 bg-transparent text-lg md:text-2xl font-black text-amber-500 outline-none border-b border-amber-500/20 focus:border-amber-500"
+                       className="w-32 bg-transparent text-lg md:text-2xl font-semibold text-amber-500 outline-none border-b border-amber-500/20 focus:border-amber-500"
                        value={manualRankingValue !== null ? manualRankingValue : valorRanking.toFixed(2)}
                        onChange={(e) => setManualRankingValue(e.target.value === '' ? null : Number(e.target.value))}
                      />
@@ -843,7 +843,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                 </div>
              </div>
 
-             <button onClick={handleSave} disabled={!selectedCategoryId || selectedPlayers.length === 0 || isSaving} className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 text-white px-8 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 shadow-lg transition-all active:scale-95">
+             <button onClick={handleSave} disabled={!selectedCategoryId || selectedPlayers.length === 0 || isSaving} className="bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-30 text-emerald-200 px-8 py-3.5 rounded-xl font-semibold text-xs flex items-center gap-2  transition-all active:scale-95 ring-1 ring-inset ring-emerald-500/30">
                 {isSaving ? <Loader2 size={16} className="animate-spin" /> : <><span>Finalizar Etapa</span><ChevronRight size={18} /></>}
              </button>
           </div>
@@ -852,14 +852,14 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
 
       {showExitConfirm && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-           <div className="bg-[#111827] border border-gray-800 rounded-[2rem] p-8 max-w-sm w-full text-center space-y-6 shadow-2xl">
+           <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 max-w-sm w-full text-center space-y-6 shadow-2xl">
               <div className="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto border border-amber-500/20"><AlertTriangle size={32} /></div>
-              <div><h4 className="text-white font-black text-xl tracking-tight">Deseja sair?</h4><p className="text-gray-500 text-sm mt-2">O rascunho será salvo para você continuar depois.</p></div>
+              <div><h4 className="text-white font-semibold text-xl tracking-tight">Deseja sair?</h4><p className="text-gray-500 text-sm mt-2">O rascunho será salvo para você continuar depois.</p></div>
               <div className="flex flex-col gap-3">
-                 <button onClick={() => onClose()} className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all text-xs uppercase tracking-widest"><Save size={16} /> Salvar Rascunho</button>
-                 <button onClick={() => { localStorage.removeItem(`draft_${activeRanking.id}`); onClose(); }} className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-black py-4 rounded-2xl transition-all text-xs uppercase tracking-widest border border-red-500/20">Excluir Tudo</button>
+                 <button onClick={() => onClose()} className="w-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 font-semibold py-4 rounded-xl flex items-center justify-center gap-2 transition-all text-xs ring-1 ring-inset ring-emerald-500/30"><Save size={16} /> Salvar Rascunho</button>
+                 <button onClick={() => { localStorage.removeItem(`draft_${activeRanking.id}`); onClose(); }} className="w-full bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-semibold py-4 rounded-xl transition-all text-xs border border-red-500/20">Excluir Tudo</button>
               </div>
-              <button onClick={() => setShowExitConfirm(false)} className="text-[10px] font-black text-gray-600 hover:text-white uppercase tracking-widest transition-colors">Voltar</button>
+              <button onClick={() => setShowExitConfirm(false)} className="text-xs font-semibold text-gray-600 hover:text-white transition-colors">Voltar</button>
            </div>
         </div>
       )}

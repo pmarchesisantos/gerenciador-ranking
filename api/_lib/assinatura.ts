@@ -16,6 +16,10 @@ export interface AssinaturaPrivada {
   periodo: Periodo;
   forma: 'pix' | 'cartao';
   valor: number;
+  /** Taxa de implantação cobrada no cadastro (0 no anual). */
+  implantacao: number;
+  /** Upgrade aguardando o pagamento da diferença de implantação. */
+  trocaPendente?: { plano: PlanoId; cobrancaId: string; faturaUrl: string; valor: number };
   asaasCustomerId: string;
   asaasSubscriptionId: string;
   status: StatusAssinatura;

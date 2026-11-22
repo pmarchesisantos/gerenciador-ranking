@@ -22,6 +22,7 @@ import { BarProvider } from './context/BarContext';
 import Cadastro from './components/Cadastro';
 import Assinatura from './components/Assinatura';
 import RecursoBloqueado from './components/RecursoBloqueado';
+import Marca from './components/Marca';
 import { Recurso, acessoLiberado, temRecurso } from './services/planos';
 import { LogOut, User, Menu, Shield, ArrowLeft, X, Lock } from 'lucide-react';
 
@@ -36,7 +37,7 @@ const RECURSO_DA_VIEW: Partial<Record<string, Recurso>> = {
 
 /** Aviso para janelas externas (TV, PDV) de um recurso fora do plano ou sem pagamento. */
 const JanelaIndisponivel: React.FC<{ texto: string }> = ({ texto }) => (
-  <div className="h-screen flex flex-col items-center justify-center gap-4 bg-[#0a0a0a] text-gray-400 p-6 text-center">
+  <div className="h-screen flex flex-col items-center justify-center gap-4 bg-gray-950 text-gray-400 p-6 text-center">
     <Lock size={28} className="text-gray-600" />
     <p className="text-sm max-w-sm">{texto}</p>
   </div>
@@ -51,15 +52,15 @@ const AdminLayout: React.FC = () => {
 
   if (isSuperAdmin && !house.id) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
+      <div className="min-h-screen bg-gray-950 flex flex-col">
         <header className="h-20 border-b border-gray-800 px-8 flex items-center justify-between bg-black/50 backdrop-blur-md sticky top-0 z-50">
           <div className="flex items-center gap-3">
-             <div className="bg-amber-500 p-2 rounded-lg shadow-lg shadow-amber-900/20"><Shield className="text-black" size={20} /></div>
-             <span className="font-black text-white uppercase tracking-widest text-xs">Master Admin</span>
+             <Marca tamanho="sm" />
+             <span className="text-xs font-medium text-gray-400 border-l border-gray-800 pl-3">Administração</span>
           </div>
           <div className="flex items-center gap-6">
             <div className="hidden sm:flex flex-col items-end">
-               <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Super User</span>
+               <span className="text-xs font-medium text-emerald-400">Administrador</span>
                <span className="text-xs text-gray-400 font-bold">{user?.email}</span>
             </div>
             <button onClick={logout} className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-lg"><LogOut size={18} /></button>
@@ -96,7 +97,7 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#0a0a0a] relative">
+    <div className="flex min-h-screen bg-gray-950 relative">
       {isSidebarOpen && <div className="fixed inset-0 bg-black/60 z-[60] lg:hidden backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)} />}
       {/* No celular o menu desliza por cima do conteúdo; no desktop ele ocupa
           espaço na linha e some de vez quando fechado. Antes, o lg:translate-x-0
@@ -104,26 +105,26 @@ const AdminLayout: React.FC = () => {
       <div className={`fixed inset-y-0 left-0 z-[70] transition-transform duration-300 transform lg:sticky lg:top-0 lg:h-screen lg:transform-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:hidden'}`}><Sidebar onClose={() => setIsSidebarOpen(false)} /></div>
 
       <div className="flex-1 flex flex-col overflow-y-auto min-w-0">
-        <header className="h-16 border-b border-emerald-900/20 px-8 flex items-center justify-between bg-[#0a0a0a]/80 backdrop-blur-md sticky top-0 z-50">
+        <header className="h-16 border-b border-gray-800 px-8 flex items-center justify-between bg-gray-950/80 backdrop-blur-md sticky top-0 z-50">
           <div className="flex items-center gap-3">
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-colors">{isSidebarOpen ? <X size={22} /> : <Menu size={22} />}</button>
             <div className="flex items-center gap-2 truncate">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></div>
-              <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest truncate">{house.name || 'Painel Operacional'}</span>
+              <span className="text-xs font-semibold text-gray-500 truncate">{house.name || 'Painel Operacional'}</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
             {isSuperAdmin && (
               <button 
                 onClick={() => setViewingHouseId(null)} 
-                className="flex items-center gap-2 text-amber-500 hover:text-amber-400 font-black text-[10px] uppercase tracking-widest px-4 py-2 bg-amber-500/10 rounded-xl border border-amber-500/20 transition-all shadow-lg active:scale-95"
+                className="flex items-center gap-2 text-amber-500 hover:text-amber-400 font-semibold text-xs px-4 py-2 bg-amber-500/10 rounded-xl border border-amber-500/20 transition-all shadow-lg active:scale-95"
               >
                 <ArrowLeft size={14} /> <span>Voltar Master</span>
               </button>
             )}
             <div className="hidden xs:flex items-center gap-2 px-3 py-1.5 bg-gray-800/50 rounded-lg border border-gray-700/50">
               <User size={12} className="text-emerald-500" />
-              <span className="text-[10px] text-gray-300 font-bold truncate max-w-[150px]">{user?.email}</span>
+              <span className="text-xs text-gray-300 font-bold truncate max-w-[150px]">{user?.email}</span>
             </div>
             <button onClick={logout} className="p-2 text-gray-500 hover:text-red-500 transition-colors"><LogOut size={20} /></button>
           </div>
@@ -132,7 +133,7 @@ const AdminLayout: React.FC = () => {
           {loadingData ? (
             <div className="h-full flex flex-col items-center justify-center space-y-4 p-8">
               <div className="w-10 h-10 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-emerald-500/60 font-black text-[9px] uppercase tracking-[0.3em] text-center">Sincronizando Dados...</p>
+              <p className="text-emerald-500/60 font-semibold text-xs text-center">Carregando o clube...</p>
             </div>
           ) : renderView()}
         </main>
@@ -157,9 +158,9 @@ const RootContent: React.FC = () => {
   const isExternalClock = VIEW_EXTERNA === 'poker-clock-external';
 
   if (loading) return (
-    <div className="h-screen flex flex-col items-center justify-center bg-[#0a0a0a] space-y-4 p-6">
+    <div className="h-screen flex flex-col items-center justify-center bg-gray-950 space-y-4 p-6">
       <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-      <p className="text-emerald-500 font-black animate-pulse text-[10px] uppercase tracking-[0.4em] text-center">INICIALIZANDO SISTEMA...</p>
+      <p className="text-emerald-500 font-semibold animate-pulse text-xs text-center">Carregando...</p>
     </div>
   );
 

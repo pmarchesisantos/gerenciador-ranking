@@ -107,13 +107,13 @@ const PlayerData: React.FC = () => {
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-1 tracking-tight">Dados Jogadores</h2>
           <p className="text-gray-500 text-xs md:text-sm">Cadastro geral da casa — base dos rankings, das etapas e das comandas do bar.</p>
-          <p className="text-gray-600 text-[11px] font-bold mt-2 flex items-center gap-3">
+          <p className="text-gray-600 text-xs font-bold mt-2 flex items-center gap-3">
             <span className="flex items-center gap-1.5"><Users size={12} /> {resumo.total} pessoas</span>
             <span>· {resumo.emVarios} em mais de um ranking</span>
           </p>
         </div>
         <button onClick={() => setNovo({ nome: '', telefone: '', nascimento: '', time: '' })}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg active:scale-95 shrink-0">
+                className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 px-6 py-3.5 rounded-xl font-semibold text-xs flex items-center gap-2 transition-all  active:scale-95 shrink-0 ring-1 ring-inset ring-emerald-500/30">
           <Plus size={16} /> Novo Jogador
         </button>
       </header>
@@ -134,25 +134,25 @@ const PlayerData: React.FC = () => {
         </div>
         <div className="flex bg-gray-900/50 border border-gray-800 rounded-xl p-1">
           <button onClick={() => setArquivados(false)}
-                  className={`flex-1 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${!arquivados ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                  className={`flex-1 px-4 py-2 rounded-lg text-xs font-semibold  tracking-tight transition-all ${!arquivados ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 'text-gray-500 hover:text-gray-300'}`}>
             Ativos
           </button>
           <button onClick={() => setArquivados(true)}
-                  className={`flex-1 px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-tight transition-all ${arquivados ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
+                  className={`flex-1 px-4 py-2 rounded-lg text-xs font-semibold  tracking-tight transition-all ${arquivados ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-gray-300'}`}>
             Arquivados{resumo.arquivados > 0 && ` ${resumo.arquivados}`}
           </button>
         </div>
       </div>
       {(ranking || mes) && (
         <div className="flex gap-2 -mt-3">
-          {ranking && <button onClick={() => setRanking('')} className="text-[10px] font-black text-gray-500 hover:text-white flex items-center gap-1"><X size={11} /> {ranking}</button>}
-          {mes && <button onClick={() => setMes('')} className="text-[10px] font-black text-gray-500 hover:text-white flex items-center gap-1"><X size={11} /> {mes}</button>}
+          {ranking && <button onClick={() => setRanking('')} className="text-xs font-semibold text-gray-500 hover:text-white flex items-center gap-1"><X size={11} /> {ranking}</button>}
+          {mes && <button onClick={() => setMes('')} className="text-xs font-semibold text-gray-500 hover:text-white flex items-center gap-1"><X size={11} /> {mes}</button>}
         </div>
       )}
 
       {novo && (
-        <section className="bg-gray-900 border border-emerald-500/30 rounded-3xl p-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
-          <h3 className="text-white font-black text-sm uppercase tracking-widest">Novo jogador</h3>
+        <section className="bg-gray-900 border border-emerald-500/30 rounded-xl p-5 space-y-4 animate-in slide-in-from-top-2 duration-200">
+          <h3 className="text-white font-semibold text-sm">Novo jogador</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <input autoFocus className={inputCls} placeholder="Nome *" value={novo.nome}
                    onChange={e => setNovo({ ...novo, nome: e.target.value })} onKeyDown={e => e.key === 'Enter' && criar()} />
@@ -162,19 +162,19 @@ const PlayerData: React.FC = () => {
             <input className={inputCls} placeholder="Time do coração" value={novo.time} onChange={e => setNovo({ ...novo, time: e.target.value })} />
           </div>
           <div className="flex justify-end gap-3">
-            <button onClick={() => setNovo(null)} className="px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white">Cancelar</button>
+            <button onClick={() => setNovo(null)} className="px-5 py-2.5 text-xs font-semibold text-gray-500 hover:text-white">Cancelar</button>
             <button onClick={criar} disabled={!novo.nome.trim() || salvando}
-                    className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest">
+                    className="bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-40 text-emerald-200 px-6 py-2.5 rounded-xl font-semibold text-xs ring-1 ring-inset ring-emerald-500/30">
               {salvando ? 'Salvando...' : 'Cadastrar'}
             </button>
           </div>
         </section>
       )}
 
-      <div className="bg-gray-900 border border-gray-800 rounded-3xl overflow-hidden shadow-2xl overflow-x-auto custom-scrollbar">
+      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden shadow-2xl overflow-x-auto custom-scrollbar">
         <table className="w-full text-left min-w-[1040px]">
           <thead>
-            <tr className="bg-gray-800 text-gray-500 text-[10px] uppercase tracking-widest border-b border-gray-700">
+            <tr className="bg-gray-800 text-gray-500 text-xs border-b border-gray-700">
               <th className="px-6 py-5">Nome</th>
               <th className="px-4 py-5">Celular</th>
               <th className="px-4 py-5">Nascimento</th>
@@ -194,7 +194,7 @@ const PlayerData: React.FC = () => {
                     <td className="px-6 py-3">
                       <input className={inputCls} value={rascunho.nome} onChange={e => setRascunho({ ...rascunho, nome: e.target.value })} />
                       {p.participacoes.length > 0 && normalizarNome(rascunho.nome) !== p.chave && (
-                        <p className="text-[10px] text-amber-500/80 mt-1">O nome também muda nos {p.participacoes.length} ranking(s) em que ele joga.</p>
+                        <p className="text-xs text-amber-500/80 mt-1">O nome também muda nos {p.participacoes.length} ranking(s) em que ele joga.</p>
                       )}
                     </td>
                     <td className="px-4 py-3">
@@ -207,10 +207,10 @@ const PlayerData: React.FC = () => {
                     <td className="px-4 py-3">
                       <input className={inputCls} placeholder="Ex: Palmeiras" value={rascunho.time} onChange={e => setRascunho({ ...rascunho, time: e.target.value })} />
                     </td>
-                    <td className="px-4 py-3 text-[10px] text-gray-600">—</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">—</td>
                     <td className="px-4 py-3">
                       <div className="flex justify-center gap-2">
-                        <button onClick={() => salvarEdicao(p)} disabled={salvando} title="Salvar" className="p-2.5 bg-emerald-600 text-white rounded-xl disabled:opacity-40"><Check size={16} /></button>
+                        <button onClick={() => salvarEdicao(p)} disabled={salvando} title="Salvar" className="p-2.5 bg-emerald-500/15 text-emerald-200 rounded-xl disabled:opacity-40 ring-1 ring-inset ring-emerald-500/30"><Check size={16} /></button>
                         <button onClick={() => { setEditando(null); setRascunho(null); }} title="Cancelar" className="p-2.5 bg-gray-800 text-gray-400 rounded-xl"><X size={16} /></button>
                       </div>
                     </td>
@@ -227,7 +227,7 @@ const PlayerData: React.FC = () => {
                       {p.telefone ? (
                         <div className="flex items-center gap-2">
                           <a href={linkWhatsApp(p.telefone)} target="_blank" rel="noreferrer" title="Conversar no WhatsApp"
-                             className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg hover:bg-emerald-500 hover:text-white transition-all">
+                             className="p-1.5 bg-emerald-500/10 text-emerald-500 rounded-lg hover:bg-emerald-500/25 hover:text-emerald-100 transition-all">
                             <MessageCircle size={14} />
                           </a>
                           <span className="tabular-nums">{p.telefone}</span>
@@ -250,13 +250,13 @@ const PlayerData: React.FC = () => {
                           {/* Até 3 etiquetas por linha; o resto fica no "+N" para a tabela não esticar. */}
                           {p.participacoes.slice(0, 3).map(x => (
                             <span key={x.rankingId} title={`${x.player.totalPoints} pontos · ${x.player.attendances} presença(s)`}
-                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold text-gray-300 whitespace-nowrap max-w-[140px]">
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-white/5 border border-white/10 text-xs font-bold text-gray-300 whitespace-nowrap max-w-[140px]">
                               <Trophy size={10} className="text-amber-500/70 shrink-0" /><span className="truncate">{x.rankingNome}</span>
                             </span>
                           ))}
                           {p.participacoes.length > 3 && (
                             <span title={p.participacoes.slice(3).map(x => x.rankingNome).join('\n')}
-                                  className="inline-flex items-center px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-400 cursor-help">
+                                  className="inline-flex items-center px-2 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-400 cursor-help">
                               +{p.participacoes.length - 3}
                             </span>
                           )}

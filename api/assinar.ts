@@ -1,9 +1,9 @@
 import { FieldValue } from 'firebase-admin/firestore';
 import { adminDb } from './_lib/firebaseAdmin.js';
-import { asaas, cobrancaPendente } from './_lib/asaas.js';
+import { asaas, cobrancaPendente, primeiraCobrancaDaAssinatura } from './_lib/asaas.js';
 import { HttpError, casaDoDono, rota, usuarioDoToken } from './_lib/http.js';
 import { AssinaturaPrivada, assinaturaPublica, hojeSP } from './_lib/assinatura.js';
-import { PLANOS, Periodo, ehPlano, precoDoPeriodo } from '../services/planos.js';
+import { PLANOS, Periodo, ehPlano, precoDoPeriodo, primeiraCobranca, taxaImplantacao } from '../services/planos.js';
 import { documentoValido, ocultarDocumento, soDigitos, telefoneValido } from '../services/documento.js';
 
 const slugify = (texto: string) => texto.toLowerCase().trim().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -87,10 +87,25 @@ export default rota(['POST'], async (req, res) => {
       value: valor,
       nextDueDate: hojeSP(),
       cycle: periodo === 'anual' ? 'YEARLY' : 'MONTHLY',
-      description: `Rank Manager · Plano ${PLANOS[plano].nome} (${periodo})`,
+      description: `Stack Club · Plano ${PLANOS[plano].nome} (${periodo})`,
       externalReference: casaRef.id,
     });
     assinaturaId = assinatura.id;
+
+    // Implantação (mensal): entra na primeira cobrança da própria assinatura, para
+    // o cliente pagar uma fatura só e o cartão ficar salvo na assinatura. As
+    // próximas cobranças voltam ao valor normal do plano.
+    const implantacao = taxaImplantacao(plano, periodo);
+    let faturaUrl: string | null = null;
+    if (implantacao > 0) {
+      const primeira = await primeiraCobrancaDaAssinatura(assinatura.id);
+      if (!primeira) throw new HttpError(502, 'O Asaas não gerou a primeira cobrança. Tente novamente em instantes.');
+      const ajustada = await asaas.atualizarCobranca(primeira.id, {
+        value: primeiraCobranca(plano, periodo),
+        description: `Stack Club · Plano ${PLANOS[plano].nome} (1º mês) + implantação`,
+      });
+      faturaUrl = ajustada.invoiceUrl || primeira.invoiceUrl;
+    }
 
     const agora = new Date().toISOString();
     const privada: AssinaturaPrivada = {
@@ -98,7 +113,7 @@ export default rota(['POST'], async (req, res) => {
       ownerEmail: usuario.email,
       responsavel,
       documentoMascarado: ocultarDocumento(documento),
-      plano, periodo, forma, valor,
+      plano, periodo, forma, valor, implantacao,
       asaasCustomerId: cliente.id,
       asaasSubscriptionId: assinatura.id,
       status: 'pendente',
@@ -122,8 +137,11 @@ export default rota(['POST'], async (req, res) => {
     assinaturaId = null;
 
     // A fatura pode demorar a aparecer; sem ela, a tela de pagamento busca depois.
-    const fatura = await asaas.cobrancasDaAssinatura(assinatura.id).then(cobrancaPendente).catch(() => null);
-    res.status(201).json({ casaId: casaRef.id, slug, faturaUrl: fatura?.invoiceUrl || null });
+    if (!faturaUrl) {
+      const fatura = await asaas.cobrancasDaAssinatura(assinatura.id).then(cobrancaPendente).catch(() => null);
+      faturaUrl = fatura?.invoiceUrl || null;
+    }
+    res.status(201).json({ casaId: casaRef.id, slug, faturaUrl });
   } catch (e) {
     // Assinatura criada no Asaas mas o clube não gravou: cancela para não cobrar
     // alguém que não tem clube.

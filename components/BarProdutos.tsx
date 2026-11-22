@@ -79,9 +79,9 @@ export const situacaoEstoque = (p: BarProduto): 'ok' | 'baixo' | 'zerado' | null
 const Campo: React.FC<{ label: string; dica?: string; children: React.ReactNode; className?: string }> =
   ({ label, dica, children, className = '' }) => (
     <div className={`space-y-1.5 ${className}`}>
-      <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">{label}</label>
+      <label className="text-xs font-semibold text-gray-500 ml-1">{label}</label>
       {children}
-      {dica && <p className="text-[10px] text-gray-600 ml-1">{dica}</p>}
+      {dica && <p className="text-xs text-gray-600 ml-1">{dica}</p>}
     </div>
   );
 
@@ -95,7 +95,7 @@ const Alternador: React.FC<{ ativo: boolean; onChange: (v: boolean) => void; lab
             }`}>
       <span>
         <span className="block text-white text-sm font-bold">{label}</span>
-        <span className="block text-gray-500 text-[11px] mt-0.5">{dica}</span>
+        <span className="block text-gray-500 text-xs mt-0.5">{dica}</span>
       </span>
       <span className={`relative w-10 h-6 rounded-full shrink-0 transition-colors ${ativo ? 'bg-emerald-600' : 'bg-gray-700'}`}>
         <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${ativo ? 'left-5' : 'left-1'}`} />
@@ -191,7 +191,7 @@ const BarProdutos: React.FC = () => {
         </div>
         <button
           onClick={() => { setErro(null); setRascunho({ ...VAZIO }); }}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95"
+          className="bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 px-6 py-3.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all  active:scale-95 ring-1 ring-inset ring-emerald-500/30"
         >
           <Plus size={16} /> Novo Produto
         </button>
@@ -199,10 +199,10 @@ const BarProdutos: React.FC = () => {
 
       {alertasEstoque > 0 && (
         <button onClick={() => setSoEstoqueBaixo(v => !v)}
-                className="w-full flex items-center gap-3 bg-amber-500/[0.07] border border-amber-500/20 rounded-2xl p-4 text-left hover:bg-amber-500/10 transition-all">
+                className="w-full flex items-center gap-3 bg-amber-500/[0.07] border border-amber-500/20 rounded-xl p-4 text-left hover:bg-amber-500/10 transition-all">
           <AlertTriangle size={16} className="text-amber-500 shrink-0" />
           <span className="text-amber-500/90 text-xs">
-            <strong className="font-black">{alertasEstoque} produto(s)</strong> com estoque baixo ou zerado.
+            <strong className="font-semibold">{alertasEstoque} produto(s)</strong> com estoque baixo ou zerado.
             {' '}{soEstoqueBaixo ? 'Mostrando só eles — clique para ver todos.' : 'Clique para ver.'}
           </span>
         </button>
@@ -215,7 +215,7 @@ const BarProdutos: React.FC = () => {
                  placeholder="Buscar por nome, categoria ou código..." value={busca} onChange={e => setBusca(e.target.value)} />
         </div>
         <button onClick={() => setMostrarInativos(v => !v)}
-                className={`px-5 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                className={`px-5 py-3 rounded-xl text-xs font-semibold   border transition-all ${
                   mostrarInativos ? 'bg-gray-800 text-white border-gray-700' : 'text-gray-500 border-gray-800 hover:text-gray-300'
                 }`}>
           {mostrarInativos ? 'Ocultar inativos' : 'Mostrar inativos'}
@@ -226,8 +226,8 @@ const BarProdutos: React.FC = () => {
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
           {[null, ...categorias].map(c => (
             <button key={c ?? 'todas'} onClick={() => setCategoria(c)}
-                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap border transition-all ${
-                      categoria === c ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-gray-800 text-gray-500 hover:text-gray-300'
+                    className={`px-4 py-2 rounded-full text-xs font-semibold   whitespace-nowrap border transition-all ${
+                      categoria === c ? 'bg-emerald-500/15 border-emerald-500 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 'border-gray-800 text-gray-500 hover:text-gray-300'
                     }`}>
               {c ?? 'Todas'}
             </button>
@@ -238,7 +238,7 @@ const BarProdutos: React.FC = () => {
       {loading ? (
         <div className="py-20 text-center text-gray-600 text-sm">Carregando produtos...</div>
       ) : visiveis.length === 0 ? (
-        <div className="bg-gray-900 border border-gray-800 border-dashed rounded-3xl p-16 text-center space-y-3">
+        <div className="bg-gray-900 border border-gray-800 border-dashed rounded-xl p-16 text-center space-y-3">
           <div className="bg-gray-800 w-14 h-14 rounded-full flex items-center justify-center mx-auto text-gray-600"><Package size={26} /></div>
           <p className="text-white font-bold">{produtos.length === 0 ? 'Nenhum produto cadastrado' : 'Nenhum produto encontrado'}</p>
           {produtos.length === 0 && <p className="text-gray-500 text-sm">Cadastre o cardápio para começar a vender no PDV.</p>}
@@ -250,19 +250,19 @@ const BarProdutos: React.FC = () => {
             const est = situacaoEstoque(p);
             const margem = calcularMargem(p.preco, p.custo);
             return (
-              <div key={p.id} className={`bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden group transition-all ${inativo ? 'opacity-50' : 'hover:border-gray-700'}`}>
+              <div key={p.id} className={`bg-gray-900 border border-gray-800 rounded-xl overflow-hidden group transition-all ${inativo ? 'opacity-50' : 'hover:border-gray-700'}`}>
                 <div className="relative aspect-[4/3] bg-black/40">
                   {p.imagem
                     ? <img src={p.imagem} alt="" className="w-full h-full object-cover" />
                     : <div className="w-full h-full flex items-center justify-center text-gray-700"><Package size={32} /></div>}
                   {p.destaque && (
-                    <span className="absolute top-2 left-2 bg-amber-500 text-black rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-widest flex items-center gap-1">
+                    <span className="absolute top-2 left-2 bg-emerald-500/15 text-emerald-200 rounded-lg px-2 py-1 text-xs font-semibold flex items-center gap-1 ring-1 ring-inset ring-emerald-500/30">
                       <Star size={10} fill="currentColor" /> Destaque
                     </span>
                   )}
                   {est && est !== 'ok' && (
-                    <span className={`absolute top-2 right-2 rounded-lg px-2 py-1 text-[9px] font-black uppercase tracking-widest ${
-                      est === 'zerado' ? 'bg-red-600 text-white' : 'bg-amber-500 text-black'
+                    <span className={`absolute top-2 right-2 rounded-lg px-2 py-1 text-xs font-semibold   ${
+                      est === 'zerado' ? 'bg-red-600 text-white' : 'bg-amber-500 text-gray-950'
                     }`}>
                       {est === 'zerado' ? 'Sem estoque' : 'Estoque baixo'}
                     </span>
@@ -283,22 +283,22 @@ const BarProdutos: React.FC = () => {
                   </div>
                 </div>
                 <div className="p-4">
-                  <p className="text-[9px] font-black text-gray-600 uppercase tracking-widest truncate">
+                  <p className="text-xs font-semibold text-gray-600 truncate">
                     {[p.categoria, p.codigo && `#${p.codigo}`].filter(Boolean).join(' · ') || 'Sem categoria'}
                   </p>
                   <p className={`text-white font-bold text-sm truncate mt-1 ${inativo ? 'line-through' : ''}`}>{p.nome}</p>
                   <div className="flex items-end justify-between gap-2 mt-2">
-                    <p className="text-amber-500 font-black text-lg tracking-tight">
-                      R$ {formatBRL(p.preco)}<span className="text-gray-600 text-[10px] font-bold ml-1">/{p.unidade || 'un'}</span>
+                    <p className="text-white font-semibold text-lg tracking-tight">
+                      R$ {formatBRL(p.preco)}<span className="text-gray-600 text-xs font-bold ml-1">/{p.unidade || 'un'}</span>
                     </p>
                     {margem && (
-                      <span className="text-[10px] font-bold text-gray-500" title={`Lucro de R$ ${formatBRL(margem.lucro)} por unidade`}>
-                        margem <span className={margem.margem < 30 ? 'text-amber-500' : 'text-emerald-400'}>{margem.margem.toFixed(0)}%</span>
+                      <span className="text-xs font-bold text-gray-500" title={`Lucro de R$ ${formatBRL(margem.lucro)} por unidade`}>
+                        margem <span className={margem.margem < 30 ? 'text-amber-500' : 'text-green-400'}>{margem.margem.toFixed(0)}%</span>
                       </span>
                     )}
                   </div>
                   {p.controlaEstoque && (
-                    <p className="text-[10px] font-bold text-gray-500 mt-1.5 flex items-center gap-1.5">
+                    <p className="text-xs font-bold text-gray-500 mt-1.5 flex items-center gap-1.5">
                       <Boxes size={11} /> {p.estoque ?? 0} em estoque
                       {p.estoqueMinimo != null && <span className="text-gray-700">· mín. {p.estoqueMinimo}</span>}
                     </p>
@@ -313,7 +313,7 @@ const BarProdutos: React.FC = () => {
       {/* Formulário */}
       {rascunho && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
-          <div className="bg-[#111827] w-full max-w-3xl max-h-[95dvh] flex flex-col border border-gray-800 rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden">
+          <div className="bg-gray-900 w-full max-w-3xl max-h-[95dvh] flex flex-col border border-gray-800 rounded-t-3xl md:rounded-3xl shadow-2xl overflow-hidden">
             <div className="flex justify-between items-center px-6 py-5 border-b border-gray-800 shrink-0">
               <h3 className="text-lg font-bold text-white">{rascunho.id ? 'Editar Produto' : 'Novo Produto'}</h3>
               <button onClick={() => setRascunho(null)} className="text-gray-500 hover:text-white transition-colors"><X size={20} /></button>
@@ -324,16 +324,16 @@ const BarProdutos: React.FC = () => {
                 <div className="shrink-0">
                   <input ref={arquivoRef} type="file" accept="image/*" className="hidden" onChange={escolherImagem} />
                   <button type="button" onClick={() => arquivoRef.current?.click()}
-                          className="relative w-full sm:w-40 aspect-square rounded-2xl border border-dashed border-gray-700 bg-black/30 hover:border-emerald-500/50 overflow-hidden flex items-center justify-center group transition-all">
+                          className="relative w-full sm:w-40 aspect-square rounded-xl border border-dashed border-gray-700 bg-black/30 hover:border-emerald-500/50 overflow-hidden flex items-center justify-center group transition-all">
                     {rascunho.imagem
                       ? <img src={rascunho.imagem} alt="" className="w-full h-full object-cover" />
                       : <span className="flex flex-col items-center gap-2 text-gray-600 group-hover:text-emerald-500 transition-colors">
-                          <ImagePlus size={26} /><span className="text-[10px] font-black uppercase tracking-widest">Adicionar foto</span>
+                          <ImagePlus size={26} /><span className="text-xs font-semibold">Adicionar foto</span>
                         </span>}
                   </button>
                   {rascunho.imagem && (
                     <button type="button" onClick={() => setRascunho({ ...rascunho, imagem: undefined })}
-                            className="mt-2 w-full text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-red-400 transition-colors">
+                            className="mt-2 w-full text-xs font-semibold text-gray-500 hover:text-red-400 transition-colors">
                       Remover foto
                     </button>
                   )}
@@ -366,10 +366,10 @@ const BarProdutos: React.FC = () => {
               </Campo>
 
               <section className="space-y-4 pt-4 border-t border-gray-800">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Preço e margem</h4>
+                <h4 className="text-xs font-semibold text-gray-400">Preço e margem</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <Campo label="Preço de venda *">
-                    <InputMoeda className="text-amber-500" value={rascunho.preco}
+                    <InputMoeda className="text-white" value={rascunho.preco}
                                 onChange={v => setRascunho(r => r && { ...r, preco: v })} />
                   </Campo>
                   <Campo label="Custo" dica="Quanto você paga por unidade">
@@ -379,23 +379,23 @@ const BarProdutos: React.FC = () => {
                   <div className="rounded-xl bg-black/30 border border-gray-800 p-4 flex flex-col justify-center">
                     {margemRascunho ? (
                       <>
-                        <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Lucro por unidade</p>
-                        <p className={`font-black text-lg ${margemRascunho.lucro < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                        <p className="text-xs font-semibold text-gray-500">Lucro por unidade</p>
+                        <p className={`font-semibold text-lg ${margemRascunho.lucro < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                           R$ {formatBRL(margemRascunho.lucro)}
                         </p>
-                        <p className="text-[10px] text-gray-500 font-bold">
+                        <p className="text-xs text-gray-500 font-bold">
                           margem {margemRascunho.margem.toFixed(1)}% · markup {margemRascunho.markup.toFixed(0)}%
                         </p>
                       </>
                     ) : (
-                      <p className="text-[11px] text-gray-600">Informe o custo para ver o lucro e a margem.</p>
+                      <p className="text-xs text-gray-600">Informe o custo para ver o lucro e a margem.</p>
                     )}
                   </div>
                 </div>
               </section>
 
               <section className="space-y-4 pt-4 border-t border-gray-800">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Estoque</h4>
+                <h4 className="text-xs font-semibold text-gray-400">Estoque</h4>
                 <Alternador ativo={rascunho.controlaEstoque} onChange={v => setRascunho({ ...rascunho, controlaEstoque: v })}
                             label="Controlar estoque" dica="Cada venda baixa o estoque e cada cancelamento devolve." />
                 {rascunho.controlaEstoque && (
@@ -413,7 +413,7 @@ const BarProdutos: React.FC = () => {
               </section>
 
               <section className="space-y-4 pt-4 border-t border-gray-800">
-                <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Exibição e fiscal</h4>
+                <h4 className="text-xs font-semibold text-gray-400">Exibição e fiscal</h4>
                 <Alternador ativo={rascunho.destaque} onChange={v => setRascunho({ ...rascunho, destaque: v })}
                             label="Destaque no PDV" dica="Aparece primeiro na tela de lançamento — use nos mais vendidos." />
                 <Campo label="NCM" dica="Opcional. Só é necessário para emitir nota fiscal — confirme com o contador.">
@@ -426,11 +426,11 @@ const BarProdutos: React.FC = () => {
             <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-800 shrink-0">
               <p className="text-red-400 text-xs font-bold min-h-[1rem]">{erro}</p>
               <div className="flex gap-3 shrink-0">
-                <button onClick={() => setRascunho(null)} className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all">
+                <button onClick={() => setRascunho(null)} className="px-5 py-3 text-xs font-semibold text-gray-500 hover:text-white transition-all">
                   Cancelar
                 </button>
                 <button onClick={salvar} disabled={salvando}
-                        className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all">
+                        className="bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-40 text-emerald-200 px-8 py-3 rounded-xl font-semibold text-xs transition-all ring-1 ring-inset ring-emerald-500/30">
                   {salvando ? 'Salvando...' : 'Salvar'}
                 </button>
               </div>

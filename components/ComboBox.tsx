@@ -164,7 +164,7 @@ const ComboBox: React.FC<ComboBoxProps> = ({
             return (
               <React.Fragment key={`${item.tipo}-${item.valor}`}>
                 {primeiraSugerida && (
-                  <li role="presentation" className="px-4 pt-2.5 pb-1 text-[9px] font-black text-gray-600 uppercase tracking-widest border-t border-gray-800 mt-1">
+                  <li role="presentation" className="px-4 pt-2.5 pb-1 text-xs font-semibold text-gray-600 border-t border-gray-800 mt-1">
                     Sugestões
                   </li>
                 )}

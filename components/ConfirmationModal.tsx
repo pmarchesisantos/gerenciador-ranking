@@ -27,7 +27,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[#111827] w-full max-w-md border border-gray-800 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="bg-gray-900 w-full max-w-md border border-gray-800 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-800">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${variant === 'danger' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>
@@ -49,7 +49,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         <div className="flex gap-3 p-6 pt-2">
           <button 
             onClick={onClose}
-            className="flex-1 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest text-gray-500 hover:text-white bg-gray-800 hover:bg-gray-700 transition-all border border-transparent"
+            className="flex-1 px-6 py-3 rounded-xl font-bold text-xs text-gray-500 hover:text-white bg-gray-800 hover:bg-gray-700 transition-all border border-transparent"
           >
             {cancelLabel}
           </button>
@@ -58,10 +58,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               onConfirm();
               onClose();
             }}
-            className={`flex-1 px-6 py-3 rounded-xl font-bold text-xs uppercase tracking-widest text-white transition-all shadow-lg ${
+            className={`flex-1 px-6 py-3 rounded-xl font-bold text-xs   text-white transition-all shadow-lg ${
               variant === 'danger' 
               ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' 
-              : 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20'
+              : 'bg-amber-600 hover:bg-amber-500'
             }`}
           >
             {confirmLabel}

@@ -1,8 +1,9 @@
 import { adminDb } from './_lib/firebaseAdmin.js';
 import { asaas, cobrancaPendente } from './_lib/asaas.js';
 import { HttpError, casaDoDono, rota, usuarioDoToken } from './_lib/http.js';
-import { AssinaturaPrivada, assinaturaPublica } from './_lib/assinatura.js';
-import { PLANOS, ehPlano, precoDoPeriodo } from '../services/planos.js';
+import { AssinaturaPrivada, assinaturaPublica, hojeSP } from './_lib/assinatura.js';
+import { aplicarTroca, referenciaTroca } from './_lib/troca.js';
+import { PLANOS, diferencaImplantacao, ehPlano } from '../services/planos.js';
 
 /**
  * GET  /api/assinatura            situação e fatura pendente do clube do dono
@@ -27,6 +28,9 @@ export default rota(['GET', 'POST'], async (req, res) => {
       status: privada.status,
       responsavel: privada.responsavel,
       documento: privada.documentoMascarado,
+      trocaPendente: privada.trocaPendente
+        ? { plano: privada.trocaPendente.plano, valor: privada.trocaPendente.valor, url: privada.trocaPendente.faturaUrl }
+        : null,
       fatura: fatura ? { url: fatura.invoiceUrl, valor: fatura.value, vencimento: fatura.dueDate, atrasada: fatura.status === 'OVERDUE' } : null,
     });
     return;
@@ -58,16 +62,43 @@ export default rota(['GET', 'POST'], async (req, res) => {
     if (privada.periodo === 'anual') {
       throw new HttpError(400, 'Planos anuais trocam na renovação. Para trocar antes, fale com o suporte.');
     }
-    const valor = precoDoPeriodo(plano, privada.periodo);
-    await asaas.atualizarAssinatura(privada.asaasSubscriptionId, {
-      value: valor,
-      description: `Rank Manager · Plano ${PLANOS[plano].nome} (${privada.periodo})`,
-      updatePendingPayments: true,
-    });
-    const lote = adminDb.batch();
-    lote.update(ref, { plano, valor, atualizadoEm: agora });
-    lote.update(casa.ref, { plano });
-    await lote.commit();
+    // A primeira fatura carrega a implantação; trocar antes de pagá-la a
+    // recalcularia (updatePendingPayments) e a implantação sumiria.
+    if (privada.status === 'pendente') {
+      throw new HttpError(400, 'Conclua o primeiro pagamento antes de trocar de plano.');
+    }
+
+    // Já existe uma troca esperando pagamento: mesma escolha devolve a mesma
+    // fatura; escolha diferente descarta a anterior.
+    if (privada.trocaPendente) {
+      if (privada.trocaPendente.plano === plano) {
+        res.status(200).json({ ok: true, pendente: true, faturaUrl: privada.trocaPendente.faturaUrl, valor: privada.trocaPendente.valor });
+        return;
+      }
+      await asaas.removerCobranca(privada.trocaPendente.cobrancaId).catch(() => undefined);
+    }
+
+    // Upgrade: cobra a diferença de implantação e só troca quando ela for paga
+    // (o webhook aplica a troca). Downgrade ou mesma taxa: troca na hora.
+    const diferenca = diferencaImplantacao(privada.plano, plano);
+    if (diferenca > 0) {
+      const cobranca = await asaas.criarCobranca({
+        customer: privada.asaasCustomerId,
+        billingType: privada.forma === 'pix' ? 'PIX' : 'CREDIT_CARD',
+        value: diferenca,
+        dueDate: hojeSP(),
+        description: `Stack Club · Implantação do plano ${PLANOS[plano].nome} (diferença)`,
+        externalReference: referenciaTroca(casa.id, plano),
+      });
+      await ref.update({
+        trocaPendente: { plano, cobrancaId: cobranca.id, faturaUrl: cobranca.invoiceUrl, valor: diferenca },
+        atualizadoEm: agora,
+      });
+      res.status(200).json({ ok: true, pendente: true, faturaUrl: cobranca.invoiceUrl, valor: diferenca });
+      return;
+    }
+
+    const valor = await aplicarTroca(casa.id, privada, plano);
     res.status(200).json({ ok: true, plano, valor });
     return;
   }

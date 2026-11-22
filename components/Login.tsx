@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { Simbolo } from './Marca';
 import { Trophy, Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 
 const Login: React.FC<{ onBack: () => void; onCadastro?: () => void }> = ({ onBack, onCadastro }) => {
@@ -28,30 +29,27 @@ const Login: React.FC<{ onBack: () => void; onCadastro?: () => void }> = ({ onBa
   };
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0a] flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
-      <div className="w-full max-w-md bg-gray-900 border border-emerald-900/30 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-600 to-amber-500"></div>
+    <div className="fixed inset-0 bg-gray-950 flex items-center justify-center p-4 z-[100] animate-in fade-in duration-300">
+      <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-xl p-10 shadow-2xl relative overflow-hidden">
         
         <div className="flex flex-col items-center mb-10">
-          <div className="w-20 h-20 bg-emerald-600 rounded-3xl flex items-center justify-center mb-5 shadow-2xl shadow-emerald-900/40 transform rotate-3">
-            <Trophy className="text-white w-12 h-12" />
-          </div>
-          <h2 className="text-3xl font-black text-white tracking-tight">Acesso Administrativo</h2>
-          <p className="text-gray-500 text-[10px] font-black uppercase tracking-[0.2em] mt-1 text-center">
-            Apenas clubes autorizados podem gerenciar rankings
+          <Simbolo tamanho={64} className="mb-5" />
+          <h2 className="text-2xl font-semibold text-white tracking-tight">Entrar no Stack Club</h2>
+          <p className="text-gray-400 text-sm mt-1 text-center">
+            Acesse o painel do seu clube
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">E-mail</label>
+            <label className="text-xs font-semibold text-gray-500 ml-1">E-mail</label>
             <div className="relative">
               <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={18} />
               <input 
                 type="email"
                 required
-                className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
-                placeholder="Ex: clube@rankmanager.com"
+                className="w-full bg-black/40 border border-gray-800 rounded-xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
+                placeholder="voce@seuclube.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -59,13 +57,13 @@ const Login: React.FC<{ onBack: () => void; onCadastro?: () => void }> = ({ onBa
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Senha</label>
+            <label className="text-xs font-semibold text-gray-500 ml-1">Senha</label>
             <div className="relative">
               <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600" size={18} />
               <input 
                 type="password"
                 required
-                className="w-full bg-black/40 border border-gray-800 rounded-2xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
+                className="w-full bg-black/40 border border-gray-800 rounded-xl pl-12 pr-4 py-4 text-white font-bold focus:border-emerald-500 outline-none transition-all placeholder:text-gray-700"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -74,7 +72,7 @@ const Login: React.FC<{ onBack: () => void; onCadastro?: () => void }> = ({ onBa
           </div>
 
           {error && (
-            <div className="text-red-400 text-xs font-bold bg-red-400/10 border border-red-400/20 p-4 rounded-2xl text-center">
+            <div className="text-red-400 text-xs font-bold bg-red-400/10 border border-red-400/20 p-4 rounded-xl text-center">
               {error}
             </div>
           )}
@@ -83,7 +81,7 @@ const Login: React.FC<{ onBack: () => void; onCadastro?: () => void }> = ({ onBa
             <button 
               type="submit"
               disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-black py-5 rounded-2xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-95 shadow-xl shadow-emerald-900/30 uppercase text-xs tracking-[0.2em]"
+              className="w-full bg-emerald-500/15 hover:bg-emerald-500/25 disabled:opacity-50 text-emerald-200 font-semibold py-5 rounded-xl flex items-center justify-center gap-3 transition-all transform hover:scale-[1.02] active:scale-95  text-xs ring-1 ring-inset ring-emerald-500/30"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -98,7 +96,7 @@ const Login: React.FC<{ onBack: () => void; onCadastro?: () => void }> = ({ onBa
             <button 
               type="button"
               onClick={onBack}
-              className="w-full bg-transparent border border-gray-800 text-gray-500 hover:text-white hover:border-gray-600 font-black py-4 rounded-2xl flex items-center justify-center gap-2 transition-all uppercase text-[10px] tracking-widest"
+              className="w-full bg-transparent border border-gray-800 text-gray-500 hover:text-white hover:border-gray-600 font-semibold py-4 rounded-xl flex items-center justify-center gap-2 transition-all text-xs"
             >
               <ArrowLeft size={16} />
               Voltar para os Rankings
@@ -107,11 +105,11 @@ const Login: React.FC<{ onBack: () => void; onCadastro?: () => void }> = ({ onBa
         </form>
 
         <div className="mt-8 text-center">
-          <p className="text-gray-600 text-[9px] font-bold uppercase tracking-widest leading-relaxed">
+          <p className="text-gray-600 text-xs font-bold leading-relaxed">
             Seu clube ainda não tem acesso?
           </p>
           {onCadastro && (
-            <button type="button" onClick={onCadastro} className="mt-2 text-emerald-400 hover:text-emerald-300 text-[10px] font-black uppercase tracking-widest">
+            <button type="button" onClick={onCadastro} className="mt-2 text-emerald-400 hover:text-emerald-300 text-xs font-semibold">
               Criar meu clube
             </button>
           )}

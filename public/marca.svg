@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- PROVISÓRIO: substituir pelo símbolo oficial (ficha com o monograma SC). -->
+  <circle cx="32" cy="32" r="29" fill="none" stroke="#c9a354" stroke-width="2.6"/>
+  <circle cx="32" cy="32" r="23" fill="none" stroke="#c9a354" stroke-width="2.2"/>
+  <g fill="#c9a354">
+    <rect x="29" y="1.5" width="6" height="5"/>
+    <rect x="29" y="57.5" width="6" height="5"/>
+    <rect x="1.5" y="29" width="5" height="6"/>
+    <rect x="57.5" y="29" width="5" height="6"/>
+  </g>
+  <text x="32" y="40.5" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="22" fill="#c9a354" letter-spacing="-1">SC</text>
+</svg>

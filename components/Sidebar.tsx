@@ -4,6 +4,7 @@ import { useRanking } from '../context/RankingContext';
 import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users, Timer, Clock, Settings2, ChevronDown, ChevronUp, Eye, EyeOff, Beer, Receipt, Package, BarChart3, Lock, CreditCard } from 'lucide-react';
 import { Recurso, temRecurso } from '../services/planos';
 import ConfirmationModal from './ConfirmationModal';
+import Marca from './Marca';
 
 interface SidebarProps {
   onClose?: () => void;
@@ -89,15 +90,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="w-72 bg-[#111827] h-screen border-r border-emerald-900/30 flex flex-col z-50 shrink-0 shadow-2xl relative">
-      <div className="p-6 border-b border-emerald-900/30 bg-black/20 shrink-0">
+    <div className="w-72 bg-gray-900 h-screen border-r border-gray-800 flex flex-col z-50 shrink-0 shadow-2xl relative">
+      <div className="p-6 border-b border-gray-800 bg-black/20 shrink-0">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-900/20 shrink-0">
-              <Trophy className="text-white w-6 h-6" />
-            </div>
-            <h1 className="font-black text-xl text-emerald-50 tracking-tighter truncate">Rank Manager</h1>
-          </div>
+          <Marca tamanho="sm" />
           <button 
             onClick={onClose}
             className="lg:hidden p-2 text-gray-500 hover:text-emerald-500 hover:bg-emerald-500/10 rounded-lg transition-all"
@@ -107,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         </div>
         
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-emerald-500/60 uppercase tracking-[0.2em] ml-1">Sua Casa de Poker</label>
+          <label className="text-xs font-semibold text-emerald-500/60 ml-1">Sua Casa de Poker</label>
           {isEditingHouse ? (
             <input 
               autoFocus
@@ -120,7 +116,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           ) : (
             <div 
               onClick={() => setIsEditingHouse(true)}
-              className="px-4 py-3 bg-emerald-950/20 rounded-xl border border-emerald-900/30 text-sm font-black text-emerald-50 cursor-pointer hover:border-emerald-500 transition-all flex justify-between items-center group"
+              className="px-4 py-3 bg-gray-800/40 rounded-xl border border-gray-800 text-sm font-semibold text-white cursor-pointer hover:border-emerald-500 transition-all flex justify-between items-center group"
             >
               <span className="truncate">{house.name || 'Definir Nome'}</span>
               <Edit2 size={12} className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -132,10 +128,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       <div className="p-4 flex-1 overflow-y-auto space-y-6 custom-scrollbar">
         <section>
           <div className="flex justify-between items-center mb-3 px-2">
-            <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest block">Rankings</label>
+            <label className="text-xs font-semibold text-gray-500 block">Rankings</label>
             <button 
               onClick={() => setIsCreating(true)}
-              className="p-1.5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-500 hover:text-white rounded-lg transition-all"
+              className="p-1.5 bg-emerald-600/10 hover:bg-emerald-500/25 text-emerald-500 hover:text-emerald-100 rounded-lg transition-all"
             >
               <Plus size={14} />
             </button>
@@ -170,17 +166,17 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                   <div className="relative group">
                     <button
                       onClick={() => setActiveRankingId(r.id)}
-                      className={`w-full text-left pl-4 pr-20 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative overflow-hidden truncate ${
+                      className={`w-full text-left pl-3 pr-20 py-2.5 rounded-lg text-sm font-medium transition-all relative overflow-hidden truncate ${
                         activeRanking?.id === r.id
-                        ? 'bg-emerald-600 text-white shadow-lg'
+                        ? 'bg-emerald-500/10 text-emerald-400'
                         : isHidden
                           ? 'text-gray-700 hover:bg-gray-800'
-                          : 'text-gray-500 hover:bg-gray-800'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
                       }`}
                     >
                       <span className={isHidden ? 'line-through decoration-gray-700' : ''}>{r.name}</span>
                       {isHidden && (
-                        <span className="block text-[8px] font-black text-amber-600/70 tracking-[0.2em] mt-1 no-underline">
+                        <span className="block text-xs font-semibold text-amber-600/70 mt-1 no-underline">
                           Oculto no público
                         </span>
                       )}
@@ -209,19 +205,19 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         </section>
 
         <section>
-          <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3 block ml-2">Menu Principal</label>
+          <label className="text-xs font-semibold text-gray-500 mb-3 block ml-2">Menu</label>
           <div className="space-y-1">
             {menuItems.map(item => (
               <button
                 key={item.id}
                 onClick={() => setCurrentView(item.id as any)}
-                className={`w-full text-left px-4 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium flex items-center gap-3 transition-all ${
                   currentView === item.id 
-                  ? 'bg-amber-600/10 text-amber-500 border border-amber-600/20' 
-                  : 'text-gray-500 hover:bg-gray-800'
+                  ? 'bg-emerald-500/10 text-emerald-400' 
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <item.icon size={18} className={currentView === item.id ? 'text-amber-500' : 'text-gray-600'} />
+                <item.icon size={18} className={currentView === item.id ? 'text-emerald-400' : 'text-gray-500'} />
                 {item.label}
                 {item.recurso && bloqueado(item.recurso) && <Cadeado />}
               </button>
@@ -230,14 +226,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             <div className="pt-2">
               <button 
                 onClick={() => setIsClockMenuOpen(!isClockMenuOpen)}
-                className={`w-full text-left px-4 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-between transition-all ${
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between transition-all ${
                   currentView.startsWith('poker-clock') 
-                  ? 'bg-cyan-600/10 text-cyan-500 border border-cyan-600/20' 
-                  : 'text-gray-500 hover:bg-gray-800'
+                  ? 'bg-emerald-500/10 text-emerald-400' 
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Timer size={18} className={currentView.startsWith('poker-clock') ? 'text-cyan-500' : 'text-gray-600'} />
+                  <Timer size={18} className={currentView.startsWith('poker-clock') ? 'text-emerald-400' : 'text-gray-500'} />
                   Poker Clock
                   {bloqueado('pokerClock') && <Lock size={12} className="text-gray-600" aria-label="Fora do seu plano" />}
                 </div>
@@ -248,8 +244,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 <div className="mt-1 ml-4 space-y-1 border-l border-gray-800 pl-4 animate-in slide-in-from-top-2 duration-200">
                   <button
                     onClick={() => { setCurrentView('poker-clock'); if (onClose) onClose(); }}
-                    className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
-                      currentView === 'poker-clock' ? 'text-cyan-400 bg-cyan-400/5' : 'text-gray-600 hover:text-gray-400'
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-3 transition-all ${
+                      currentView === 'poker-clock' ? 'text-emerald-400 bg-emerald-400/5' : 'text-gray-500 hover:text-gray-200'
                     }`}
                   >
                     <Clock size={14} />
@@ -257,8 +253,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                   </button>
                   <button
                     onClick={() => { setCurrentView('poker-clock-settings'); if (onClose) onClose(); }}
-                    className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
-                      currentView === 'poker-clock-settings' ? 'text-cyan-400 bg-cyan-400/5' : 'text-gray-600 hover:text-gray-400'
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-3 transition-all ${
+                      currentView === 'poker-clock-settings' ? 'text-emerald-400 bg-emerald-400/5' : 'text-gray-500 hover:text-gray-200'
                     }`}
                   >
                     <Settings2 size={14} />
@@ -271,14 +267,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
             <div className="pt-1">
               <button
                 onClick={() => setIsBarMenuOpen(!isBarMenuOpen)}
-                className={`w-full text-left px-4 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-between transition-all ${
+                className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between transition-all ${
                   currentView.startsWith('bar-')
-                  ? 'bg-violet-600/10 text-violet-400 border border-violet-600/20'
-                  : 'text-gray-500 hover:bg-gray-800'
+                  ? 'bg-emerald-500/10 text-emerald-400'
+                  : 'text-gray-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Beer size={18} className={currentView.startsWith('bar-') ? 'text-violet-400' : 'text-gray-600'} />
+                  <Beer size={18} className={currentView.startsWith('bar-') ? 'text-emerald-400' : 'text-gray-500'} />
                   Bar
                   {bloqueado('bar') && <Lock size={12} className="text-gray-600" aria-label="Fora do seu plano" />}
                 </div>
@@ -289,8 +285,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 <div className="mt-1 ml-4 space-y-1 border-l border-gray-800 pl-4 animate-in slide-in-from-top-2 duration-200">
                   <button
                     onClick={() => { setCurrentView('bar-caixa'); if (onClose) onClose(); }}
-                    className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
-                      currentView === 'bar-caixa' ? 'text-violet-400 bg-violet-400/5' : 'text-gray-600 hover:text-gray-400'
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-3 transition-all ${
+                      currentView === 'bar-caixa' ? 'text-emerald-400 bg-emerald-400/5' : 'text-gray-500 hover:text-gray-200'
                     }`}
                   >
                     <Receipt size={14} />
@@ -298,8 +294,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                   </button>
                   <button
                     onClick={() => { setCurrentView('bar-produtos'); if (onClose) onClose(); }}
-                    className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
-                      currentView === 'bar-produtos' ? 'text-violet-400 bg-violet-400/5' : 'text-gray-600 hover:text-gray-400'
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-3 transition-all ${
+                      currentView === 'bar-produtos' ? 'text-emerald-400 bg-emerald-400/5' : 'text-gray-500 hover:text-gray-200'
                     }`}
                   >
                     <Package size={14} />
@@ -312,8 +308,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         </section>
       </div>
 
-      <div className="p-6 border-t border-emerald-900/10 bg-black/10 shrink-0">
-        <p className="text-[9px] font-black text-gray-700 text-center uppercase tracking-[0.2em]">Rank Manager • 2024</p>
+      <div className="p-6 border-t border-gray-800 bg-black/10 shrink-0">
+        <p className="text-xs font-semibold text-gray-700 text-center">Stack Club · {new Date().getFullYear()}</p>
       </div>
 
       <ConfirmationModal 

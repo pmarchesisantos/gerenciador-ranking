@@ -10,6 +10,10 @@
  * não pode importar nada do navegador.
  */
 
+/**
+ * Identificadores internos, gravados no banco e nas regras do Firestore: não
+ * mudam. O nome exibido fica em `nome` (Standard, Gold, Black).
+ */
 export type PlanoId = 'essencial' | 'profissional' | 'completo';
 export type Periodo = 'mensal' | 'anual';
 export type Recurso = 'ranking' | 'pokerClock' | 'financeiro' | 'bar';
@@ -20,6 +24,11 @@ export interface Plano {
   resumo: string;
   /** Preço cheio por mês, em reais. */
   mensal: number;
+  /**
+   * Taxa única de implantação (configuração e cadastro feitos com o dono do
+   * clube). Cobrada junto do primeiro mês; isenta no plano anual.
+   */
+  implantacao: number;
   recursos: Recurso[];
   /** Itens exibidos na tabela de preços. */
   inclui: string[];
@@ -32,28 +41,31 @@ export const DESCONTO_ANUAL = 0.15;
 export const PLANOS: Record<PlanoId, Plano> = {
   essencial: {
     id: 'essencial',
-    nome: 'Essencial',
+    nome: 'Standard',
     resumo: 'Ranking do clube com lançamento de resultados.',
     mensal: 49.99,
+    implantacao: 149.90,
     recursos: ['ranking'],
     inclui: ['Rankings ilimitados', 'Lançamento de etapas', 'Cadastro de jogadores', 'Histórico e página pública'],
   },
   profissional: {
     id: 'profissional',
-    nome: 'Profissional',
-    resumo: 'Tudo do Essencial, mais poker clock e financeiro.',
+    nome: 'Gold',
+    resumo: 'Tudo do Standard, mais poker clock e financeiro.',
     mensal: 79.90,
+    implantacao: 199.90,
     recursos: ['ranking', 'pokerClock', 'financeiro'],
-    inclui: ['Tudo do Essencial', 'Poker clock para TV', 'Estruturas de blinds', 'Financeiro do poker'],
+    inclui: ['Tudo do Standard', 'Poker clock para TV', 'Estruturas de blinds', 'Financeiro do poker'],
     destaque: true,
   },
   completo: {
     id: 'completo',
-    nome: 'Completo',
+    nome: 'Black',
     resumo: 'O clube inteiro: poker, financeiro e bar.',
     mensal: 249.90,
+    implantacao: 499.90,
     recursos: ['ranking', 'pokerClock', 'financeiro', 'bar'],
-    inclui: ['Tudo do Profissional', 'Bar com PDV e comandas', 'Caixa, fiado e estoque', 'Financeiro poker + bar'],
+    inclui: ['Tudo do Gold', 'Bar com PDV e comandas', 'Caixa, fiado e estoque', 'Financeiro poker + bar'],
   },
 };
 
@@ -64,6 +76,21 @@ const centavos = (v: number) => Math.round(v * 100) / 100;
 /** Valor cobrado no período: anual = 12 meses com o desconto. */
 export const precoDoPeriodo = (plano: PlanoId, periodo: Periodo): number =>
   periodo === 'anual' ? centavos(PLANOS[plano].mensal * 12 * (1 - DESCONTO_ANUAL)) : PLANOS[plano].mensal;
+
+/** Implantação devida no cadastro: isenta no anual. */
+export const taxaImplantacao = (plano: PlanoId, periodo: Periodo): number =>
+  periodo === 'anual' ? 0 : PLANOS[plano].implantacao;
+
+/** Primeira fatura do cadastro: o período + a implantação (quando houver). */
+export const primeiraCobranca = (plano: PlanoId, periodo: Periodo): number =>
+  centavos(precoDoPeriodo(plano, periodo) + taxaImplantacao(plano, periodo));
+
+/**
+ * Upgrade de plano cobra a diferença de implantação (o Black inclui cadastrar
+ * o bar). Sem isso, assinar o Standard e trocar para o Black pularia essa taxa.
+ */
+export const diferencaImplantacao = (de: PlanoId, para: PlanoId): number =>
+  Math.max(0, centavos(PLANOS[para].implantacao - PLANOS[de].implantacao));
 
 /** Equivalente mensal do plano anual, para comparar na tabela. */
 export const mensalEquivalente = (plano: PlanoId, periodo: Periodo): number =>

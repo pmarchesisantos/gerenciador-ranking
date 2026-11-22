@@ -10,7 +10,7 @@ import { contatoSuporte } from '../services/legal';
 const AvisoPrivacidade: React.FC<{ onClose: () => void }> = ({ onClose }) => (
   <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[300] flex items-center justify-center p-4"
        onMouseDown={e => e.target === e.currentTarget && onClose()}>
-    <div className="bg-[#111827] w-full max-w-xl border border-gray-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="bg-gray-900 w-full max-w-xl border border-gray-800 rounded-xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
       <div className="flex justify-between items-center px-6 py-4 border-b border-gray-800 shrink-0">
         <h3 className="text-base font-bold text-white flex items-center gap-2"><ShieldCheck size={18} className="text-emerald-500" /> Privacidade e termos</h3>
         <button onClick={onClose} aria-label="Fechar" className="text-gray-500 hover:text-white"><X size={18} /></button>
@@ -29,7 +29,7 @@ const AvisoPrivacidade: React.FC<{ onClose: () => void }> = ({ onClose }) => (
         </section>
         <section>
           <h4 className="text-white font-bold mb-1">Dados dos seus jogadores e clientes</h4>
-          <p>Os dados que o clube cadastra (jogadores, telefones, consumo no bar) pertencem ao clube. O Rank Manager
+          <p>Os dados que o clube cadastra (jogadores, telefones, consumo no bar) pertencem ao clube. O Stack Club
             apenas os armazena e processa para prestar o serviço, com acesso restrito à conta do clube.</p>
         </section>
         <section>
