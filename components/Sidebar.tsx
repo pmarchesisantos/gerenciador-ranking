@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users, Timer, Clock, Settings2, ChevronDown, ChevronUp, Eye, EyeOff } from 'lucide-react';
+import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users, Timer, Clock, Settings2, ChevronDown, ChevronUp, Eye, EyeOff, Beer, Receipt, Package, BarChart3 } from 'lucide-react';
 import ConfirmationModal from './ConfirmationModal';
 
 interface SidebarProps {
@@ -30,12 +30,14 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newRankName, setNewRankName] = useState('');
   const [isClockMenuOpen, setIsClockMenuOpen] = useState(currentView.startsWith('poker-clock'));
+  const [isBarMenuOpen, setIsBarMenuOpen] = useState(currentView.startsWith('bar-'));
   const [rankingToDelete, setRankingToDelete] = useState<{ id: string, name: string } | null>(null);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard (Ranking)', icon: LayoutDashboard },
     { id: 'player-data', label: 'Dados Jogadores', icon: Users },
     { id: 'history', label: 'Histórico Semanal', icon: History },
+    { id: 'financeiro', label: 'Financeiro', icon: BarChart3 },
     { id: 'settings', label: 'Configurações', icon: Settings },
     { id: 'profile', label: 'Dados do Perfil', icon: UserCircle },
   ];
@@ -253,6 +255,46 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                   >
                     <Settings2 size={14} />
                     Configurações Clock
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-1">
+              <button
+                onClick={() => setIsBarMenuOpen(!isBarMenuOpen)}
+                className={`w-full text-left px-4 py-3.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-between transition-all ${
+                  currentView.startsWith('bar-')
+                  ? 'bg-violet-600/10 text-violet-400 border border-violet-600/20'
+                  : 'text-gray-500 hover:bg-gray-800'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Beer size={18} className={currentView.startsWith('bar-') ? 'text-violet-400' : 'text-gray-600'} />
+                  Bar
+                </div>
+                {isBarMenuOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+
+              {isBarMenuOpen && (
+                <div className="mt-1 ml-4 space-y-1 border-l border-gray-800 pl-4 animate-in slide-in-from-top-2 duration-200">
+                  <button
+                    onClick={() => { setCurrentView('bar-caixa'); if (onClose) onClose(); }}
+                    className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
+                      currentView === 'bar-caixa' ? 'text-violet-400 bg-violet-400/5' : 'text-gray-600 hover:text-gray-400'
+                    }`}
+                  >
+                    <Receipt size={14} />
+                    Caixa / PDV
+                  </button>
+                  <button
+                    onClick={() => { setCurrentView('bar-produtos'); if (onClose) onClose(); }}
+                    className={`w-full text-left px-4 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${
+                      currentView === 'bar-produtos' ? 'text-violet-400 bg-violet-400/5' : 'text-gray-600 hover:text-gray-400'
+                    }`}
+                  >
+                    <Package size={14} />
+                    Produtos
                   </button>
                 </div>
               )}

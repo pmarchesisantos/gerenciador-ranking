@@ -5,6 +5,7 @@ import { X, Search, ChevronRight, Wallet, Check, Trash2, Trophy, Loader2, Info, 
 import { Player, PokerClockConfig } from '../types';
 import { inputNumericProps } from '../services/inputNumeric';
 import { getChipsFromCategory } from '../services/clockStats';
+import { consolidarPessoas, encontrarPessoa, normalizarNome, Pessoa, CadastroError } from '../services/jogadores';
 
 interface AddResultModalProps {
   onClose: () => void;
@@ -21,10 +22,18 @@ interface PlayerEntry {
   customValues: { [fieldId: string]: number };
   paid: boolean;
   isNew?: boolean;
+  /** Pessoa do cadastro geral, quando o jogador veio de lá. */
+  jogadorId?: string;
   phone?: string;
   birthDate?: string;
   favoriteTeam?: string;
 }
+
+/** Data de hoje no fuso do usuário (toISOString daria o dia em UTC: amanhã a partir das 21h). */
+const hojeLocal = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
 const ITM_PERCENTAGES: Record<number, number[]> = {
   1: [100],
@@ -40,11 +49,12 @@ const ITM_PERCENTAGES: Record<number, number[]> = {
 };
 
 const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
-  const { activeRanking, addWeeklyResult, updatePokerClockConfig, house } = useRanking();
+  const { activeRanking, addWeeklyResult, updatePokerClockConfig, house, jogadores } = useRanking();
+  const pessoas = useMemo(() => consolidarPessoas(jogadores, house.rankings), [jogadores, house.rankings]);
   const [searchTerm, setSearchTerm] = useState('');
   const [multiplier, setMultiplier] = useState(1);
   const [stageName, setStageName] = useState('');
-  const [stageDate, setStageDate] = useState(new Date().toISOString().split('T')[0]);
+  const [stageDate, setStageDate] = useState(hojeLocal());
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [isSaving, setIsSaving] = useState(false);
   const [showFinancialTooltip, setShowFinancialTooltip] = useState(false);
@@ -101,7 +111,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
           setSelectedPlayers(parsed.selectedPlayers || []);
           setMultiplier(parsed.multiplier || 1);
           setStageName(parsed.stageName || '');
-          setStageDate(parsed.stageDate || new Date().toISOString().split('T')[0]);
+          setStageDate(parsed.stageDate || hojeLocal());
           setSelectedCategoryId(parsed.selectedCategoryId || '');
           setCustomPaidPlaces(parsed.customPaidPlaces || '');
           setValorAdministrativo(parsed.valorAdministrativo || 0);
@@ -113,7 +123,7 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
         setSelectedPlayers([]);
         setMultiplier(1);
         setStageName('');
-        setStageDate(new Date().toISOString().split('T')[0]);
+        setStageDate(hojeLocal());
         setSelectedCategoryId('');
         setCustomPaidPlaces('');
         setValorAdministrativo(0);
@@ -140,6 +150,28 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     }
   }, [selectedPlayers, multiplier, stageName, selectedCategoryId, activeRanking, customPaidPlaces, valorAdministrativo, manualRankingValue, editedPrizes]);
 
+  // O PDV do bar marca "pago" quando o jogador acerta o poker na comanda. Ele
+  // grava no rascunho; aqui o lançamento aberto recebe a marcação, senão a
+  // próxima edição gravaria o estado antigo por cima.
+  useEffect(() => {
+    if (!activeRanking) return;
+    const chave = `draft_${activeRanking.id}`;
+    const aoMudar = (e: StorageEvent) => {
+      if (e.key !== chave || !e.newValue) return;
+      try {
+        const pagos = new Map<string, boolean>(
+          (JSON.parse(e.newValue).selectedPlayers || []).map((p: any) => [p.playerId, !!p.paid])
+        );
+        setSelectedPlayers(prev => {
+          const mudou = prev.some(p => pagos.has(p.playerId) && pagos.get(p.playerId) !== !!p.paid);
+          return mudou ? prev.map(p => (pagos.has(p.playerId) ? { ...p, paid: pagos.get(p.playerId)! } : p)) : prev;
+        });
+      } catch { /* rascunho ilegível: mantém o estado da tela */ }
+    };
+    window.addEventListener('storage', aoMudar);
+    return () => window.removeEventListener('storage', aoMudar);
+  }, [activeRanking?.id]);
+
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = 'unset'; };
@@ -154,8 +186,43 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
     return [...selectedPlayers].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
   }, [selectedPlayers]);
 
+  // Busca: primeiro quem já está no ranking, depois quem está no cadastro geral
+  // e ainda não joga este ranking. "Novo" só aparece se o nome não existe em lugar nenhum.
+  const busca = useMemo(() => {
+    const termo = normalizarNome(searchTerm);
+    if (!activeRanking || termo.length < 2) return { doRanking: [] as Player[], doCadastro: [] as Pessoa[], existeExato: false };
+    const doRanking = activeRanking.players.filter(p => normalizarNome(p.name).includes(termo)).slice(0, 5);
+    const noRanking = (p: Pessoa) =>
+      activeRanking.players.some(x => (p.jogador && x.jogadorId === p.jogador.id) || normalizarNome(x.name) === p.chave);
+    const doCadastro = pessoas.filter(p => p.ativo && p.chave.includes(termo) && !noRanking(p)).slice(0, 5);
+    const existeExato = activeRanking.players.some(p => normalizarNome(p.name) === termo) || pessoas.some(p => p.chave === termo);
+    return { doRanking, doCadastro, existeExato };
+  }, [searchTerm, activeRanking, pessoas]);
+
+  /** A mesma pessoa não entra duas vezes na etapa. */
+  const jaSelecionado = (nome: string, playerId?: string) =>
+    selectedPlayers.some(p => (playerId && p.playerId === playerId) || normalizarNome(p.name) === normalizarNome(nome));
+
+  /** Pessoa do cadastro que ainda não joga este ranking: entra nele ao salvar a etapa. */
+  const addPessoaToStage = (nome: string, jogadorId?: string) => {
+    if (jaSelecionado(nome)) { setSearchTerm(''); return; }
+    setSelectedPlayers(prev => [{
+      playerId: `temp-${Date.now()}`,
+      name: nome,
+      position: 0,
+      rebuys: 0,
+      doubleRebuys: 0,
+      addons: 0,
+      customValues: {},
+      paid: false,
+      isNew: true,
+      jogadorId,
+    }, ...prev]);
+    setSearchTerm('');
+  };
+
   const addPlayerToStage = (player: Player) => {
-    if (selectedPlayers.some(p => p.playerId === player.id)) return;
+    if (jaSelecionado(player.name, player.id)) { setSearchTerm(''); return; }
     setSelectedPlayers(prev => [{ 
       playerId: player.id, 
       name: player.name, 
@@ -170,9 +237,16 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
   };
 
   const addNewPlayerToStage = () => {
-    setSelectedPlayers(prev => [{ 
+    const nome = searchTerm.trim();
+    // Nome que já existe vira a pessoa existente, nunca um cadastro paralelo.
+    const doRanking = activeRanking?.players.find(p => normalizarNome(p.name) === normalizarNome(nome));
+    if (doRanking) return addPlayerToStage(doRanking);
+    const doCadastro = encontrarPessoa(pessoas, nome);
+    if (doCadastro) return addPessoaToStage(doCadastro.nome, doCadastro.jogador?.id);
+    if (jaSelecionado(nome)) { setSearchTerm(''); return; }
+    setSelectedPlayers(prev => [{
       playerId: `temp-${Date.now()}`, 
-      name: searchTerm.trim(), 
+      name: nome, 
       position: 0, 
       rebuys: 0, 
       doubleRebuys: 0, 
@@ -379,10 +453,16 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
       const [year, month, day] = stageDate.split('-').map(Number);
       const finalDate = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds()).toISOString();
       
-      await addWeeklyResult(valid, multiplier, selectedCategoryId, stageName, finalDate);
+      await addWeeklyResult(valid, multiplier, selectedCategoryId, stageName, finalDate, {
+        totalBruto: Number(totalBruto.toFixed(2)),
+        rakeValue: Number(valorRake.toFixed(2)),
+        valorAdministrativo: Number((valorAdministrativo || 0).toFixed(2)),
+      });
       localStorage.removeItem(`draft_${activeRanking.id}`);
       onClose();
-    } catch (err) { alert('Erro ao salvar'); } finally { setIsSaving(false); }
+    } catch (err) {
+      alert(err instanceof CadastroError ? err.message : 'Erro ao salvar');
+    } finally { setIsSaving(false); }
   };
 
   const NumericStepper: React.FC<{ 
@@ -481,10 +561,17 @@ const AddResultModal: React.FC<AddResultModalProps> = ({ onClose }) => {
                <input className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-9 pr-4 py-2 text-gray-200 text-xs font-bold outline-none" placeholder="Buscar jogador..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                {searchTerm.length > 1 && (
                  <div className="absolute top-full left-0 w-full mt-1 bg-gray-900 border border-emerald-500/30 rounded-lg shadow-2xl z-[130] overflow-hidden">
-                   {activeRanking.players.filter(p => normalizeStr(p.name).includes(normalizeStr(searchTerm))).slice(0, 5).map(p => (
+                   {busca.doRanking.map(p => (
                      <button key={p.id} onClick={() => addPlayerToStage(p)} className="w-full px-4 py-3 text-left hover:bg-emerald-600/10 border-b border-gray-800 text-white font-bold text-xs">{p.name}</button>
                    ))}
-                   {!activeRanking.players.some(p => normalizeStr(p.name) === normalizeStr(searchTerm)) && (
+                   {busca.doCadastro.map(p => (
+                     <button key={p.chave} onClick={() => addPessoaToStage(p.nome, p.jogador?.id)}
+                             className="w-full px-4 py-3 text-left hover:bg-emerald-600/10 border-b border-gray-800 flex items-center justify-between gap-3">
+                       <span className="text-white font-bold text-xs truncate">{p.nome}</span>
+                       <span className="text-[8px] font-black text-sky-400 uppercase tracking-widest shrink-0">Do cadastro · entra no ranking</span>
+                     </button>
+                   ))}
+                   {!busca.existeExato && (
                      <div className="bg-emerald-900/10 border-b border-emerald-500/20">
                         <div className="flex items-center justify-between px-4 py-3">
                            <span className="text-emerald-500 font-black text-[10px] uppercase">Novo: {searchTerm}</span>

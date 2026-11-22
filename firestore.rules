@@ -1,76 +1,74 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ===============================================================
-    // Assumed Data Model
-    // ===============================================================
-    //
-    // Collection: casas
-    // Fields: name, slug, ownerEmail, profile, pokerClockConfig
-    //
-    // Subcollection: rankings
-    // Fields: name, players, scoringConfig, history, gameCategories
-    //
-    // ===============================================================
 
-    // ===============================================================
-    // Helper Functions
-    // ===============================================================
-    
+    // Funções auxiliares para simplificar as regras
     function isAuthenticated() {
       return request.auth != null;
     }
 
+    // Verifica se o usuário é o administrador mestre (você)
     function isSuperAdmin() {
-      return isAuthenticated() && 
-        (request.auth.token.email.lower() == "pedro.marchesi2000@gmail.com" || 
-         request.auth.token.email.lower() == "admin@gmail.com" ||
-         request.auth.token.email.lower() == "pmarchesi.santos@gmail.com");
+      return isAuthenticated() &&
+        (request.auth.token.email == "pmarchesi.santos@gmail.com");
     }
 
+    // Verifica se o usuário logado é o dono da casa de poker
     function isOwner(casaData) {
-      return isAuthenticated() && 
+      return isAuthenticated() &&
         casaData.ownerEmail.lower() == request.auth.token.email.lower();
     }
 
-    function isValidCasa(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
-             data.slug is string && data.slug.size() > 0 && data.slug.size() < 100 &&
-             data.ownerEmail is string;
-    }
-
-    function isValidRanking(data) {
-      return data.name is string && data.name.size() > 0 && data.name.size() < 100;
-    }
-
-    // ===============================================================
-    // Rules
-    // ===============================================================
-
+    // Regras para a coleção de Casas (Clubes)
     match /casas/{casaId} {
-      // Leitura pública permitida para visualização de rankings por slug
-      // ou se for o dono/admin
-      allow read: if true; 
-      
-      allow create: if isAuthenticated() && isValidCasa(request.resource.data) &&
-        (isSuperAdmin() || request.resource.data.ownerEmail.lower() == request.auth.token.email.lower());
-        
-      allow update: if isAuthenticated() && isValidCasa(request.resource.data) &&
-        (isSuperAdmin() || isOwner(resource.data));
-        
-      allow delete: if isAuthenticated() && (isSuperAdmin() || isOwner(resource.data));
+      // Qualquer pessoa pode ver a lista de casas e os detalhes (necessário para o PublicView)
+      allow read: if true;
 
+      // Apenas SuperAdmin ou o próprio dono pode criar a casa
+      allow create: if isAuthenticated() &&
+        (isSuperAdmin() || request.resource.data.ownerEmail.lower() == request.auth.token.email.lower());
+
+      // Apenas SuperAdmin ou o dono pode editar ou excluir
+      allow update, delete: if isAuthenticated() && (isSuperAdmin() || isOwner(resource.data));
+
+      // Regras para os Rankings dentro de cada Casa
       match /rankings/{rankingId} {
+        // Rankings são públicos para que os jogadores vejam a tabela
         allow read: if true;
-        
-        allow create: if isAuthenticated() && isValidRanking(request.resource.data) &&
+
+        // Apenas o dono da casa ou SuperAdmin pode gerenciar os rankings
+        allow create, update, delete: if isAuthenticated() &&
           (isSuperAdmin() || isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
-          
-        allow update: if isAuthenticated() && isValidRanking(request.resource.data) &&
-          (isSuperAdmin() || isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
-          
-        allow delete: if isAuthenticated() && 
-          (isSuperAdmin() || isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
+      }
+
+      // Cadastro geral de jogadores: telefone e nascimento são dados pessoais,
+      // então, ao contrário dos rankings, não há leitura pública.
+      match /jogadores/{jogadorId} {
+        allow read, write: if isSuperAdmin() ||
+          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data);
+      }
+
+      // Bar: dados comerciais e de clientes (quem consumiu e quanto deve).
+      // Ao contrário dos rankings, NÃO tem leitura pública.
+      match /bar_produtos/{produtoId} {
+        allow read, write: if isSuperAdmin() ||
+          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data);
+      }
+
+      match /bar_comandas/{comandaId} {
+        allow read, write: if isSuperAdmin() ||
+          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data);
+      }
+
+      // Caixa encerrado não pode ser reescrito. O dono pode excluí-lo (caixas
+      // de teste); o caixa aberto precisa ser fechado ou cancelado antes.
+      match /bar_caixas/{caixaId} {
+        allow read, create: if isSuperAdmin() ||
+          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data);
+        allow update: if resource.data.status == 'aberto' && (isSuperAdmin() ||
+          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
+        allow delete: if resource.data.status != 'aberto' && (isSuperAdmin() ||
+          isOwner(get(/databases/$(database)/documents/casas/$(casaId)).data));
       }
     }
   }

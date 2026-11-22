@@ -1,8 +1,19 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { PokerHouse, Ranking, Player, ScoringConfig, WeeklyHistoryEntry, View, ProfileData, GameCategory, PokerClockConfig, BlindLevel } from '../types';
+import { PokerHouse, Ranking, Player, ScoringConfig, WeeklyHistoryEntry, View, ProfileData, GameCategory, PokerClockConfig, BlindLevel, StageFinanceiro, Jogador } from '../types';
 import { INITIAL_SCORING_CONFIG, MOCK_HOUSE } from '../services/mockData';
 import { useAuth } from './AuthContext';
+import { writeBatch, WriteBatch, deleteField } from 'firebase/firestore';
+import { normalizarNome, encontrarJogador, encontrarNoRanking, CadastroError } from '../services/jogadores';
+
+/** Dados editáveis de uma pessoa do cadastro geral. */
+export interface DadosJogador {
+  nome: string;
+  telefone?: string;
+  nascimento?: string;
+  time?: string;
+  ativo?: boolean;
+}
 import { 
   db, 
   doc, 
@@ -30,7 +41,7 @@ interface RankingContextType {
   removePlayer: (id: string) => Promise<void>;
   updatePlayer: (id: string, updates: Partial<Player>) => Promise<void>;
   updateScoringConfig: (config: ScoringConfig) => Promise<void>;
-  addWeeklyResult: (results: any[], multiplier: number, categoryId?: string, name?: string, date?: string) => Promise<void>;
+  addWeeklyResult: (results: any[], multiplier: number, categoryId?: string, name?: string, date?: string, financeiro?: StageFinanceiro) => Promise<void>;
   updateHistoryEntryName: (entryId: string, newName: string) => Promise<void>;
   updateHistoryEntryStage: (entryId: string, patch: { rankingValue?: number; championIds?: string[] }) => Promise<void>;
   deleteHistoryEntry: (id: string) => Promise<void>;
@@ -43,6 +54,13 @@ interface RankingContextType {
   updateRankingActive: (id: string, active: boolean) => Promise<void>;
   updateGameCategories: (categories: GameCategory[]) => Promise<void>;
   updatePokerClockConfig: (config: Partial<PokerClockConfig>) => Promise<void>;
+  /** Cadastro geral de pessoas da casa. Vazio para quem não está logado. */
+  jogadores: Jogador[];
+  /**
+   * Cria ou edita uma pessoa no cadastro geral. Ao renomear, o nome também é
+   * atualizado nos rankings em que a pessoa aparece.
+   */
+  salvarJogador: (dados: DadosJogador, atual?: { jogadorId?: string; chave?: string }) => Promise<void>;
   pokerClockConfig: PokerClockConfig;
   loadingData: boolean;
   unauthorized: boolean;
@@ -129,6 +147,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [resolvedHouseDocId, setResolvedHouseDocId] = useState<string | null>(null);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [pokerClockConfig, setPokerClockConfig] = useState<PokerClockConfig>(DEFAULT_CLOCK_CONFIG);
+  const [jogadores, setJogadores] = useState<Jogador[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
 
@@ -198,7 +217,9 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
             const correctSlug = houseDoc.data().slug || houseDoc.id;
             if (viewingHouseId !== correctSlug) {
               setViewingHouseId(correctSlug);
-              safeNavigate(`/c/${correctSlug}`, 'replace');
+              // Preserva ?view=... : sem isso as janelas externas (clock, PDV)
+              // perdiam o parâmetro e viravam o painel do admin ao recarregar.
+              safeNavigate(`/c/${correctSlug}${window.location.search}`, 'replace');
             }
           } else {
             setHouse({ ...EMPTY_HOUSE, name: 'Clube não localizado' });
@@ -270,6 +291,36 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       handleFirestoreError(error, OperationType.LIST, `casas/${resolvedHouseDocId}/rankings`);
     });
     return () => { unsubHouse(); unsubRankings(); };
+  }, [resolvedHouseDocId]);
+
+  // Cadastro geral: privado, então só é lido com alguém logado. Na tela pública
+  // a regra do Firestore negaria a leitura e o console encheria de erros.
+  useEffect(() => {
+    setJogadores([]);
+    if (!resolvedHouseDocId || !user) return;
+    const unsub = onSnapshot(collection(db, 'casas', resolvedHouseDocId, 'jogadores'), snap => {
+      setJogadores(snap.docs.map(d => ({ id: d.id, ...d.data() } as Jogador)));
+    }, error => handleFirestoreError(error, OperationType.LIST, `casas/${resolvedHouseDocId}/jogadores`));
+    return unsub;
+  }, [resolvedHouseDocId, user]);
+
+  /**
+   * Prepara no lote a criação de uma pessoa no cadastro geral e devolve o id.
+   * Fica no mesmo lote da gravação do ranking: ou os dois entram, ou nenhum.
+   */
+  const criarJogadorNoLote = useCallback((lote: WriteBatch, nome: string, extras: { telefone?: string; nascimento?: string; time?: string } = {}) => {
+    const ref = doc(collection(db, 'casas', resolvedHouseDocId!, 'jogadores'));
+    const dados = Object.fromEntries(Object.entries({
+      nome: nome.trim(),
+      nomeNormalizado: normalizarNome(nome),
+      telefone: extras.telefone || undefined,
+      nascimento: extras.nascimento || undefined,
+      time: extras.time || undefined,
+      ativo: true,
+      criadoEm: new Date().toISOString(),
+    }).filter(([, v]) => v !== undefined));
+    lote.set(ref, dados);
+    return ref.id;
   }, [resolvedHouseDocId]);
 
   useEffect(() => {
@@ -386,26 +437,41 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const addPlayer = useCallback(async (name: string, extraData: Partial<Player> = {}): Promise<Player> => {
     if (!activeRanking || !resolvedHouseDocId) throw new Error("Sem ranking");
-    const p: Player = { 
-      id: Math.random().toString(36).substr(2, 9), 
-      name, 
-      totalPoints: 0, 
-      prevPoints: 0, 
-      attendances: 0, 
-      wins: 0, 
-      dayPoints: 0, 
+    const nome = name.trim();
+    if (!nome) throw new CadastroError('Informe o nome do jogador.');
+
+    // Sem duplicidade: a mesma pessoa não ganha uma segunda linha no ranking.
+    const cadastrado = encontrarJogador(jogadores, nome);
+    const jaNoRanking = encontrarNoRanking(activeRanking, nome, cadastrado?.id);
+    if (jaNoRanking) throw new CadastroError(`${jaNoRanking.name} já está neste ranking.`);
+
+    const lote = writeBatch(db);
+    // Quem ainda não está no cadastro geral entra nele agora. Dados pessoais
+    // ficam só no cadastro (privado), nunca no ranking (público).
+    const jogadorId = cadastrado?.id ?? criarJogadorNoLote(lote, nome, {
+      telefone: extraData.phone, nascimento: extraData.birthDate, time: extraData.favoriteTeam,
+    });
+    const p: Player = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: cadastrado?.nome || nome,
+      jogadorId,
+      totalPoints: 0,
+      prevPoints: 0,
+      attendances: 0,
+      wins: 0,
+      dayPoints: 0,
       accumulatedValue: 0,
       active: true,
-      ...extraData
     };
+    lote.update(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: [...(activeRanking.players || []), p] });
     try {
-      await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: [...(activeRanking.players || []), p] });
+      await lote.commit();
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
       throw error;
     }
     return p;
-  }, [activeRanking, resolvedHouseDocId]);
+  }, [activeRanking, resolvedHouseDocId, jogadores, criarJogadorNoLote]);
   const removePlayer = useCallback(async (id: string) => { 
     if (activeRanking && resolvedHouseDocId) {
       try {
@@ -441,30 +507,46 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [activeRanking, resolvedHouseDocId]);
 
-  const addWeeklyResult = useCallback(async (results: any[], multiplier: number, categoryId?: string, name?: string, date?: string) => {
+  const addWeeklyResult = useCallback(async (results: any[], multiplier: number, categoryId?: string, name?: string, date?: string, financeiro?: StageFinanceiro) => {
     if (!activeRanking || !resolvedHouseDocId) throw new Error("Ambiente de salvamento inválido");
-    let currentPlayers = [...activeRanking.players];
-    const finalResults = results.map(res => {
+    const lote = writeBatch(db);
+    const currentPlayers: Player[] = [...activeRanking.players];
+    const usados = new Set<string>();
+    const finalResults: any[] = [];
+
+    for (const res of results) {
+      let playerId: string = res.playerId;
+      const nome = String(res.playerName || res.name || '').trim();
+
       if (res.isNew) {
-        const p = { 
-          id: Math.random().toString(36).substr(2, 9), 
-          name: res.playerName, 
-          totalPoints: 0, 
-          prevPoints: 0, 
-          attendances: 0, 
-          wins: 0, 
-          dayPoints: 0, 
-          accumulatedValue: 0,
-          active: true,
-          phone: res.phone || '',
-          birthDate: res.birthDate || '',
-          favoriteTeam: res.favoriteTeam || ''
-        };
-        currentPlayers.push(p);
-        return { ...res, playerId: p.id };
+        // Antes, "novo jogador" sempre criava outra linha — era assim que a mesma
+        // pessoa acabava duas vezes no ranking. Agora reaproveita quem já existe.
+        const cadastrado = (res.jogadorId && jogadores.find(j => j.id === res.jogadorId)) || encontrarJogador(jogadores, nome);
+        const existente = encontrarNoRanking({ ...activeRanking, players: currentPlayers }, nome, cadastrado?.id);
+        if (existente) {
+          playerId = existente.id;
+        } else {
+          const jogadorId = cadastrado?.id ?? criarJogadorNoLote(lote, nome, {
+            telefone: res.phone, nascimento: res.birthDate, time: res.favoriteTeam,
+          });
+          const p: Player = {
+            id: Math.random().toString(36).substr(2, 9),
+            name: cadastrado?.nome || nome,
+            jogadorId,
+            totalPoints: 0, prevPoints: 0, attendances: 0, wins: 0, dayPoints: 0, accumulatedValue: 0,
+            active: true,
+          };
+          currentPlayers.push(p);
+          playerId = p.id;
+        }
       }
-      return res;
-    });
+
+      if (usados.has(playerId)) throw new CadastroError(`${nome || 'Um jogador'} aparece duas vezes nesta etapa.`);
+      usados.add(playerId);
+      // Dados pessoais não vão para o histórico, que é público junto com o ranking.
+      const { phone: _p, birthDate: _b, favoriteTeam: _f, isNew: _n, jogadorId: _j, ...limpo } = res;
+      finalResults.push({ ...limpo, playerId });
+    }
     const config = activeRanking.scoringConfig || { ...INITIAL_SCORING_CONFIG };
     const historyResults = finalResults.map(r => ({ ...r, pointsEarned: ((config[r.position] || 0) + (config.baseAttendance || 0)) * multiplier }));
     const entry: WeeklyHistoryEntry = {
@@ -480,6 +562,12 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const bestPosition = Math.min(...historyResults.map(r => r.position));
         return historyResults.filter(r => r.position === bestPosition).map(r => r.playerId);
       })(),
+      // Gravado para o financeiro: antes disso rake e administrativo se perdiam.
+      ...(financeiro ? {
+        totalBruto: financeiro.totalBruto,
+        rakeValue: financeiro.rakeValue,
+        valorAdministrativo: financeiro.valorAdministrativo,
+      } : {}),
       results: historyResults
     };
     const updatedPlayers = currentPlayers.map(player => {
@@ -489,13 +577,67 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       return { ...player, dayPoints: 0 };
     });
+    lote.update(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: [entry, ...(activeRanking.history || [])] });
     try {
-      await updateDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', activeRanking.id), { players: updatedPlayers, history: [entry, ...(activeRanking.history || [])] });
+      await lote.commit();
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/rankings/${activeRanking.id}`);
       throw error;
     }
-  }, [activeRanking, resolvedHouseDocId]);
+  }, [activeRanking, resolvedHouseDocId, jogadores, criarJogadorNoLote]);
+
+  const salvarJogador = useCallback(async (dados: DadosJogador, atual?: { jogadorId?: string; chave?: string }) => {
+    if (!resolvedHouseDocId) return;
+    const nome = dados.nome.trim();
+    const chave = normalizarNome(nome);
+    if (!chave) throw new CadastroError('Informe o nome.');
+
+    // Nenhum nome pode virar o de outra pessoa: isso juntaria dois cadastros num só.
+    const outroNoCadastro = jogadores.find(j => j.nomeNormalizado === chave && j.id !== atual?.jogadorId);
+    const outroNosRankings = chave !== atual?.chave && house.rankings.some(r =>
+      r.players.some(p => normalizarNome(p.name) === chave && (!atual?.jogadorId || p.jogadorId !== atual.jogadorId))
+    );
+    if (outroNoCadastro || outroNosRankings) throw new CadastroError(`Já existe um jogador chamado ${nome}.`);
+
+    const lote = writeBatch(db);
+    const campos = {
+      nome,
+      nomeNormalizado: chave,
+      telefone: dados.telefone || undefined,
+      nascimento: dados.nascimento || undefined,
+      time: dados.time || undefined,
+      ativo: dados.ativo !== false,
+    };
+    if (atual?.jogadorId) {
+      // Campo vazio apaga o valor anterior do cadastro.
+      lote.update(doc(db, 'casas', resolvedHouseDocId, 'jogadores', atual.jogadorId), {
+        ...Object.fromEntries(Object.entries(campos).map(([k, v]) => [k, v === undefined ? deleteField() : v])),
+        atualizadoEm: new Date().toISOString(),
+      });
+    } else {
+      // Quem só existia nos rankings antigos ganha agora o registro no cadastro.
+      const ref = doc(collection(db, 'casas', resolvedHouseDocId, 'jogadores'));
+      lote.set(ref, { ...Object.fromEntries(Object.entries(campos).filter(([, v]) => v !== undefined)), criadoEm: new Date().toISOString() });
+    }
+
+    // Renomear é uma edição explícita: o nome muda também onde a pessoa joga.
+    if (atual?.chave && chave !== atual.chave) {
+      for (const r of house.rankings) {
+        const daPessoa = (p: Player) => (atual.jogadorId && p.jogadorId === atual.jogadorId) || (!p.jogadorId && normalizarNome(p.name) === atual.chave);
+        if (!r.players.some(daPessoa)) continue;
+        lote.update(doc(db, 'casas', resolvedHouseDocId, 'rankings', r.id), {
+          players: r.players.map(p => (daPessoa(p) ? { ...p, name: nome } : p)),
+        });
+      }
+    }
+
+    try {
+      await lote.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `casas/${resolvedHouseDocId}/jogadores`);
+      throw error;
+    }
+  }, [resolvedHouseDocId, jogadores, house.rankings]);
 
   const updateHistoryEntryName = useCallback(async (entryId: string, newName: string) => {
     if (!activeRanking || !resolvedHouseDocId) return;
@@ -560,7 +702,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       currentView, setCurrentView, addPlayer, removePlayer, updatePlayer,
       updateScoringConfig, addWeeklyResult, updateHistoryEntryName, updateHistoryEntryStage, deleteHistoryEntry, updateHouseName, updateHouseSlug,
       updateProfileData, addRanking, deleteRanking, updateRankingName, updateRankingActive, updateGameCategories,
-      updatePokerClockConfig, pokerClockConfig,
+      updatePokerClockConfig, pokerClockConfig, jogadores, salvarJogador,
       loadingData, unauthorized
     }}>
       {children}
