@@ -30,7 +30,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       <div className="bg-gray-900 w-full max-w-md border border-gray-800 rounded-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center p-6 border-b border-gray-800">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${variant === 'danger' ? 'bg-red-500/10 text-red-500' : 'bg-amber-500/10 text-amber-500'}`}>
+            <div className={`p-2 rounded-lg ${variant === 'danger' ? 'bg-red-500/10 text-red-500' : 'bg-emerald-500/10 text-emerald-400'}`}>
               <AlertTriangle size={20} />
             </div>
             <h3 className="text-lg font-bold text-white">{title}</h3>
@@ -58,10 +58,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
               onConfirm();
               onClose();
             }}
-            className={`flex-1 px-6 py-3 rounded-xl font-bold text-xs   text-white transition-all shadow-lg ${
-              variant === 'danger' 
-              ? 'bg-red-600 hover:bg-red-500 shadow-red-900/20' 
-              : 'bg-amber-600 hover:bg-amber-500'
+            className={`flex-1 px-6 py-3 rounded-xl font-bold text-xs transition-all ${
+              variant === 'danger'
+              ? 'bg-red-600 hover:bg-red-500 text-white'
+              : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 ring-1 ring-inset ring-emerald-500/30'
             }`}
           >
             {confirmLabel}

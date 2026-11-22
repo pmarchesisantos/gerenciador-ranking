@@ -6,7 +6,8 @@ import { initializeApp, deleteApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { Trophy, Plus, Mail, Shield, Trash2, Home, UserCheck, Info, ExternalLink, Key, Loader2, Eraser, AlertCircle, Eye, ShieldAlert } from 'lucide-react';
 import { updateDoc, deleteField } from 'firebase/firestore';
-import { LISTA_PLANOS, PLANOS, PlanoId, StatusAssinatura, ehPlano } from '../services/planos';
+import { LISTA_PLANOS, PLANOS, PlanoId, Recurso, StatusAssinatura, ehPlano } from '../services/planos';
+import ConfirmationModal from './ConfirmationModal';
 import { paraVitrine } from '../services/vitrine';
 import { Ranking } from '../types';
 
@@ -27,6 +28,11 @@ interface HouseRecord {
   createdAt: string;
   plano?: PlanoId;
   assinatura?: { status: StatusAssinatura };
+  /**
+   * Fim da cortesia (AAAA-MM-DD). Só um lembrete para o administrador: o acesso
+   * NÃO é cortado automaticamente. Vencido, é hora de solicitar a assinatura.
+   */
+  cortesiaAte?: string;
 }
 
 const SuperAdminDashboard: React.FC = () => {
@@ -128,14 +134,66 @@ const SuperAdminDashboard: React.FC = () => {
     }
   };
 
-  /** Plano de uma casa de cortesia (sem assinatura). Vazio = acesso completo. */
-  const definirPlano = async (casa: HouseRecord, valor: string) => {
+  /**
+   * Plano de uma casa de cortesia (sem assinatura). A escolha na lista fica
+   * pendente até o "Confirmar" e a confirmação na janela — nada grava direto.
+   * Casa sem plano gravado equivale ao Black (acesso completo, como sempre teve).
+   */
+  const [escolhas, setEscolhas] = useState<Record<string, PlanoId>>({});
+  const [confirmarPlano, setConfirmarPlano] = useState<{ casa: HouseRecord; plano: PlanoId } | null>(null);
+  const planoAtual = (casa: HouseRecord): PlanoId => (casa.plano && ehPlano(casa.plano) ? casa.plano : 'completo');
+
+  const definirPlano = async (casa: HouseRecord, plano: PlanoId) => {
     try {
-      await updateDoc(doc(db, 'casas', casa.id), { plano: ehPlano(valor) ? valor : deleteField() });
+      await updateDoc(doc(db, 'casas', casa.id), { plano });
+      setEscolhas(e => { const n = { ...e }; delete n[casa.id]; return n; });
+      setStatus({ type: 'success', msg: `${casa.name} agora está no plano ${PLANOS[plano].nome}.` });
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `casas/${casa.id}`);
       setStatus({ type: 'error', msg: 'Não foi possível alterar o plano.' });
     }
+  };
+
+  const NOME_RECURSO: Record<Recurso, string> = { ranking: 'ranking', pokerClock: 'poker clock', financeiro: 'financeiro', bar: 'bar' };
+  // ── Prazo da cortesia ──
+  const hojeISO = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+  const somarDias = (iso: string, dias: number) => {
+    const [a, m, d] = iso.split('-').map(Number);
+    const data = new Date(a, m - 1, d + dias);
+    return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}`;
+  };
+  const dataBR = (iso: string) => iso.split('-').reverse().join('/');
+  const diasAte = (iso: string) => {
+    const [a, m, d] = iso.split('-').map(Number);
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    return Math.round((new Date(a, m - 1, d).getTime() - hoje.getTime()) / 86400000);
+  };
+  const PRAZO_PADRAO_DIAS = 90;
+
+  const [editandoPrazo, setEditandoPrazo] = useState<Record<string, string>>({});
+  const [confirmarPrazo, setConfirmarPrazo] = useState<{ casa: HouseRecord; ate: string } | null>(null);
+
+  const definirPrazo = async (casa: HouseRecord, ate: string) => {
+    try {
+      await updateDoc(doc(db, 'casas', casa.id), { cortesiaAte: ate });
+      setEditandoPrazo(e => { const n = { ...e }; delete n[casa.id]; return n; });
+      setStatus({ type: 'success', msg: `Cortesia do ${casa.name} vai até ${dataBR(ate)}.` });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.UPDATE, `casas/${casa.id}`);
+      setStatus({ type: 'error', msg: 'Não foi possível salvar o prazo da cortesia.' });
+    }
+  };
+
+  const mensagemTroca = (casa: HouseRecord, plano: PlanoId) => {
+    const de = PLANOS[planoAtual(casa)], para = PLANOS[plano];
+    const perde = de.recursos.filter(r => !para.recursos.includes(r)).map(r => NOME_RECURSO[r]);
+    const ganha = para.recursos.filter(r => !de.recursos.includes(r)).map(r => NOME_RECURSO[r]);
+    return `O ${casa.name} passa do plano ${de.nome} para o ${para.nome}, sem cobrança (cortesia).`
+      + (ganha.length ? ` Passa a ter: ${ganha.join(', ')}.` : '')
+      + (perde.length ? ` Perde o acesso a: ${perde.join(', ')} (os dados ficam guardados).` : '');
   };
 
   const comSenhaExposta = houses.filter(h => h.tempPassword);
@@ -358,16 +416,65 @@ const SuperAdminDashboard: React.FC = () => {
                       </span>
                     </>
                   ) : (
-                    <label className="flex items-center gap-2 w-full">
+                    <div className="flex items-center gap-2 w-full">
                       <span className="text-xs font-semibold text-gray-600 shrink-0">Cortesia</span>
-                      <select value={houseRecord.plano || ''} onChange={e => definirPlano(houseRecord, e.target.value)}
-                              className="flex-1 bg-black/40 border border-gray-800 rounded-lg px-2 py-1.5 text-xs font-bold text-white outline-none">
-                        <option value="">Black (sem plano)</option>
+                      <select value={escolhas[houseRecord.id] ?? planoAtual(houseRecord)}
+                              onChange={e => setEscolhas(x => ({ ...x, [houseRecord.id]: e.target.value as PlanoId }))}
+                              aria-label={`Plano do ${houseRecord.name}`}
+                              className="flex-1 min-w-0 bg-black/40 border border-gray-800 rounded-lg px-2 py-1.5 text-xs font-bold text-white outline-none">
                         {LISTA_PLANOS.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
                       </select>
-                    </label>
+                      {escolhas[houseRecord.id] && escolhas[houseRecord.id] !== planoAtual(houseRecord) && (
+                        <>
+                          <button onClick={() => setConfirmarPlano({ casa: houseRecord, plano: escolhas[houseRecord.id] })}
+                                  className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30 hover:bg-emerald-500/25">
+                            Confirmar
+                          </button>
+                          <button onClick={() => setEscolhas(x => { const n = { ...x }; delete n[houseRecord.id]; return n; })}
+                                  title="Desfazer a escolha" className="shrink-0 text-xs text-gray-500 hover:text-white">
+                            Desfazer
+                          </button>
+                        </>
+                      )}
+                    </div>
                   )}
                 </div>
+                {!houseRecord.assinatura && (() => {
+                  const editando = editandoPrazo[houseRecord.id];
+                  if (editando !== undefined) {
+                    return (
+                      <div className="mb-3 flex items-center gap-2">
+                        <span className="text-xs font-semibold text-gray-600 shrink-0">Até</span>
+                        <input type="date" value={editando} min={hojeISO()}
+                               onChange={e => setEditandoPrazo(x => ({ ...x, [houseRecord.id]: e.target.value }))}
+                               aria-label={`Fim da cortesia do ${houseRecord.name}`}
+                               className="flex-1 min-w-0 bg-black/40 border border-gray-800 rounded-lg px-2 py-1.5 text-xs font-bold text-white outline-none [color-scheme:dark]" />
+                        <button disabled={!editando} onClick={() => setConfirmarPrazo({ casa: houseRecord, ate: editando })}
+                                className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40">
+                          Confirmar
+                        </button>
+                        <button onClick={() => setEditandoPrazo(x => { const n = { ...x }; delete n[houseRecord.id]; return n; })}
+                                className="shrink-0 text-xs text-gray-500 hover:text-white">Desfazer</button>
+                      </div>
+                    );
+                  }
+                  const ate = houseRecord.cortesiaAte;
+                  const dias = ate ? diasAte(ate) : null;
+                  const cor = dias === null ? 'text-gray-500' : dias < 0 ? 'text-red-400' : dias <= 15 ? 'text-amber-400' : 'text-gray-400';
+                  return (
+                    <div className="mb-3 flex items-center justify-between gap-2 text-xs">
+                      <span className={cor}>
+                        {ate === undefined ? 'Cortesia sem prazo definido'
+                          : dias! < 0 ? `Cortesia venceu em ${dataBR(ate)} · hora de solicitar a assinatura`
+                          : `Cortesia até ${dataBR(ate)} · ${dias === 0 ? 'vence hoje' : `faltam ${dias} dia${dias === 1 ? '' : 's'}`}`}
+                      </span>
+                      <button onClick={() => setEditandoPrazo(x => ({ ...x, [houseRecord.id]: ate || somarDias(hojeISO(), PRAZO_PADRAO_DIAS) }))}
+                              className="shrink-0 font-semibold text-emerald-400 hover:text-emerald-300">
+                        {ate ? 'Alterar prazo' : `Definir prazo (${PRAZO_PADRAO_DIAS} dias)`}
+                      </button>
+                    </div>
+                  );
+                })()}
                 <div className="bg-black/40 rounded-xl p-3 border border-gray-800 flex items-center justify-between">
                    <div className="flex items-center gap-2">
                      <UserCheck size={12} className="text-emerald-500" />
@@ -386,6 +493,24 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
         </section>
       </div>
+      <ConfirmationModal
+        isOpen={!!confirmarPrazo}
+        onClose={() => setConfirmarPrazo(null)}
+        onConfirm={() => { const c = confirmarPrazo!; setConfirmarPrazo(null); definirPrazo(c.casa, c.ate); }}
+        title="Prazo da cortesia"
+        message={confirmarPrazo ? `A cortesia do ${confirmarPrazo.casa.name} vai até ${dataBR(confirmarPrazo.ate)} (${diasAte(confirmarPrazo.ate)} dias a partir de hoje). O acesso não é cortado automaticamente: o prazo serve de lembrete para solicitar a assinatura.` : ''}
+        confirmLabel="Salvar prazo"
+        variant="warning"
+      />
+      <ConfirmationModal
+        isOpen={!!confirmarPlano}
+        onClose={() => setConfirmarPlano(null)}
+        onConfirm={() => { const c = confirmarPlano!; setConfirmarPlano(null); definirPlano(c.casa, c.plano); }}
+        title="Alterar plano"
+        message={confirmarPlano ? mensagemTroca(confirmarPlano.casa, confirmarPlano.plano) : ''}
+        confirmLabel="Alterar plano"
+        variant="warning"
+      />
     </div>
   );
 };
