@@ -7,6 +7,8 @@ import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { Trophy, Plus, Mail, Shield, Trash2, Home, UserCheck, Info, ExternalLink, Key, Loader2, Eraser, AlertCircle, Eye, ShieldAlert } from 'lucide-react';
 import { updateDoc, deleteField } from 'firebase/firestore';
 import { LISTA_PLANOS, PLANOS, PlanoId, StatusAssinatura, ehPlano } from '../services/planos';
+import { paraVitrine } from '../services/vitrine';
+import { Ranking } from '../types';
 
 const STATUS_TEXTO: Record<StatusAssinatura, { texto: string; cls: string }> = {
   pendente: { texto: 'Aguardando pagamento', cls: 'text-amber-400' },
@@ -137,6 +139,33 @@ const SuperAdminDashboard: React.FC = () => {
   };
 
   const comSenhaExposta = houses.filter(h => h.tempPassword);
+  /**
+   * Gera a vitrine (página pública) de todos os clubes a partir dos rankings.
+   * Só CRIA/atualiza os documentos públicos; os rankings não são alterados.
+   * Rodar antes de publicar as regras que fecham a leitura dos rankings.
+   */
+  const [gerandoVitrines, setGerandoVitrines] = useState(false);
+  const gerarVitrines = async () => {
+    setGerandoVitrines(true);
+    setStatus(null);
+    let total = 0;
+    try {
+      for (const casa of houses) {
+        const rankings = await getDocs(collection(db, 'casas', casa.id, 'rankings'));
+        for (const r of rankings.docs) {
+          await setDoc(doc(db, 'casas', casa.id, 'vitrine', r.id), paraVitrine({ id: r.id, ...r.data() } as Ranking));
+          total++;
+        }
+      }
+      setStatus({ type: 'success', msg: `Páginas públicas geradas: ${total} ranking(s) em ${houses.length} clube(s). Agora você já pode publicar as regras novas do Firestore.` });
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, 'casas/*/vitrine');
+      setStatus({ type: 'error', msg: `Parou depois de ${total} ranking(s). Verifique a conexão e tente de novo.` });
+    } finally {
+      setGerandoVitrines(false);
+    }
+  };
+
   const removerSenhasExpostas = async () => {
     if (!confirm(`Remover a senha em texto puro de ${comSenhaExposta.length} clube(s)? As senhas de acesso dos donos NÃO mudam; só deixam de ficar visíveis no banco.`)) return;
     setIsProcessing(true);
@@ -187,6 +216,23 @@ const SuperAdminDashboard: React.FC = () => {
           Limpar Todos
         </button>
       </header>
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-gray-800 bg-gray-900 p-6">
+        <div>
+          <p className="text-white font-semibold">Páginas públicas dos clubes</p>
+          <p className="text-gray-400 text-sm mt-1">Gera a versão pública de cada ranking (só classificação e pontos, sem valores nem contatos).
+            Os rankings não são alterados. Rode uma vez antes de publicar as regras novas; depois disso elas se atualizam sozinhas.</p>
+        </div>
+        <button onClick={gerarVitrines} disabled={gerandoVitrines || houses.length === 0}
+                className="shrink-0 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 ring-1 ring-inset ring-emerald-500/30 px-5 py-3 rounded-xl text-xs font-semibold disabled:opacity-40 flex items-center gap-2">
+          {gerandoVitrines ? <><Loader2 size={14} className="animate-spin" /> Gerando...</> : 'Gerar páginas públicas'}
+        </button>
+      </div>
+      {status && (
+        <div className={`p-4 rounded-xl text-sm font-medium ${status.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+          {status.msg}
+        </div>
+      )}
 
       {comSenhaExposta.length > 0 && (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 rounded-xl border border-red-500/30 bg-red-500/[0.06] p-6">

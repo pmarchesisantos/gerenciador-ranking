@@ -1,9 +1,10 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { PokerHouse, Ranking, Player, ScoringConfig, WeeklyHistoryEntry, View, ProfileData, GameCategory, PokerClockConfig, BlindLevel, StageFinanceiro, Jogador } from '../types';
 import { INITIAL_SCORING_CONFIG, MOCK_HOUSE } from '../services/mockData';
 import { useAuth } from './AuthContext';
-import { writeBatch, WriteBatch, deleteField } from 'firebase/firestore';
+import { writeBatch, WriteBatch, deleteField, setDoc } from 'firebase/firestore';
+import { RankingVitrine, daVitrine, paraVitrine } from '../services/vitrine';
 import { normalizarNome, encontrarJogador, encontrarNoRanking, CadastroError } from '../services/jogadores';
 
 /** Dados editáveis de uma pessoa do cadastro geral. */
@@ -261,6 +262,26 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     resolveHouseAccess();
   }, [user, isSuperAdmin, viewingHouseId, versaoCasa]);
 
+  /**
+   * Mantém a vitrine pública em dia: a cada mudança nos rankings (vinda de
+   * qualquer tela ou do servidor), grava a versão pública de quem mudou. Só
+   * grava o que mudou desde a última vez nesta sessão.
+   */
+  const ultimaVitrine = useRef(new Map<string, string>());
+  const publicarVitrine = useCallback((casaId: string, rankings: Ranking[]) => {
+    for (const r of rankings) {
+      const vitrine = paraVitrine(r);
+      const chave = `${casaId}/${r.id}`;
+      const json = JSON.stringify(vitrine);
+      if (ultimaVitrine.current.get(chave) === json) continue;
+      ultimaVitrine.current.set(chave, json);
+      setDoc(doc(db, 'casas', casaId, 'vitrine', r.id), vitrine).catch(error => {
+        ultimaVitrine.current.delete(chave);
+        handleFirestoreError(error, OperationType.WRITE, `casas/${casaId}/vitrine/${r.id}`);
+      });
+    }
+  }, []);
+
   useEffect(() => {
     if (!resolvedHouseDocId) return;
     const houseDocRef = doc(db, 'casas', resolvedHouseDocId);
@@ -289,26 +310,51 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, `casas/${resolvedHouseDocId}`);
     });
+    const aplicarRankings = (rankingsData: Ranking[]) => setHouse(prev => {
+      // Only update if rankings data actually changed to avoid unnecessary re-renders
+      if (JSON.stringify(prev.rankings) === JSON.stringify(rankingsData)) return prev;
+      return { ...prev, rankings: rankingsData };
+    });
+
+    // Visitante (sem login): só a vitrine pública. O ranking completo tem dados
+    // do clube (valores, pagamentos, contatos) e não é lido aqui.
+    if (!user) {
+      // Clube sem vitrine ainda (antes de o dono abrir o app ou de o administrador
+      // gerar as páginas), ou regras antigas que ainda não conhecem a vitrine:
+      // tenta o ranking completo — que só funciona enquanto as regras antigas
+      // valem — e mostra apenas a parte pública dele.
+      let usouFallback = false;
+      const recorrerAoRanking = async () => {
+        if (usouFallback) return;
+        usouFallback = true;
+        try {
+          const antigos = await getDocs(rankingsCollRef);
+          aplicarRankings(antigos.docs.map(d => daVitrine(d.id, paraVitrine({ id: d.id, ...d.data() } as Ranking))));
+        } catch { /* regras novas sem vitrine gerada: a página fica vazia até gerar */ }
+      };
+      const unsubVitrine = onSnapshot(collection(db, 'casas', resolvedHouseDocId, 'vitrine'), (snapshot) => {
+        if (snapshot.empty) { recorrerAoRanking(); return; }
+        aplicarRankings(snapshot.docs.map(d => daVitrine(d.id, d.data() as RankingVitrine)));
+      }, () => { recorrerAoRanking(); });
+      return () => { unsubHouse(); unsubVitrine(); };
+    }
+
     const unsubRankings = onSnapshot(rankingsCollRef, (snapshot) => {
-      const rankingsData = snapshot.docs.map(doc => ({ 
-        id: doc.id, 
+      const rankingsData = snapshot.docs.map(doc => ({
+        id: doc.id,
         ...doc.data(),
         players: doc.data().players || [],
         history: doc.data().history || [],
         gameCategories: doc.data().gameCategories || [],
         scoringConfig: doc.data().scoringConfig || { ...INITIAL_SCORING_CONFIG }
       })) as Ranking[];
-      
-      setHouse(prev => {
-        // Only update if rankings data actually changed to avoid unnecessary re-renders
-        if (JSON.stringify(prev.rankings) === JSON.stringify(rankingsData)) return prev;
-        return { ...prev, rankings: rankingsData };
-      });
+      aplicarRankings(rankingsData);
+      publicarVitrine(resolvedHouseDocId, rankingsData);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, `casas/${resolvedHouseDocId}/rankings`);
     });
     return () => { unsubHouse(); unsubRankings(); };
-  }, [resolvedHouseDocId]);
+  }, [resolvedHouseDocId, user]);
 
   // Cadastro geral: privado, então só é lido com alguém logado. Na tela pública
   // a regra do Firestore negaria a leitura e o console encheria de erros.
@@ -412,7 +458,8 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const deleteRanking = useCallback(async (id: string) => {
     if (resolvedHouseDocId) {
       try {
-        await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id)); 
+        await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'rankings', id));
+        await deleteDoc(doc(db, 'casas', resolvedHouseDocId, 'vitrine', id)).catch(() => undefined);
       } catch (error) {
         handleFirestoreError(error, OperationType.DELETE, `casas/${resolvedHouseDocId}/rankings/${id}`);
         throw error;

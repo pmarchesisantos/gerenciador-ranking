@@ -64,14 +64,23 @@ service cloud.firestore {
       // clube: fica com o administrador.
       allow delete: if isSuperAdmin();
 
-      // Regras para os Rankings dentro de cada Casa
+      // Regras para os Rankings dentro de cada Casa. O ranking completo tem
+      // valores das etapas, pagamentos e (em cadastros antigos) contatos dos
+      // jogadores: só o dono e o administrador leem. O público lê a vitrine.
       match /rankings/{rankingId} {
-        // Rankings são públicos para que os jogadores vejam a tabela
-        allow read: if true;
+        allow read: if isSuperAdmin() || isOwner(casa(casaId));
 
         // Dono com acesso em dia (ou SuperAdmin) gerencia os rankings
         allow create, update, delete: if isSuperAdmin() ||
           (isOwner(casa(casaId)) && acessoAtivo(casa(casaId)));
+      }
+
+      // Vitrine: a versão pública de cada ranking (classificação e pontos, sem
+      // valores nem contatos). É o que a página pública lê. O app do dono a
+      // mantém em dia; o painel Master gera a dos clubes antigos.
+      match /vitrine/{rankingId} {
+        allow read: if true;
+        allow write: if isSuperAdmin() || isOwner(casa(casaId));
       }
 
       // Cadastro geral de jogadores: telefone e nascimento são dados pessoais,

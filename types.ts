@@ -117,6 +117,8 @@ export interface Ranking {
   gameCategories?: GameCategory[];
   /** Ranking oculto na visão pública quando false. Ausente significa ativo. */
   active?: boolean;
+  /** Só na página pública (vitrine): total do pote, já calculado. */
+  poteAcumulado?: number;
 }
 
 export interface Contact {

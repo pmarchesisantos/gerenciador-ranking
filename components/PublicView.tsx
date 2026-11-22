@@ -3,10 +3,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRanking } from '../context/RankingContext';
 import { db, collection, onSnapshot, handleFirestoreError, OperationType } from '../services/firebase';
 import { Trophy, Calendar, LogIn, ChevronRight, Search, Home, Instagram, Phone, X, MessageCircle, ListOrdered } from 'lucide-react';
-import StageValuesModal from './StageValuesModal';
 import ScrollArea from './ScrollArea';
 import { getStagesTotal, formatBRL } from '../services/stageValues';
-import { getStageFinance } from '../services/stageFinance';
 import Marca from './Marca';
 
 const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => void }> = ({ onLoginClick, onCadastroClick }) => {
@@ -17,7 +15,6 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
   const [houseSearch, setHouseSearch] = useState('');
   const [historySearch, setHistorySearch] = useState('');
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [isStageValuesOpen, setIsStageValuesOpen] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<string>('');
 
   useEffect(() => {
@@ -135,7 +132,8 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
     );
   }
 
-  const totalAccumulated = getStagesTotal(activeRanking || null);
+  // Só o total do pote é público (vem pronto da vitrine); o valor de cada etapa é do clube.
+  const totalAccumulated = activeRanking?.poteAcumulado ?? getStagesTotal(activeRanking || null);
 
   const selectedEntry = activeRanking?.history.find(h => h.id === selectedEntryId);
 
@@ -271,14 +269,6 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                             <span className="font-semibold text-emerald-500 text-lg">
                               R$ {formatBRL(totalAccumulated, 0)}
                             </span>
-                            <button
-                              onClick={() => setIsStageValuesOpen(true)}
-                              title="Ver valor de cada etapa e quem venceu"
-                              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 text-emerald-500 active:bg-emerald-500/25 active:text-emerald-100 rounded-xl transition-all font-semibold text-xs border border-emerald-500/20"
-                            >
-                              <ListOrdered size={14} />
-                              <span>Ver por Etapa</span>
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -328,9 +318,15 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                     </div>
 
                     {selectedEntry ? (() => {
-                      const finance = getStageFinance(activeRanking, selectedEntry);
+                      // Página pública: só classificação e pontos. Valores da etapa (arrecadação,
+                      // rake, premiação, gasto e pagamento de cada jogador) são do clube.
+                      const nomeDe = (id: string) => activeRanking.players.find(pl => pl.id === id)?.name || 'Jogador removido';
+                      const categoria = (activeRanking.gameCategories || []).find(c => c.id === selectedEntry.categoryId);
+                      const resultados = [...(selectedEntry.results || [])]
+                        .map(r => ({ playerId: r.playerId, position: r.position, pointsEarned: r.pointsEarned, name: nomeDe(r.playerId) }))
+                        .sort((a, b) => a.position - b.position);
                       const termo = historySearch.trim().toLowerCase();
-                      const visiveis = finance.players.filter(p => p.name.toLowerCase().includes(termo));
+                      const visiveis = resultados.filter(p => p.name.toLowerCase().includes(termo));
                       const posClass = (pos: number) =>
                         pos >= 1 && pos <= 3 ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' :
                         pos >= 4 && pos <= 8 ? 'bg-gray-700 text-gray-100' :
@@ -349,8 +345,8 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                             </h4>
                             <p className="text-gray-500 text-xs font-semibold">
                               {new Date(selectedEntry.date).toLocaleDateString('pt-BR')}
-                              {finance.category && <> &middot; {finance.category.name}</>}
-                              {' '}&middot; {finance.players.length} jogadores
+                              {categoria && <> &middot; {categoria.name}</>}
+                              {' '}&middot; {resultados.length} jogadores
                             </p>
                           </div>
                           {selectedEntry.multiplier > 1 && (
@@ -360,113 +356,35 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                           )}
                         </div>
 
-                        {finance.category ? (
-                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-gray-800 border-b border-gray-800">
-                            <div className="bg-gray-900 p-5">
-                              <p className="text-xs font-semibold text-gray-600 mb-2">Total Arrecadado</p>
-                              <p className="text-white font-semibold text-lg tracking-tight">R$ {formatBRL(finance.totalBruto)}</p>
-                            </div>
-                            <div className="bg-gray-900 p-5">
-                              <p className="text-xs font-semibold text-gray-600 mb-2">Rake ({finance.rakePercent}%)</p>
-                              <p className="text-red-500 font-semibold text-lg tracking-tight">- R$ {formatBRL(finance.rakeValue)}</p>
-                            </div>
-                            <div className="bg-gray-900 p-5">
-                              <p className="text-xs font-semibold text-gray-600 mb-2">Para o Ranking</p>
-                              <p className="text-emerald-500 font-semibold text-lg tracking-tight">R$ {formatBRL(finance.rankingValue)}</p>
-                            </div>
-                            <div className="bg-gray-900 p-5">
-                              <p className="text-xs font-semibold text-gray-600 mb-2">Premiação</p>
-                              <p className="text-emerald-500 font-semibold text-lg tracking-tight">R$ {formatBRL(finance.liquido)}</p>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="px-6 md:px-8 py-4 bg-amber-500/[0.06] border-b border-amber-500/20 text-amber-500/90 text-xs">
-                            Esta etapa foi lançada sem categoria de jogo, então os valores por jogador não podem ser calculados.
-                          </div>
-                        )}
-
                         {visiveis.length === 0 ? (
                           <div className="py-16 text-center text-gray-600 italic">
                             Nenhum jogador encontrado com este nome nesta etapa.
                           </div>
                         ) : (
-                          <div className="overflow-x-auto custom-scrollbar">
-                            <table className="w-full text-left min-w-[760px]">
-                              <thead>
-                                <tr className="bg-gray-800/60 text-gray-500 text-xs border-b border-gray-800">
-                                  <th className="px-6 py-4 font-semibold">Pos.</th>
-                                  <th className="px-4 py-4 font-semibold">Jogador</th>
-                                  <th className="px-4 py-4 font-semibold text-center">Pts</th>
-                                  {finance.category && (
-                                    <>
-                                      <th className="px-3 py-4 font-semibold text-center">Re-buy</th>
-                                      <th className="px-3 py-4 font-semibold text-center">Duplo</th>
-                                      <th className="px-3 py-4 font-semibold text-center">Add-on</th>
-                                      {finance.customFields.map(f => (
-                                        <th key={f.id} className="px-3 py-4 font-semibold text-center">{f.name || 'Extra'}</th>
-                                      ))}
-                                      <th className="px-3 py-4 font-semibold text-center">Pago</th>
-                                      <th className="px-6 py-4 font-semibold text-right">Gasto</th>
-                                    </>
-                                  )}
+                          <table className="w-full text-left">
+                            <thead>
+                              <tr className="bg-gray-800/60 text-gray-500 text-xs border-b border-gray-800">
+                                <th className="px-6 py-4 font-semibold w-24">Pos.</th>
+                                <th className="px-4 py-4 font-semibold">Jogador</th>
+                                <th className="px-6 py-4 font-semibold text-right">Pontos</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-800/60">
+                              {visiveis.map(p => (
+                                <tr key={p.playerId}>
+                                  <td className="px-6 py-4">
+                                    <span className={`inline-flex w-8 h-8 items-center justify-center rounded-xl text-xs font-semibold ${posClass(p.position)}`}>
+                                      {p.position}º
+                                    </span>
+                                  </td>
+                                  <td className={`px-4 py-4 font-bold text-sm ${nameClass(p.position)}`}>{p.name}</td>
+                                  <td className="px-6 py-4 text-right">
+                                    <span className="text-white font-semibold text-sm">+{p.pointsEarned}</span>
+                                  </td>
                                 </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-800/60">
-                                {visiveis.map(p => (
-                                  <tr key={p.playerId} className="hover:bg-emerald-600/[0.03] transition-colors">
-                                    <td className="px-6 py-4">
-                                      <span className={`inline-flex w-8 h-8 items-center justify-center rounded-xl text-xs font-semibold ${posClass(p.position)}`}>
-                                        {p.position}º
-                                      </span>
-                                    </td>
-                                    <td className={`px-4 py-4 font-bold text-sm ${nameClass(p.position)}`}>{p.name}</td>
-                                    <td className="px-4 py-4 text-center">
-                                      <span className="text-emerald-500 font-semibold text-xs">+{p.pointsEarned}</span>
-                                    </td>
-                                    {finance.category && (
-                                      <>
-                                        <td className="px-3 py-4 text-center text-gray-400 font-bold text-xs">{p.rebuys || '—'}</td>
-                                        <td className="px-3 py-4 text-center text-gray-400 font-bold text-xs">{p.doubleRebuys || '—'}</td>
-                                        <td className="px-3 py-4 text-center text-gray-400 font-bold text-xs">{p.addons || '—'}</td>
-                                        {finance.customFields.map(f => (
-                                          <td key={f.id} className="px-3 py-4 text-center text-gray-400 font-bold text-xs">
-                                            {p.customValues[f.id] || '—'}
-                                          </td>
-                                        ))}
-                                        <td className="px-3 py-4 text-center">
-                                          <span className={`text-xs font-semibold   ${p.paid ? 'text-green-500' : 'text-amber-500'}`}>
-                                            {p.paid ? 'Sim' : 'Pend.'}
-                                          </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right text-emerald-500 font-semibold text-xs">
-                                          R$ {formatBRL(p.gross)}
-                                        </td>
-                                      </>
-                                    )}
-                                  </tr>
-                                ))}
-                              </tbody>
-                              {finance.category && (
-                                <tfoot className="bg-gray-800/60 border-t border-gray-700">
-                                  <tr className="text-xs">
-                                    <td colSpan={3} className="px-6 py-4 font-semibold text-gray-500 text-right">Totais da etapa:</td>
-                                    <td className="px-3 py-4 text-center text-gray-300 font-semibold">{finance.totals.rebuys}</td>
-                                    <td className="px-3 py-4 text-center text-gray-300 font-semibold">{finance.totals.doubleRebuys}</td>
-                                    <td className="px-3 py-4 text-center text-gray-300 font-semibold">{finance.totals.addons}</td>
-                                    {finance.customFields.map(f => (
-                                      <td key={f.id} className="px-3 py-4 text-center text-gray-300 font-semibold">
-                                        {finance.totals.customValues[f.id] || 0}
-                                      </td>
-                                    ))}
-                                    <td></td>
-                                    <td className="px-6 py-4 text-right text-emerald-500 font-semibold text-sm">
-                                      R$ {formatBRL(finance.totalBruto)}
-                                    </td>
-                                  </tr>
-                                </tfoot>
-                              )}
-                            </table>
-                          </div>
+                              ))}
+                            </tbody>
+                          </table>
                         )}
                       </div>
                       );
@@ -495,9 +413,7 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
         )}
       </main>
 
-      {isStageValuesOpen && activeRanking && (
-        <StageValuesModal ranking={activeRanking} onClose={() => setIsStageValuesOpen(false)} />
-      )}
+
 
       {/* Modal Contatos */}
       {isContactModalOpen && (
