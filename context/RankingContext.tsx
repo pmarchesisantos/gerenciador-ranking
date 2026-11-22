@@ -64,9 +64,14 @@ interface RankingContextType {
   pokerClockConfig: PokerClockConfig;
   loadingData: boolean;
   unauthorized: boolean;
+  /** Logado, não é administrador e não tem clube: precisa fazer o cadastro. */
+  semCasa: boolean;
+  /** Procura de novo o clube do usuário logado (depois do cadastro). */
+  recarregarCasa: () => void;
 }
 
-const RankingContext = createContext<RankingContextType | undefined>(undefined);
+/** Exportado para permitir montar as telas com dados de teste. */
+export const RankingContext = createContext<RankingContextType | undefined>(undefined);
 
 const EMPTY_HOUSE: PokerHouse = { id: '', slug: '', name: '', rankings: [] };
 
@@ -150,6 +155,9 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [jogadores, setJogadores] = useState<Jogador[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
+  const [semCasa, setSemCasa] = useState(false);
+  const [versaoCasa, setVersaoCasa] = useState(0);
+  const recarregarCasa = useCallback(() => setVersaoCasa(v => v + 1), []);
 
   const safeNavigate = (path: string, method: 'push' | 'replace' = 'push') => {
     try {
@@ -206,6 +214,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setLoadingData(false);
         return;
       }
+      setSemCasa(false);
       if (user && !isSuperAdmin) {
         const email = user.email?.toLowerCase().trim();
         const q = query(collection(db, 'casas'), where('ownerEmail', '==', email));
@@ -224,6 +233,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           } else {
             setHouse({ ...EMPTY_HOUSE, name: 'Clube não localizado' });
             setResolvedHouseDocId(null);
+            setSemCasa(true);
           }
         } catch (error) {
           handleFirestoreError(error, OperationType.LIST, 'casas');
@@ -249,7 +259,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     };
     resolveHouseAccess();
-  }, [user, isSuperAdmin, viewingHouseId]);
+  }, [user, isSuperAdmin, viewingHouseId, versaoCasa]);
 
   useEffect(() => {
     if (!resolvedHouseDocId) return;
@@ -263,7 +273,14 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
           id: resolvedHouseDocId, 
           slug: data.slug || resolvedHouseDocId,
           name: data.name,
-          profile: data.profile 
+          profile: data.profile,
+          plano: data.plano,
+          // `ate` é Timestamp no Firestore (as regras comparam com a hora da
+          // requisição); o app trabalha com ISO.
+          assinatura: data.assinatura ? {
+            ...data.assinatura,
+            ate: data.assinatura.ate?.toDate ? data.assinatura.ate.toDate().toISOString() : data.assinatura.ate,
+          } : undefined,
         }));
         if (data.pokerClockConfig) {
           setPokerClockConfig(data.pokerClockConfig);
@@ -703,7 +720,7 @@ export const RankingProvider: React.FC<{ children: React.ReactNode }> = ({ child
       updateScoringConfig, addWeeklyResult, updateHistoryEntryName, updateHistoryEntryStage, deleteHistoryEntry, updateHouseName, updateHouseSlug,
       updateProfileData, addRanking, deleteRanking, updateRankingName, updateRankingActive, updateGameCategories,
       updatePokerClockConfig, pokerClockConfig, jogadores, salvarJogador,
-      loadingData, unauthorized
+      loadingData, unauthorized, semCasa, recarregarCasa
     }}>
       {children}
     </RankingContext.Provider>

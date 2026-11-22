@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users, Timer, Clock, Settings2, ChevronDown, ChevronUp, Eye, EyeOff, Beer, Receipt, Package, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Settings, History, Trophy, Edit2, Trash2, Plus, Check, X, ChevronLeft, UserCircle, Users, Timer, Clock, Settings2, ChevronDown, ChevronUp, Eye, EyeOff, Beer, Receipt, Package, BarChart3, Lock, CreditCard } from 'lucide-react';
+import { Recurso, temRecurso } from '../services/planos';
 import ConfirmationModal from './ConfirmationModal';
 
 interface SidebarProps {
@@ -33,13 +34,18 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const [isBarMenuOpen, setIsBarMenuOpen] = useState(currentView.startsWith('bar-'));
   const [rankingToDelete, setRankingToDelete] = useState<{ id: string, name: string } | null>(null);
 
-  const menuItems = [
+  // Itens fora do plano continuam no menu, com cadeado: a tela mostra a oferta de upgrade.
+  const bloqueado = (r: Recurso) => !temRecurso(house, r);
+  const Cadeado = () => <Lock size={12} className="text-gray-600 ml-auto shrink-0" aria-label="Fora do seu plano" />;
+
+  const menuItems: { id: string; label: string; icon: typeof LayoutDashboard; recurso?: Recurso }[] = [
     { id: 'dashboard', label: 'Dashboard (Ranking)', icon: LayoutDashboard },
     { id: 'player-data', label: 'Dados Jogadores', icon: Users },
     { id: 'history', label: 'Histórico Semanal', icon: History },
-    { id: 'financeiro', label: 'Financeiro', icon: BarChart3 },
+    { id: 'financeiro', label: 'Financeiro', icon: BarChart3, recurso: 'financeiro' },
     { id: 'settings', label: 'Configurações', icon: Settings },
     { id: 'profile', label: 'Dados do Perfil', icon: UserCircle },
+    { id: 'assinatura', label: 'Minha Assinatura', icon: CreditCard },
   ];
 
   const handleHouseSave = () => {
@@ -217,6 +223,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
               >
                 <item.icon size={18} className={currentView === item.id ? 'text-amber-500' : 'text-gray-600'} />
                 {item.label}
+                {item.recurso && bloqueado(item.recurso) && <Cadeado />}
               </button>
             ))}
 
@@ -232,6 +239,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 <div className="flex items-center gap-3">
                   <Timer size={18} className={currentView.startsWith('poker-clock') ? 'text-cyan-500' : 'text-gray-600'} />
                   Poker Clock
+                  {bloqueado('pokerClock') && <Lock size={12} className="text-gray-600" aria-label="Fora do seu plano" />}
                 </div>
                 {isClockMenuOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>
@@ -272,6 +280,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                 <div className="flex items-center gap-3">
                   <Beer size={18} className={currentView.startsWith('bar-') ? 'text-violet-400' : 'text-gray-600'} />
                   Bar
+                  {bloqueado('bar') && <Lock size={12} className="text-gray-600" aria-label="Fora do seu plano" />}
                 </div>
                 {isBarMenuOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
               </button>

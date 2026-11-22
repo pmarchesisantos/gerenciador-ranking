@@ -7,6 +7,7 @@ import {
   BarCaixa, BarComanda, BarComandaItem, BarEvento, BarMovimentoCaixa, BarPagamento, BarPagamentoPoker, BarProduto, Ranking,
 } from '../types';
 import { GastoPoker, historicoComPago, marcarPagoNoRascunho } from '../services/pokerDoDia';
+import { acessoLiberado, temRecurso } from '../services/planos';
 import { useRanking } from './RankingContext';
 import { useAuth } from './AuthContext';
 import {
@@ -192,11 +193,14 @@ export const BarProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // "caixa aberto" aparece vazio, e a tela ofereceria abrir um segundo caixa.
   const [carregadas, setCarregadas] = useState<Set<string>>(new Set());
   const loading = !houseId || carregadas.size < 3;
+  // Fora do plano (ou sem pagamento) as regras negam a leitura do bar: nem tenta.
+  const barLiberado = temRecurso(house, 'bar') && acessoLiberado(house);
 
   useEffect(() => {
     setProdutos([]); setComandas([]); setCaixas([]);
     setCarregadas(new Set());
     if (!houseId) return;
+    if (!barLiberado) { setCarregadas(new Set(['produtos', 'comandas', 'caixas'])); return; }
 
     const caminho = (sub: string) => collection(db, 'casas', houseId, sub);
     const marcar = (nome: string) => setCarregadas(prev => (prev.has(nome) ? prev : new Set(prev).add(nome)));
@@ -216,7 +220,7 @@ export const BarProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }, error => { handleFirestoreError(error, OperationType.LIST, `casas/${houseId}/bar_caixas`); marcar('caixas'); }),
     ];
     return () => unsubs.forEach(u => u());
-  }, [houseId]);
+  }, [houseId, barLiberado]);
 
   const caixaAberto = useMemo(
     () => caixas.find(c => c.status === 'aberto') || null,
