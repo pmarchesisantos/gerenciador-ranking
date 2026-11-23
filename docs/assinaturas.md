@@ -68,3 +68,14 @@ apenas o front).
   sem confirmação) é o próximo passo — o Asaas suporta.
 - Troca de plano no anual fica com o suporte (exige acerto de diferença).
 - No mensal, a troca vale na hora e o novo valor entra na próxima fatura (sem pró-rata).
+
+## Clubes em cortesia (planejado)
+
+Os clubes criados antes das assinaturas (Chicagos, Kings) pagam por fora e estão em
+cortesia com prazo de 90 dias (campo `cortesiaAte`, definido no painel Master). O prazo
+é só um lembrete: o acesso não é cortado automaticamente.
+
+Quando o prazo vencer, falta construir o fluxo "Solicitar assinatura":
+- no painel Master, marcar o clube como "assinatura solicitada" com um prazo;
+- o dono vê o aviso e assina de dentro do próprio clube (sem criar conta nem clube novo);
+- implantação isenta para esses clubes (já estão configurados) — confirmar na hora.

@@ -2,9 +2,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { CreditCard, QrCode, ExternalLink, RefreshCw, AlertCircle, CheckCircle2, Clock, Gift, LogOut, Loader2 } from 'lucide-react';
 import { useRanking } from '../context/RankingContext';
 import { useAuth } from '../context/AuthContext';
-import TabelaPlanos from './TabelaPlanos';
+import TabelaPlanos, { SeletorPeriodo } from './TabelaPlanos';
 import ConfirmationModal from './ConfirmationModal';
-import { PLANOS, PlanoId, StatusAssinatura, acessoLiberado, diferencaImplantacao, precoDoPeriodo } from '../services/planos';
+import {
+  PLANOS, Periodo, PlanoId, StatusAssinatura, acessoLiberado, diferencaImplantacao, precoDoPeriodo,
+  primeiraCobranca, taxaImplantacao,
+} from '../services/planos';
 import { SituacaoAssinatura, apiAssinatura } from '../services/apiAssinatura';
 import { formatBRL } from '../services/stageValues';
 import { contatoSuporte } from '../services/legal';
@@ -28,7 +31,7 @@ const STATUS: Record<StatusAssinatura, { texto: string; cls: string; Icone: type
  * quando o acesso não está liberado (falta o primeiro pagamento ou venceu).
  */
 const Assinatura: React.FC<{ bloqueado?: boolean }> = ({ bloqueado }) => {
-  const { house } = useRanking();
+  const { house, recarregarCasa } = useRanking();
   const { logout } = useAuth();
   const [situacao, setSituacao] = useState<SituacaoAssinatura | null>(null);
   const [carregando, setCarregando] = useState(false);
@@ -36,6 +39,8 @@ const Assinatura: React.FC<{ bloqueado?: boolean }> = ({ bloqueado }) => {
   const [aviso, setAviso] = useState<string | null>(null);
   const [trocarPara, setTrocarPara] = useState<PlanoId | null>(null);
   const [confirmarCancelamento, setConfirmarCancelamento] = useState(false);
+  const [confirmarDesistencia, setConfirmarDesistencia] = useState(false);
+  const [editando, setEditando] = useState(false);
   const [processando, setProcessando] = useState(false);
 
   const temAssinatura = !!house.assinatura;
@@ -184,6 +189,41 @@ const Assinatura: React.FC<{ bloqueado?: boolean }> = ({ bloqueado }) => {
           </button>
         </section>
 
+        {/* Primeiro pagamento ainda não feito: a escolha pode ser refeita, ou desfeita. */}
+        {status === 'pendente' && situacao && !situacao.trocaPendente && (
+          editando ? (
+            <RefazerEscolha inicial={{ plano: situacao.plano, periodo: situacao.periodo, forma: situacao.forma }}
+                            processando={processando}
+                            onCancelar={() => setEditando(false)}
+                            onConfirmar={escolha => {
+                              // A aba da nova fatura abre já no clique (depois da espera seria bloqueada).
+                              const aba = window.open('', '_blank');
+                              executar(async () => {
+                                try {
+                                  const r = await apiAssinatura.refazer(escolha);
+                                  if (r.faturaUrl && aba) aba.location.href = r.faturaUrl;
+                                  else aba?.close();
+                                  setEditando(false);
+                                } catch (e) {
+                                  aba?.close();
+                                  throw e;
+                                }
+                              }, `Pronto: nova fatura do plano ${PLANOS[escolha.plano].nome} (${escolha.periodo}). A anterior foi cancelada.`);
+                            }} />
+          ) : (
+            <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <button onClick={() => { setAviso(null); setEditando(true); }} disabled={processando}
+                      className="px-5 py-3 rounded-xl border border-gray-700 text-xs font-semibold text-gray-300 hover:text-white hover:border-gray-600 transition-all disabled:opacity-40">
+                Mudar plano ou forma de pagamento
+              </button>
+              <button onClick={() => setConfirmarDesistencia(true)} disabled={processando}
+                      className="px-5 py-3 rounded-xl text-xs font-semibold text-gray-500 hover:text-red-400 transition-all disabled:opacity-40">
+                Desistir do cadastro
+              </button>
+            </section>
+          )
+        )}
+
         {!bloqueado && status !== 'cancelada' && planoAtual && (
           <section className="space-y-4">
             <div>
@@ -254,7 +294,84 @@ const Assinatura: React.FC<{ bloqueado?: boolean }> = ({ bloqueado }) => {
         message="As próximas cobranças deixam de ser geradas. O acesso continua até o fim do período já pago e os dados do clube ficam guardados."
         confirmLabel="Cancelar assinatura"
       />
+      <ConfirmationModal
+        isOpen={confirmarDesistencia}
+        onClose={() => setConfirmarDesistencia(false)}
+        onConfirm={() => {
+          setConfirmarDesistencia(false);
+          executar(async () => {
+            await apiAssinatura.desistir();
+            recarregarCasa();
+          }, 'Cadastro cancelado.');
+        }}
+        title="Desistir do cadastro"
+        message={`A fatura em aberto é cancelada e nada será cobrado. O clube ${house.name} deixa de existir (ele ainda não tem nenhum dado). Sua conta continua: dá para começar de novo quando quiser.`}
+        confirmLabel="Desistir"
+      />
     </div>
+  );
+};
+
+type Escolha = { plano: PlanoId; periodo: Periodo; forma: 'pix' | 'cartao' };
+
+/** Refaz a escolha do cadastro antes do primeiro pagamento: plano, período e forma. */
+const RefazerEscolha: React.FC<{
+  inicial: Escolha;
+  processando: boolean;
+  onCancelar: () => void;
+  onConfirmar: (e: Escolha) => void;
+}> = ({ inicial, processando, onCancelar, onConfirmar }) => {
+  const [plano, setPlano] = useState(inicial.plano);
+  const [periodo, setPeriodo] = useState(inicial.periodo);
+  const [forma, setForma] = useState(inicial.forma);
+  const igual = plano === inicial.plano && periodo === inicial.periodo && forma === inicial.forma;
+  const implantacao = taxaImplantacao(plano, periodo);
+
+  return (
+    <section className="bg-gray-900 border border-gray-800 rounded-xl p-6 md:p-8 space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-white font-semibold text-lg">Mudar plano ou forma de pagamento</h3>
+          <p className="text-gray-500 text-sm">A fatura atual é cancelada e uma nova é gerada com a nova escolha.</p>
+        </div>
+        <SeletorPeriodo periodo={periodo} onChange={setPeriodo} />
+      </div>
+
+      <TabelaPlanos periodo={periodo} atual={plano} onEscolher={setPlano} desabilitado={processando}
+                    rotuloAtual="Selecionado" rotuloAcao={p => `Escolher o ${PLANOS[p].nome}`} />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" role="radiogroup" aria-label="Forma de pagamento">
+        {([
+          { id: 'cartao', titulo: 'Cartão de crédito', Icone: CreditCard },
+          { id: 'pix', titulo: 'Pix', Icone: QrCode },
+        ] as const).map(op => (
+          <button type="button" key={op.id} role="radio" aria-checked={forma === op.id} onClick={() => setForma(op.id)}
+                  className={`text-left rounded-xl border p-4 transition-all flex items-center gap-2 font-bold text-sm ${forma === op.id ? 'border-emerald-500/50 bg-emerald-600/[0.08]' : 'border-gray-800 hover:border-gray-700'}`}>
+            <op.Icone size={16} className={forma === op.id ? 'text-emerald-400' : 'text-gray-500'} /> {op.titulo}
+          </button>
+        ))}
+      </div>
+
+      <div className="border-t border-gray-800 pt-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="text-sm tabular-nums">
+          <p className="text-gray-400">
+            {PLANOS[plano].nome} · {periodo === 'anual' ? '12 meses' : '1º mês'} {brl(precoDoPeriodo(plano, periodo))}
+            {' + '}implantação {implantacao > 0 ? brl(implantacao) : <span className="text-green-400">grátis</span>}
+          </p>
+          <p className="text-white font-semibold text-xl mt-1">Total hoje {brl(primeiraCobranca(plano, periodo))}</p>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={onCancelar} disabled={processando}
+                  className="px-5 py-3 rounded-xl border border-gray-800 text-xs font-semibold text-gray-400 hover:text-white transition-all disabled:opacity-40">
+            Voltar
+          </button>
+          <button onClick={() => onConfirmar({ plano, periodo, forma })} disabled={processando || igual}
+                  className="px-6 py-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 ring-1 ring-inset ring-emerald-500/30 text-xs font-semibold flex items-center gap-2 transition-all disabled:opacity-40">
+            {processando ? <><Loader2 size={14} className="animate-spin" /> Gerando...</> : <>Gerar nova fatura <ExternalLink size={13} /></>}
+          </button>
+        </div>
+      </div>
+    </section>
   );
 };
 
