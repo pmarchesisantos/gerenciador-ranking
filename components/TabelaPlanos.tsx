@@ -35,10 +35,12 @@ interface TabelaPlanosProps {
   desabilitado?: boolean;
   /** Mostra a taxa de implantação (no cadastro). Na troca de plano a regra é outra. */
   implantacao?: boolean;
+  /** Texto no lugar do botão do plano marcado em `atual`. */
+  rotuloAtual?: string;
 }
 
 /** Os três planos lado a lado (empilhados no celular). */
-const TabelaPlanos: React.FC<TabelaPlanosProps> = ({ periodo, atual, rotuloAcao, onEscolher, desabilitado, implantacao = true }) => (
+const TabelaPlanos: React.FC<TabelaPlanosProps> = ({ periodo, atual, rotuloAcao, onEscolher, desabilitado, implantacao = true, rotuloAtual = 'Seu plano atual' }) => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
     {LISTA_PLANOS.map(p => {
       const ehAtual = atual === p.id;
@@ -85,7 +87,7 @@ const TabelaPlanos: React.FC<TabelaPlanosProps> = ({ periodo, atual, rotuloAcao,
 
           {ehAtual ? (
             <div className="w-full py-3.5 rounded-xl text-center text-xs font-semibold text-emerald-400 border border-emerald-500/30">
-              Seu plano atual
+              {rotuloAtual}
             </div>
           ) : (
             <button onClick={() => onEscolher(p.id)} disabled={desabilitado}

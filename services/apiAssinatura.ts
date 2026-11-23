@@ -52,4 +52,9 @@ export const apiAssinatura = {
   trocarPlano: (plano: PlanoId) =>
     chamar<{ ok: true; pendente?: boolean; faturaUrl?: string; valor?: number }>('/api/assinatura', 'POST', { acao: 'trocar', plano }),
   cancelar: () => chamar<{ ok: true }>('/api/assinatura', 'POST', { acao: 'cancelar' }),
+  /** Antes do primeiro pagamento: troca plano, período ou forma e gera uma fatura nova. */
+  refazer: (escolha: { plano: PlanoId; periodo: Periodo; forma: 'pix' | 'cartao' }) =>
+    chamar<{ ok: true; faturaUrl: string | null }>('/api/assinatura', 'POST', { acao: 'refazer', ...escolha }),
+  /** Antes do primeiro pagamento: desiste do cadastro (o clube vazio é removido). */
+  desistir: () => chamar<{ ok: true }>('/api/assinatura', 'POST', { acao: 'desistir' }),
 };

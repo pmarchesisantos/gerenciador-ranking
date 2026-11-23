@@ -1,13 +1,20 @@
 import { adminDb } from './_lib/firebaseAdmin.js';
-import { asaas, cobrancaPendente } from './_lib/asaas.js';
+import { asaas, cobrancaPendente, primeiraCobrancaDaAssinatura } from './_lib/asaas.js';
 import { HttpError, casaDoDono, rota, usuarioDoToken } from './_lib/http.js';
 import { AssinaturaPrivada, assinaturaPublica, hojeSP } from './_lib/assinatura.js';
 import { aplicarTroca, referenciaTroca } from './_lib/troca.js';
-import { PLANOS, diferencaImplantacao, ehPlano } from '../services/planos.js';
+import {
+  PLANOS, Periodo, diferencaImplantacao, ehPlano, precoDoPeriodo, primeiraCobranca, taxaImplantacao,
+} from '../services/planos.js';
+
+/** Situações do Asaas em que o dinheiro já entrou (ou o cartão já aprovou). */
+const PAGO = ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'];
 
 /**
  * GET  /api/assinatura            situação e fatura pendente do clube do dono
- * POST /api/assinatura {acao}     'trocar' (com plano) ou 'cancelar'
+ * POST /api/assinatura {acao}     'trocar' (com plano) ou 'cancelar';
+ *                                 antes do 1º pagamento: 'refazer' (plano,
+ *                                 período e forma) ou 'desistir'
  */
 export default rota(['GET', 'POST'], async (req, res) => {
   const usuario = await usuarioDoToken(req);
@@ -38,6 +45,87 @@ export default rota(['GET', 'POST'], async (req, res) => {
 
   const acao = (req.body || {}).acao;
   const agora = new Date().toISOString();
+
+  // ── Cadastro ainda sem o primeiro pagamento: dá para refazer a escolha ou desistir ──
+  if (acao === 'refazer' || acao === 'desistir') {
+    if (privada.status !== 'pendente') {
+      throw new HttpError(400, 'O primeiro pagamento já foi feito. Use as opções de Minha assinatura.');
+    }
+    // O webhook pode estar a caminho: com pagamento recebido, não mexe em nada.
+    const cobrancas = await asaas.cobrancasDaAssinatura(privada.asaasSubscriptionId);
+    if (cobrancas.some(c => PAGO.includes(c.status))) {
+      throw new HttpError(409, 'O pagamento já foi recebido e o painel será liberado em instantes. Clique em Atualizar.');
+    }
+
+    if (acao === 'desistir') {
+      // Só desiste um clube que nunca foi liberado e não tem nada gravado.
+      const sub = await casa.ref.listCollections();
+      for (const c of sub) {
+        if (!(await c.limit(1).get()).empty) throw new HttpError(409, 'Este clube já tem dados gravados. Fale com o suporte.');
+      }
+      await asaas.cancelarAssinatura(privada.asaasSubscriptionId);
+      // A assinatura privada fica como registro do cadastro desistido; o clube
+      // (vazio) sai, e a conta volta para a tela de cadastro.
+      const lote = adminDb.batch();
+      lote.update(ref, { status: 'cancelada', desistiuEm: agora, atualizadoEm: agora });
+      lote.delete(casa.ref);
+      await lote.commit();
+      res.status(200).json({ ok: true });
+      return;
+    }
+
+    const b = req.body || {};
+    const plano = b.plano;
+    const periodo = b.periodo as Periodo;
+    const forma = b.forma;
+    if (!ehPlano(plano)) throw new HttpError(400, 'Plano inválido.');
+    if (periodo !== 'mensal' && periodo !== 'anual') throw new HttpError(400, 'Período inválido.');
+    if (forma !== 'pix' && forma !== 'cartao') throw new HttpError(400, 'Forma de pagamento inválida.');
+    if (plano === privada.plano && periodo === privada.periodo && forma === privada.forma) {
+      throw new HttpError(400, 'Nada mudou: é a mesma escolha da fatura atual.');
+    }
+
+    // Nova assinatura primeiro; a antiga só sai depois que a nova estiver gravada.
+    const valor = precoDoPeriodo(plano, periodo);
+    const nova = await asaas.criarAssinatura({
+      customer: privada.asaasCustomerId,
+      billingType: forma === 'pix' ? 'PIX' : 'CREDIT_CARD',
+      value: valor,
+      nextDueDate: hojeSP(),
+      cycle: periodo === 'anual' ? 'YEARLY' : 'MONTHLY',
+      description: `Stack Club · Plano ${PLANOS[plano].nome} (${periodo})`,
+      externalReference: casa.id,
+    });
+    let faturaUrl: string | null = null;
+    const implantacao = taxaImplantacao(plano, periodo);
+    try {
+      if (implantacao > 0) {
+        const primeira = await primeiraCobrancaDaAssinatura(nova.id);
+        if (!primeira) throw new HttpError(502, 'O Asaas não gerou a cobrança. Tente novamente em instantes.');
+        const ajustada = await asaas.atualizarCobranca(primeira.id, {
+          value: primeiraCobranca(plano, periodo),
+          description: `Stack Club · Plano ${PLANOS[plano].nome} (1º mês) + implantação`,
+        });
+        faturaUrl = ajustada.invoiceUrl || primeira.invoiceUrl;
+      }
+      const lote = adminDb.batch();
+      lote.update(ref, { plano, periodo, forma, valor, implantacao, asaasSubscriptionId: nova.id, atualizadoEm: agora });
+      lote.update(casa.ref, { plano, assinatura: assinaturaPublica('pendente', periodo) });
+      await lote.commit();
+    } catch (e) {
+      await asaas.cancelarAssinatura(nova.id).catch(() => undefined);
+      throw e;
+    }
+    // A antiga e a fatura dela deixam de existir no Asaas.
+    await asaas.cancelarAssinatura(privada.asaasSubscriptionId).catch(e => console.error('Assinatura antiga não removida:', e));
+
+    if (!faturaUrl) {
+      const fatura = await asaas.cobrancasDaAssinatura(nova.id).then(cobrancaPendente).catch(() => null);
+      faturaUrl = fatura?.invoiceUrl || null;
+    }
+    res.status(200).json({ ok: true, faturaUrl });
+    return;
+  }
 
   if (acao === 'cancelar') {
     if (privada.status === 'cancelada') throw new HttpError(400, 'A assinatura já está cancelada.');
