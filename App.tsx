@@ -16,6 +16,7 @@ import SuperAdminDashboard from './components/SuperAdminDashboard';
 import ErrorBoundary from './components/ErrorBoundary';
 import BarProdutos from './components/BarProdutos';
 import BarCaixa from './components/BarCaixa';
+import BarVendas from './components/BarVendas';
 import BarPDV from './components/BarPDV';
 import Financeiro from './components/Financeiro';
 import { BarProvider } from './context/BarContext';
@@ -33,6 +34,7 @@ const RECURSO_DA_VIEW: Partial<Record<string, Recurso>> = {
   'financeiro': 'financeiro',
   'bar-caixa': 'bar',
   'bar-produtos': 'bar',
+  'bar-vendas': 'bar',
 };
 
 /** Aviso para janelas externas (TV, PDV) de um recurso fora do plano ou sem pagamento. */
@@ -90,6 +92,7 @@ const AdminLayout: React.FC = () => {
       case 'poker-clock-settings': return <PokerClockSettings />;
       case 'bar-produtos': return <BarProdutos />;
       case 'bar-caixa': return <BarCaixa />;
+      case 'bar-vendas': return <BarVendas />;
       case 'financeiro': return <Financeiro />;
       case 'assinatura': return <Assinatura />;
       default: return <Dashboard />;
@@ -148,12 +151,14 @@ const AdminLayout: React.FC = () => {
  * qual tela mostrar não pode depender de quando o React voltar a renderizar.
  */
 const VIEW_EXTERNA = new URLSearchParams(window.location.search).get('view');
+const ABRIR_CADASTRO = new URLSearchParams(window.location.search).has('cadastro');
 
 const RootContent: React.FC = () => {
   const { isAdmin, isSuperAdmin, loading } = useAuth();
   const { house, semCasa } = useRanking();
   const [showLogin, setShowLogin] = useState(false);
-  const [showCadastro, setShowCadastro] = useState(false);
+  // ?cadastro abre direto a escolha de plano (links da divulgação e da página /conheca).
+  const [showCadastro, setShowCadastro] = useState(ABRIR_CADASTRO);
 
   const isExternalClock = VIEW_EXTERNA === 'poker-clock-external';
 

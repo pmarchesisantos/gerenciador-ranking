@@ -1,7 +1,7 @@
 
 import React, { useMemo, useRef, useState } from 'react';
 import {
-  Plus, Edit2, Trash2, Search, Package, Eye, EyeOff, X, ImagePlus, Star, AlertTriangle, Boxes,
+  Plus, Edit2, Trash2, Search, Package, Eye, EyeOff, X, ImagePlus, Star, AlertTriangle, Boxes, Handshake,
 } from 'lucide-react';
 import { useBar } from '../context/BarContext';
 import { BarProduto, BarUnidade } from '../types';
@@ -11,6 +11,7 @@ import { formatBRL } from '../services/stageValues';
 import { gerarMiniatura } from '../services/imagem';
 import ComboBox from './ComboBox';
 import InputMoeda from './InputMoeda';
+import { parceirosDe } from '../services/vendas';
 
 const UNIDADES: BarUnidade[] = ['un', 'dose', 'lata', 'long neck', 'garrafa', 'copo', 'porção', 'kg', 'L'];
 
@@ -35,11 +36,16 @@ interface Rascunho {
   estoqueMinimo: string;
   destaque: boolean;
   ncm: string;
+  /** Produto de parceiro: parte de cada venda é repassada. */
+  repasseAtivo: boolean;
+  repasseParceiro: string;
+  repassePercentual: string;
 }
 
 const VAZIO: Rascunho = {
   nome: '', descricao: '', categoria: '', codigo: '', unidade: 'un', preco: undefined, custo: undefined,
   controlaEstoque: false, estoque: '', estoqueMinimo: '', destaque: false, ncm: '',
+  repasseAtivo: false, repasseParceiro: '', repassePercentual: '',
 };
 
 const deProduto = (p: BarProduto): Rascunho => ({
@@ -57,6 +63,9 @@ const deProduto = (p: BarProduto): Rascunho => ({
   estoqueMinimo: p.estoqueMinimo != null ? String(p.estoqueMinimo) : '',
   destaque: !!p.destaque,
   ncm: p.ncm || '',
+  repasseAtivo: !!p.repasse,
+  repasseParceiro: p.repasse?.parceiro || '',
+  repassePercentual: p.repasse ? String(p.repasse.percentual).replace('.', ',') : '',
 });
 
 const numOuUndef = (s: string) => (s.trim() === '' ? undefined : Number(s.replace(',', '.')));
@@ -120,6 +129,8 @@ const BarProdutos: React.FC = () => {
     [produtos]
   );
 
+  const parceiros = useMemo(() => parceirosDe(produtos), [produtos]);
+
   const alertasEstoque = produtos.filter(p => p.ativo !== false && ['baixo', 'zerado'].includes(situacaoEstoque(p) || '')).length;
 
   const visiveis = useMemo(() => {
@@ -150,6 +161,11 @@ const BarProdutos: React.FC = () => {
     if (preco == null || !(preco > 0)) return setErro('Informe um preço de venda maior que zero.');
     if (custo != null && custo < 0) return setErro('O custo não pode ser negativo.');
     if (rascunho.ncm && !/^\d{8}$/.test(rascunho.ncm.replace(/\D/g, ''))) return setErro('O NCM tem 8 dígitos.');
+    const percentual = numOuUndef(rascunho.repassePercentual);
+    if (rascunho.repasseAtivo) {
+      if (!rascunho.repasseParceiro.trim()) return setErro('Informe o parceiro que recebe o repasse.');
+      if (percentual == null || !(percentual > 0) || percentual > 100) return setErro('O repasse é um percentual entre 0 e 100.');
+    }
 
     const dados: Omit<BarProduto, 'id' | 'criadoEm'> = {
       nome: rascunho.nome.trim(),
@@ -165,6 +181,9 @@ const BarProdutos: React.FC = () => {
       estoqueMinimo: rascunho.controlaEstoque ? numOuUndef(rascunho.estoqueMinimo) : undefined,
       destaque: rascunho.destaque,
       ncm: rascunho.ncm.replace(/\D/g, '') || undefined,
+      repasse: rascunho.repasseAtivo
+        ? { parceiro: rascunho.repasseParceiro.trim(), percentual: Math.round((percentual as number) * 100) / 100 }
+        : undefined,
     };
 
     setSalvando(true);
@@ -297,6 +316,11 @@ const BarProdutos: React.FC = () => {
                       </span>
                     )}
                   </div>
+                  {p.repasse && (
+                    <p className="text-xs font-bold text-gray-500 mt-1.5 flex items-center gap-1.5 truncate" title={`${formatBRL(p.repasse.percentual)}% de cada venda vai para ${p.repasse.parceiro}`}>
+                      <Handshake size={11} className="text-emerald-500 shrink-0" /> Repasse {String(p.repasse.percentual).replace('.', ',')}% · {p.repasse.parceiro}
+                    </p>
+                  )}
                   {p.controlaEstoque && (
                     <p className="text-xs font-bold text-gray-500 mt-1.5 flex items-center gap-1.5">
                       <Boxes size={11} /> {p.estoque ?? 0} em estoque
@@ -392,6 +416,41 @@ const BarProdutos: React.FC = () => {
                     )}
                   </div>
                 </div>
+              </section>
+
+              <section className="space-y-4 pt-4 border-t border-gray-800">
+                <h4 className="text-xs font-semibold text-gray-400">Repasse a parceiro</h4>
+                <Alternador ativo={rascunho.repasseAtivo} onChange={v => setRascunho({ ...rascunho, repasseAtivo: v })}
+                            label="Produto de parceiro" dica="Ex.: prato da cozinha terceirizada. Parte de cada venda é repassada a ela." />
+                {rascunho.repasseAtivo && (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-4">
+                      <Campo label="Parceiro *">
+                        <ComboBox value={rascunho.repasseParceiro} opcoes={parceiros}
+                                  placeholder="Ex: Cozinha do Zé" rotuloCriar="Novo parceiro"
+                                  onChange={v => setRascunho(r => r && { ...r, repasseParceiro: v })} />
+                      </Campo>
+                      <Campo label="Repasse (%) *">
+                        <input inputMode="decimal" className={inputCls} placeholder="Ex: 70"
+                               value={rascunho.repassePercentual}
+                               onChange={e => setRascunho({ ...rascunho, repassePercentual: e.target.value.replace(/[^\d,.]/g, '') })} />
+                      </Campo>
+                    </div>
+                    {(() => {
+                      const pct = numOuUndef(rascunho.repassePercentual);
+                      if (!rascunho.preco || pct == null || !(pct > 0) || pct > 100) return null;
+                      const parte = Math.round(rascunho.preco * pct) / 100;
+                      return (
+                        <p className="text-xs text-gray-400 bg-black/30 border border-gray-800 rounded-xl px-4 py-3">
+                          Em cada venda de <b className="text-white">R$ {formatBRL(rascunho.preco)}</b>,{' '}
+                          <b className="text-emerald-300">R$ {formatBRL(parte)}</b> vão para {rascunho.repasseParceiro.trim() || 'o parceiro'} e{' '}
+                          <b className="text-white">R$ {formatBRL(rascunho.preco - parte)}</b> ficam com a casa.
+                          O percentual fica gravado em cada venda: mudar aqui não altera o que já foi vendido.
+                        </p>
+                      );
+                    })()}
+                  </>
+                )}
               </section>
 
               <section className="space-y-4 pt-4 border-t border-gray-800">

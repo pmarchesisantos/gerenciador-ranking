@@ -9,6 +9,7 @@ import {
 } from '../services/financeiro';
 import { formatBRL } from '../services/stageValues';
 import { temRecurso } from '../services/planos';
+import { mapaProdutos, repasseDoItem, repasseNoIntervalo } from '../services/vendas';
 
 // Ouro (marca) para o poker; azul-acinzentado para o bar: contrastam entre si
 // e no fundo escuro sem competir com a cor da marca.
@@ -21,7 +22,7 @@ const diaSemana = (d: Date) => d.toLocaleDateString('pt-BR', { weekday: 'short' 
 
 const Financeiro: React.FC = () => {
   const { house } = useRanking();
-  const { comandas: todasComandas } = useBar();
+  const { comandas: todasComandas, produtos } = useBar();
   // Plano sem bar (Gold): o financeiro é só do poker.
   const temBar = temRecurso(house, 'bar');
   const comandas = useMemo(() => (temBar ? todasComandas : []), [temBar, todasComandas]);
@@ -37,7 +38,12 @@ const Financeiro: React.FC = () => {
 
   const etapas = useMemo(() => etapasNoIntervalo(house.rankings || [], intervalo), [house.rankings, intervalo]);
   const bar = useMemo(() => resumoBar(comandas, intervalo), [comandas, intervalo]);
-  const serie = useMemo(() => seriePorDia(intervalo, etapas, comandas, metrica), [intervalo, etapas, comandas, metrica]);
+  // Parte das vendas que vai para parceiros (ex.: cozinha terceirizada): não é receita da casa.
+  const repasse = useMemo(() => repasseNoIntervalo(comandas, produtos, intervalo), [comandas, produtos, intervalo]);
+  const serie = useMemo(() => {
+    const mapa = mapaProdutos(produtos);
+    return seriePorDia(intervalo, etapas, comandas, metrica, item => repasseDoItem(item, mapa)?.valor || 0);
+  }, [intervalo, etapas, comandas, metrica, produtos]);
 
   const poker = useMemo(() => etapas.reduce((acc, e) => ({
     bruto: acc.bruto + e.bruto,
@@ -117,8 +123,8 @@ const Financeiro: React.FC = () => {
             <Landmark size={13} className="text-gray-500" />
             <p className="text-xs font-semibold text-gray-500">Receita da casa</p>
           </div>
-          <p className="text-white font-semibold text-xl md:text-2xl tracking-tight tabular-nums">{brl(poker.casa + bar.vendas)}</p>
-          <p className="text-gray-600 text-xs font-bold mt-1">{temBar ? 'poker + vendas do bar' : 'rake + administrativo'}</p>
+          <p className="text-white font-semibold text-xl md:text-2xl tracking-tight tabular-nums">{brl(poker.casa + bar.vendas - repasse)}</p>
+          <p className="text-gray-600 text-xs font-bold mt-1">{!temBar ? 'rake + administrativo' : repasse > 0 ? 'poker + bar, sem o repasse' : 'poker + vendas do bar'}</p>
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 md:p-5">
           <div className="flex items-center gap-2 mb-2">
@@ -137,7 +143,9 @@ const Financeiro: React.FC = () => {
             <p className="text-xs font-semibold text-gray-500">Bar · vendas</p>
           </div>
           <p className="text-white font-semibold text-xl md:text-2xl tracking-tight tabular-nums">{brl(bar.vendas)}</p>
-          <p className="text-gray-600 text-xs font-bold mt-1">recebido {brl(bar.recebido)}</p>
+          <p className="text-gray-600 text-xs font-bold mt-1">
+            {repasse > 0 && <span className="text-amber-500/80">{brl(repasse)} a repassar · </span>}recebido {brl(bar.recebido)}
+          </p>
         </div>
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 md:p-5">
           <div className="flex items-center gap-2 mb-2">

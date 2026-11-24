@@ -1,12 +1,13 @@
 
 import React, { createContext, useContext, useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  writeBatch, arrayUnion, increment, deleteField,
+  writeBatch, arrayUnion, increment, deleteField, runTransaction,
 } from 'firebase/firestore';
 import {
   BarCaixa, BarComanda, BarComandaItem, BarEvento, BarMovimentoCaixa, BarPagamento, BarPagamentoPoker, BarProduto, Ranking,
 } from '../types';
-import { GastoPoker, historicoComPago, marcarPagoNoRascunho } from '../services/pokerDoDia';
+import { GastoPoker, diaOperacional, diasDoPeriodo, gastosDaPessoa, gastosPokerNosDias, historicoComPago, marcarPagoNoRascunho } from '../services/pokerDoDia';
+import { normalizarNome } from '../services/jogadores';
 import { acessoLiberado, temRecurso } from '../services/planos';
 import { useRanking } from './RankingContext';
 import { useAuth } from './AuthContext';
@@ -39,6 +40,32 @@ const agoraISO = () => new Date().toISOString();
 
 /** Fiado: conta fechada que ficou com saldo. */
 export const ehFiado = (c: BarComanda) => c.status === 'fechada' && saldoComanda(c) > 0;
+
+/** Formas que abatem a conta sem ser dinheiro entrando: prêmio do jogo e crédito na casa. */
+export const FORMAS_ABATIMENTO = ['Prêmio do jogo', 'Crédito na casa'] as const;
+export const ehAbatimento = (forma?: string) => (FORMAS_ABATIMENTO as readonly string[]).includes(forma || '');
+
+/** Dias de operação de uma comanda: os do caixa em que ela foi aberta. */
+export const diasDaComanda = (c: BarComanda, caixas: BarCaixa[]): Set<string> => {
+  const cx = caixas.find(x => x.id === c.caixaId);
+  return cx ? diasDoPeriodo(cx.abertoEm, cx.fechadoEm || cx.canceladoEm) : new Set([diaOperacional(c.data)]);
+};
+
+/** Poker do dia ainda não pago da pessoa da comanda. */
+export const pokerEmAberto = (c: BarComanda, rankings: Ranking[], caixas: BarCaixa[]): number => {
+  if (c.status === 'cancelada') return 0;
+  const total = gastosDaPessoa(gastosPokerNosDias(rankings, diasDaComanda(c, caixas)), c.clienteNome, c.playerId)
+    .filter(g => !g.pago && g.total > 0)
+    .reduce((a, g) => a + g.total, 0);
+  return Math.round(total * 100) / 100;
+};
+
+/**
+ * Conta fechada que ainda tem algo a receber: saldo do bar (fiado) ou o poker
+ * do dia sem pagar. É o que aparece em "A receber" e em "Quem deve".
+ */
+export const aReceberDaComanda = (c: BarComanda, rankings: Ranking[], caixas: BarCaixa[]): boolean =>
+  c.status === 'fechada' && (saldoComanda(c) > 0 || pokerEmAberto(c, rankings, caixas) > 0);
 
 /**
  * O que o sistema espera encontrar no caixa ao fechar, por forma de pagamento.
@@ -161,6 +188,8 @@ interface BarContextType {
   excluirComandasSemCaixa: () => Promise<void>;
 
   abrirComanda: (clienteNome: string, playerId?: string) => Promise<string>;
+  /** Abre uma comanda para cada jogador do poker do dia que ainda não tem. */
+  abrirComandasDoPoker: (pessoas: { nome: string; jogadorId?: string }[]) => Promise<void>;
   lancarItem: (comandaId: string, produto: BarProduto, quantidade: number) => Promise<void>;
   cancelarItem: (comandaId: string, itemId: string, motivo: string) => Promise<void>;
   fecharConta: (comandaId: string) => Promise<void>;
@@ -168,6 +197,8 @@ interface BarContextType {
   registrarPagamento: (comandaId: string, valor: number, forma: string) => Promise<void>;
   /** `poker`: etapas do dia a quitar junto. Cada uma é paga inteira, antes do bar. */
   registrarPagamentos: (comandaId: string, partes: { valor: number; forma: string }[], poker?: GastoPoker[]) => Promise<void>;
+  /** Acerto de contas: quita várias contas fechadas de uma vez. Devolve o total recebido. */
+  receberTudo: (comandaIds: string[], forma: string) => Promise<number>;
   estornarPagamento: (comandaId: string, pagamentoId: string, motivo: string) => Promise<void>;
   estornarPagamentoPoker: (comandaId: string, pagamentoId: string, motivo: string) => Promise<void>;
   cancelarComanda: (comandaId: string, motivo: string) => Promise<void>;
@@ -352,21 +383,36 @@ export const BarProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const fecharCaixa = useCallback(async () => {
     if (!houseId || !caixaAberto) throw new BarRegraError('Não há caixa aberto.');
     const abertas = comandas.filter(c => c.status === 'aberta');
-    if (abertas.length > 0) {
+    // Comanda sem consumo (aberta para o poker do dia) fecha sozinha: quitada se
+    // o poker foi pago, ou em "A receber" se o poker ficou devendo.
+    const comConsumo = abertas.filter(c => (c.total || 0) > 0);
+    if (comConsumo.length > 0) {
       throw new BarRegraError(
-        `Ainda há ${abertas.length} comanda(s) aberta(s). Feche a conta de cada uma — o que ficar sem pagar vira fiado.`
+        `Ainda há ${comConsumo.length} comanda(s) com consumo aberta(s). Feche a conta de cada uma — o que ficar sem pagar vira fiado.`
       );
     }
-    await gravar(`casas/${houseId}/bar_caixas/${caixaAberto.id}`, OperationType.UPDATE, () =>
-      updateDoc(ref('bar_caixas', caixaAberto.id), paraCriacao({
-        status: 'fechado',
-        fechadoEm: agoraISO(),
-        fechadoPor: operador,
-        recebido: recebidoNoCaixa(caixaAberto.id, comandas),
-        recebidoPoker: recebidoPokerNoCaixa(caixaAberto.id, comandas),
-      }))
-    );
-  }, [houseId, caixaAberto, comandas, operador, gravar, ref]);
+    const em = agoraISO();
+    const lote = writeBatch(db);
+    for (const c of abertas) {
+      const devePoker = pokerEmAberto(c, house.rankings, caixas) > 0;
+      lote.update(ref('bar_comandas', c.id), paraCriacao({
+        status: devePoker ? 'fechada' : 'paga',
+        fechadaEm: em,
+        pagoEm: devePoker ? undefined : em,
+        historico: arrayUnion(evento('fechamento', devePoker
+          ? 'Fechada no fechamento do caixa, sem consumo, com poker a receber'
+          : 'Fechada no fechamento do caixa, sem consumo')),
+      }));
+    }
+    lote.update(ref('bar_caixas', caixaAberto.id), paraCriacao({
+      status: 'fechado',
+      fechadoEm: em,
+      fechadoPor: operador,
+      recebido: recebidoNoCaixa(caixaAberto.id, comandas),
+      recebidoPoker: recebidoPokerNoCaixa(caixaAberto.id, comandas),
+    }));
+    await gravar(`casas/${houseId}/bar_caixas/${caixaAberto.id}`, OperationType.UPDATE, () => lote.commit());
+  }, [houseId, caixaAberto, comandas, caixas, house.rankings, operador, gravar, ref]);
 
   /**
    * Cancela o caixa aberto por engano. Nada é apagado: as comandas abertas
@@ -547,6 +593,40 @@ export const BarProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return novo;
   }, [houseId, caixaAberto, comandas, gravar]);
 
+  /**
+   * Abre, no caixa aberto, uma comanda para cada jogador do poker do dia que
+   * ainda não tem uma — mesmo sem consumo, para o acerto da noite estar todo no
+   * PDV. O id é fixo por caixa e pessoa: duas janelas do PDV abertas ao mesmo
+   * tempo não criam comanda repetida.
+   */
+  const abrirComandasDoPoker = useCallback(async (pessoas: { nome: string; jogadorId?: string }[]) => {
+    if (!houseId || !caixaAberto || pessoas.length === 0) return;
+    const caixaId = caixaAberto.id;
+    let numero = comandas.filter(c => c.caixaId === caixaId).reduce((max, c) => Math.max(max, c.numero || 0), 0);
+    const chave = (nome: string) => normalizarNome(nome).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'jogador';
+    await gravar(`casas/${houseId}/bar_comandas`, OperationType.CREATE, () => runTransaction(db, async tx => {
+      const refs = pessoas.map(p => ref('bar_comandas', `${caixaId}_poker_${chave(p.nome)}`));
+      const existentes = await Promise.all(refs.map(r => tx.get(r)));
+      pessoas.forEach((p, k) => {
+        if (existentes[k].exists()) return;
+        numero += 1;
+        tx.set(refs[k], paraCriacao({
+          numero,
+          clienteNome: p.nome,
+          playerId: p.jogadorId,
+          data: agoraISO(),
+          caixaId,
+          status: 'aberta',
+          itens: [],
+          total: 0,
+          valorPago: 0,
+          pagamentos: [],
+          historico: [evento('abertura', `Comanda #${numero} aberta para o poker do dia`)],
+        }));
+      });
+    }));
+  }, [houseId, caixaAberto, comandas, gravar, ref]);
+
   const lancarItem = useCallback(async (comandaId: string, produto: BarProduto, quantidade: number) => {
     if (!houseId) return;
     const c = exigirComanda(comandaId);
@@ -561,6 +641,9 @@ export const BarProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       custoUnitario: produto.custo,
       quantidade,
       lancadoEm: agoraISO(),
+      // Repasse a parceiro congelado na venda, como o preço.
+      repasseParceiro: produto.repasse?.parceiro,
+      repassePercentual: produto.repasse?.percentual,
     }) as BarComandaItem;
 
     // Lote: comanda e estoque mudam juntos ou não mudam. arrayUnion e increment
@@ -609,17 +692,21 @@ export const BarProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!houseId) return;
     const c = exigirComanda(comandaId);
     if (c.status !== 'aberta') throw new BarRegraError('A conta já está fechada.');
-    if ((c.total || 0) <= 0) throw new BarRegraError('Comanda sem consumo. Se foi aberta por engano, cancele-a.');
-    const quitada = saldoComanda(c) <= 0;
+    const temPoker = gastosDaPessoa(gastosPokerNosDias(house.rankings, diasDaComanda(c, caixas)), c.clienteNome, c.playerId).length > 0;
+    if ((c.total || 0) <= 0 && !temPoker) throw new BarRegraError('Comanda sem consumo. Se foi aberta por engano, cancele-a.');
+    // Sem saldo no bar mas com poker devendo: fica em "A receber".
+    const devePoker = pokerEmAberto(c, house.rankings, caixas) > 0;
+    const quitada = saldoComanda(c) <= 0 && !devePoker;
     await gravar(`casas/${houseId}/bar_comandas/${comandaId}`, OperationType.UPDATE, () =>
       updateDoc(ref('bar_comandas', comandaId), paraCriacao({
         status: quitada ? 'paga' : 'fechada',
         fechadaEm: agoraISO(),
         pagoEm: quitada ? agoraISO() : undefined,
-        historico: arrayUnion(evento('fechamento', quitada ? 'Conta fechada e quitada' : `Conta fechada com saldo de R$ ${saldoComanda(c).toFixed(2)}`)),
+        historico: arrayUnion(evento('fechamento', quitada ? 'Conta fechada e quitada'
+          : saldoComanda(c) > 0 ? `Conta fechada com saldo de R$ ${saldoComanda(c).toFixed(2)}` : 'Conta fechada com o poker a receber')),
       }))
     );
-  }, [houseId, exigirComanda, gravar, ref]);
+  }, [houseId, exigirComanda, gravar, ref, house.rankings, caixas]);
 
   const reabrirComanda = useCallback(async (comandaId: string, motivo: string) => {
     if (!houseId) return;
@@ -708,6 +795,67 @@ export const BarProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     [registrarPagamentos]
   );
 
+  /**
+   * Acerto de contas: quita de uma vez todas as contas informadas (fiado de
+   * vários dias, poker em aberto incluído), numa forma de pagamento, no caixa
+   * aberto. Tudo numa gravação só: ou quita tudo, ou nada. Devolve o total.
+   */
+  const receberTudo = useCallback(async (comandaIds: string[], forma: string): Promise<number> => {
+    if (!houseId) return 0;
+    if (!caixaAberto) throw new BarRegraError('Abra o caixa no PDV para receber: o dinheiro entra no caixa do dia.');
+    if (!forma) throw new BarRegraError('Escolha a forma de pagamento.');
+    const alvo = comandaIds.map(id => exigirComanda(id))
+      .filter(c => c.status === 'fechada')
+      .sort((a, b) => a.data.localeCompare(b.data));
+
+    const em = agoraISO();
+    const lote = writeBatch(db);
+    const vistos = new Set<string>();
+    const todosPoker: BarPagamentoPoker[] = [];
+    let total = 0;
+
+    for (const c of alvo) {
+      // A mesma etapa entra uma vez só, mesmo que a pessoa tenha várias comandas nos mesmos dias.
+      const gastos = gastosDaPessoa(gastosPokerNosDias(rankings, diasDaComanda(c, caixas)), c.clienteNome, c.playerId)
+        .filter(g => {
+          if (g.pago || g.total <= 0) return false;
+          const chave = `${g.rankingId}|${g.etapaId ?? g.dia}|${g.playerId}`;
+          if (vistos.has(chave)) return false;
+          vistos.add(chave);
+          return true;
+        });
+      const saldo = round2(saldoComanda(c));
+      if (saldo <= 0 && gastos.length === 0) continue;
+
+      const pagamentos: BarPagamento[] = saldo > 0 ? [{ id: novoId(), valor: saldo, forma, em, caixaId: caixaAberto.id }] : [];
+      const pagamentosPoker: BarPagamentoPoker[] = gastos.map(g => ({
+        id: novoId(), valor: g.total, partes: [{ forma, valor: g.total }], em, caixaId: caixaAberto.id,
+        rankingId: g.rankingId, rankingNome: g.rankingNome, dia: g.dia, playerId: g.playerId, nome: g.nome,
+      }));
+      const eventos: BarEvento[] = [];
+      if (saldo > 0) eventos.push({ em, tipo: 'pagamento', descricao: `Acerto de contas: R$ ${saldo.toFixed(2)} em ${forma}` });
+      for (const pp of pagamentosPoker) eventos.push({ em, tipo: 'pagamento', descricao: `Acerto de contas: poker ${pp.rankingNome} quitado, R$ ${pp.valor.toFixed(2)} (${forma})` });
+
+      lote.update(ref('bar_comandas', c.id), paraCriacao({
+        pagamentos: pagamentos.length ? arrayUnion(...pagamentos) : undefined,
+        pagamentosPoker: pagamentosPoker.length ? arrayUnion(...pagamentosPoker) : undefined,
+        valorPago: saldo > 0 ? increment(saldo) : undefined,
+        status: 'paga',
+        pagoEm: em,
+        historico: arrayUnion(...eventos),
+      }));
+      todosPoker.push(...pagamentosPoker);
+      total = round2(total + saldo + pagamentosPoker.reduce((a, pp) => a + pp.valor, 0));
+    }
+
+    if (total <= 0) throw new BarRegraError('Não há nada a receber nessas contas.');
+    const pago = prepararPago(todosPoker, true);
+    pago.aplicar(lote);
+    await gravar(`casas/${houseId}/bar_comandas`, OperationType.UPDATE, () => lote.commit());
+    pago.depois();
+    return total;
+  }, [houseId, caixaAberto, exigirComanda, rankings, caixas, gravar, ref, prepararPago]);
+
   const estornarPagamento = useCallback(async (comandaId: string, pagamentoId: string, motivo: string) => {
     if (!houseId) return;
     if (!caixaAberto) throw new BarRegraError('Abra o caixa para estornar: o dinheiro sai da gaveta atual.');
@@ -783,13 +931,13 @@ export const BarProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     produtos, comandas, caixas, caixaAberto, loading,
     addProduto, addProdutos, updateProduto, removeProduto,
     abrirCaixa, registrarMovimento, fecharCaixa, cancelarCaixa, excluirCaixa, excluirComandasSemCaixa,
-    abrirComanda, lancarItem, cancelarItem, fecharConta, reabrirComanda,
-    registrarPagamento, registrarPagamentos, estornarPagamento, estornarPagamentoPoker, cancelarComanda,
+    abrirComanda, abrirComandasDoPoker, lancarItem, cancelarItem, fecharConta, reabrirComanda,
+    registrarPagamento, registrarPagamentos, receberTudo, estornarPagamento, estornarPagamentoPoker, cancelarComanda,
   }), [produtos, comandas, caixas, caixaAberto, loading,
        addProduto, addProdutos, updateProduto, removeProduto,
        abrirCaixa, registrarMovimento, fecharCaixa, cancelarCaixa, excluirCaixa, excluirComandasSemCaixa,
-       abrirComanda, lancarItem, cancelarItem, fecharConta, reabrirComanda,
-       registrarPagamento, registrarPagamentos, estornarPagamento, estornarPagamentoPoker, cancelarComanda]);
+       abrirComanda, abrirComandasDoPoker, lancarItem, cancelarItem, fecharConta, reabrirComanda,
+       registrarPagamento, registrarPagamentos, receberTudo, estornarPagamento, estornarPagamentoPoker, cancelarComanda]);
 
   return <BarContext.Provider value={value}>{children}</BarContext.Provider>;
 };

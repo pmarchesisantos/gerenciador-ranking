@@ -1,12 +1,14 @@
 
 import React, { useMemo, useState } from 'react';
-import { Store, ExternalLink, Lock, Unlock, ChevronDown, ChevronUp, CheckCircle2, Receipt, Trash2, AlertTriangle } from 'lucide-react';
-import { useBar, saldoComanda, somaItens, esperadoNoCaixa, recebidoNoCaixa, recebidoPokerNoCaixa, ehFiado, BarRegraError } from '../context/BarContext';
+import { Store, ExternalLink, Lock, Unlock, ChevronDown, ChevronUp, ChevronRight, CheckCircle2, Receipt, Trash2, AlertTriangle } from 'lucide-react';
+import { useBar, saldoComanda, somaItens, esperadoNoCaixa, recebidoNoCaixa, recebidoPokerNoCaixa, aReceberDaComanda, BarRegraError } from '../context/BarContext';
 import ConfirmationModal from './ConfirmationModal';
 import ScrollArea from './ScrollArea';
+import ExtratoCliente from './ExtratoCliente';
 import { useRanking } from '../context/RankingContext';
 import { BarCaixa as Caixa } from '../types';
 import { formatBRL } from '../services/stageValues';
+import { diaOperacional, diasDoPeriodo, gastosDaPessoa, gastosPokerNosDias } from '../services/pokerDoDia';
 
 const brl = (v: number) => `R$ ${formatBRL(v)}`;
 const dataHora = (iso?: string) =>
@@ -33,6 +35,7 @@ export const abrirJanelaPDV = (slug: string) => {
 
 const BarCaixa: React.FC = () => {
   const { house } = useRanking();
+  const [extratoDe, setExtratoDe] = useState<string | null>(null);
   const { caixas, comandas, caixaAberto, loading, excluirCaixa, excluirComandasSemCaixa } = useBar();
   const [expandido, setExpandido] = useState<string | null>(null);
   const [paraExcluir, setParaExcluir] = useState<Caixa | null>(null);
@@ -98,19 +101,32 @@ const BarCaixa: React.FC = () => {
     [caixas]
   );
 
+  // O que cada um deve: o saldo do bar mais o poker do dia ainda não pago, o
+  // mesmo "Total a receber" que o PDV mostra na comanda.
   const devedores = useMemo(() => {
-    const mapa = new Map<string, { nome: string; saldo: number; comandas: number; desde: string }>();
+    const mapa = new Map<string, { nome: string; bar: number; poker: number; saldo: number; comandas: number; desde: string; contados: Set<string> }>();
     for (const c of comandas) {
-      if (!ehFiado(c)) continue;
+      if (!aReceberDaComanda(c, house.rankings, caixas)) continue;
       const k = normalizar(c.clienteNome);
-      const atual = mapa.get(k) || { nome: c.clienteNome, saldo: 0, comandas: 0, desde: c.data };
-      atual.saldo += saldoComanda(c);
+      const atual = mapa.get(k) || { nome: c.clienteNome, bar: 0, poker: 0, saldo: 0, comandas: 0, desde: c.data, contados: new Set<string>() };
+      atual.bar += saldoComanda(c);
       atual.comandas += 1;
       if (c.data < atual.desde) atual.desde = c.data;
+      const cx = caixas.find(x => x.id === c.caixaId);
+      const dias = cx ? diasDoPeriodo(cx.abertoEm, cx.fechadoEm || cx.canceladoEm) : new Set([diaOperacional(c.data)]);
+      for (const g of gastosDaPessoa(gastosPokerNosDias(house.rankings, dias), c.clienteNome, c.playerId)) {
+        if (g.pago || g.total <= 0) continue;
+        // A mesma etapa não conta duas vezes se a pessoa tiver mais de uma comanda.
+        const chave = `${g.rankingId}|${g.etapaId ?? g.dia}|${g.playerId}`;
+        if (atual.contados.has(chave)) continue;
+        atual.contados.add(chave);
+        atual.poker += g.total;
+      }
+      atual.saldo = Math.round((atual.bar + atual.poker) * 100) / 100;
       mapa.set(k, atual);
     }
     return [...mapa.values()].sort((a, b) => b.saldo - a.saldo);
-  }, [comandas]);
+  }, [comandas, caixas, house.rankings]);
 
   const totalFiado = devedores.reduce((a, d) => a + d.saldo, 0);
   const resumoAberto = caixaAberto ? resumoDe(caixaAberto) : null;
@@ -220,19 +236,28 @@ const BarCaixa: React.FC = () => {
             <ScrollArea wrapperClassName="flex-1 min-h-0" className="h-full overflow-y-auto">
             <ul className="divide-y divide-gray-800">
               {devedores.map(d => (
-                <li key={normalizar(d.nome)} className="px-5 py-3.5 flex items-center justify-between gap-4">
+                <li key={normalizar(d.nome)}>
+                  <button onClick={() => setExtratoDe(d.nome)} title="Ver o extrato"
+                          className="w-full text-left px-5 py-3.5 flex items-center justify-between gap-4 hover:bg-white/[0.03] transition-colors">
                   <div className="min-w-0">
                     <p className="text-white font-bold text-sm truncate">{d.nome}</p>
                     <p className="text-gray-600 text-xs font-bold">{d.comandas} conta(s) · desde {data(d.desde)}</p>
+                    {d.poker > 0 && (
+                      <p className="text-gray-500 text-xs font-semibold tabular-nums">bar {brl(d.bar)} · <span className="text-emerald-400">poker {brl(d.poker)}</span></p>
+                    )}
                   </div>
-                  <span className="text-amber-500 font-semibold text-sm tabular-nums shrink-0">{brl(d.saldo)}</span>
+                  <span className="shrink-0 flex items-center gap-2">
+                    <span className="text-amber-500 font-semibold text-sm tabular-nums">{brl(d.saldo)}</span>
+                    <ChevronRight size={14} className="text-gray-600" />
+                  </span>
+                  </button>
                 </li>
               ))}
             </ul>
             </ScrollArea>
           )}
           <p className="shrink-0 h-[42px] px-5 flex items-center border-t border-gray-800 text-xs text-gray-600">
-            O recebimento é feito no PDV, na aba "A receber".
+            Clique numa pessoa para ver o extrato, imprimir ou receber tudo.
           </p>
         </section>
 
@@ -377,6 +402,7 @@ const BarCaixa: React.FC = () => {
         })() : ''}
         confirmLabel="Excluir de vez"
       />
+      {extratoDe && <ExtratoCliente nome={extratoDe} onClose={() => setExtratoDe(null)} />}
     </div>
   );
 };
