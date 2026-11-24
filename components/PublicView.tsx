@@ -219,15 +219,16 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
             {subView === 'ranking' ? (
               <div className="bg-gray-900 border border-gray-800 rounded-xl md:rounded-xl overflow-hidden shadow-2xl relative">
                 <ScrollArea className="overflow-x-auto overflow-y-auto max-h-[600px]">
-                  <table className="w-full text-left min-w-[800px]">
+                  {/* No celular cabem posição, nome, pontos e dia; presença e vitórias aparecem a partir do tablet. */}
+                  <table className="w-full text-left sm:min-w-[800px]">
                     <thead className="sticky top-0 z-10">
                       <tr className="bg-gray-800 text-gray-500 text-xs border-b border-gray-700">
-                        <th className="px-6 py-6 font-semibold">Pos..</th>
-                        <th className="px-6 py-6 font-semibold">Nome do Jogador</th>
-                        <th className="px-6 py-6 font-semibold text-center text-emerald-500">Pts Totais</th>
-                        <th className="px-6 py-6 font-semibold text-center">Pres.</th>
-                        <th className="px-6 py-6 font-semibold text-center">Vit.</th>
-                        <th className="px-6 py-6 font-semibold text-center">Dia</th>
+                        <th className="pl-4 pr-2 sm:px-6 py-5 sm:py-6 font-semibold">Pos.</th>
+                        <th className="px-2 sm:px-6 py-5 sm:py-6 font-semibold">Jogador</th>
+                        <th className="px-2 sm:px-6 py-5 sm:py-6 font-semibold text-center text-emerald-500">Pontos</th>
+                        <th className="hidden sm:table-cell px-6 py-6 font-semibold text-center">Pres.</th>
+                        <th className="hidden sm:table-cell px-6 py-6 font-semibold text-center">Vit.</th>
+                        <th className="pl-2 pr-4 sm:px-6 py-5 sm:py-6 font-semibold text-center">Dia</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-800">
@@ -235,7 +236,7 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                         const rank = i + 1;
                         return (
                           <tr key={p.id} className="hover:bg-emerald-600/[0.02] transition-colors">
-                            <td className="px-6 py-5">
+                            <td className="pl-4 pr-2 sm:px-6 py-4 sm:py-5">
                               <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full font-semibold text-xs ${
                                 rank >= 1 && rank <= 3 ? 'bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30' : 
                                 rank >= 4 && rank <= 8 ? 'bg-gray-700 text-gray-100' :
@@ -244,15 +245,15 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                                 {rank}
                               </span>
                             </td>
-                            <td className={`px-6 py-5 font-bold tracking-tight text-sm ${
+                            <td className={`px-2 sm:px-6 py-4 sm:py-5 font-bold tracking-tight text-sm ${
                               rank >= 1 && rank <= 3 ? 'text-emerald-300' : 
                               rank >= 4 && rank <= 8 ? 'text-gray-100' :
                               rank === 9 ? 'text-red-400' : 'text-white'
                             }`}>{p.name}</td>
-                            <td className="px-6 py-5 text-emerald-400 font-semibold text-center">{p.totalPoints}</td>
-                            <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.attendances}</td>
-                            <td className="px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.wins}</td>
-                            <td className="px-6 py-5 text-center">
+                            <td className="px-2 sm:px-6 py-4 sm:py-5 text-emerald-400 font-semibold text-center">{p.totalPoints}</td>
+                            <td className="hidden sm:table-cell px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.attendances}</td>
+                            <td className="hidden sm:table-cell px-6 py-5 text-gray-500 font-bold text-xs text-center">{p.wins}</td>
+                            <td className="pl-2 pr-4 sm:px-6 py-4 sm:py-5 text-center">
                               <span className="text-emerald-500 font-semibold text-xs">+{p.dayPoints}</span>
                             </td>
                           </tr>
@@ -261,10 +262,10 @@ const PublicView: React.FC<{ onLoginClick: () => void; onCadastroClick?: () => v
                     </tbody>
                     <tfoot className="sticky bottom-0 z-10 bg-gray-800 border-t border-gray-700 shadow-[0_-10px_20px_rgba(0,0,0,0.5)]">
                       <tr>
-                        <td colSpan={3} className="px-6 py-5 text-right text-xs font-semibold text-gray-500">
-                          Total Acumulado do Ranking:
+                        <td colSpan={3} className="px-4 sm:px-6 py-5 text-right text-xs font-semibold text-gray-500">
+                          Total acumulado:
                         </td>
-                        <td colSpan={3} className="px-6 py-5">
+                        <td colSpan={3} className="pr-4 sm:px-6 py-5">
                           <div className="flex items-center justify-end gap-4">
                             <span className="font-semibold text-emerald-500 text-lg">
                               R$ {formatBRL(totalAccumulated, 0)}
