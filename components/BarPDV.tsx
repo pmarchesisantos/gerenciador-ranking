@@ -3,10 +3,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Plus, Minus, Search, Receipt, X, Package, Lock, Unlock, ArrowDownCircle, ArrowUpCircle, Ban,
   RotateCcw, Wallet, CheckCircle2, AlertTriangle, History, Store, UserRound, ChevronDown, ChevronUp,
-  Eye, EyeOff, PanelRightClose, PanelRightOpen, Printer,
+  Eye, EyeOff, PanelRightClose, PanelRightOpen, Printer, Gift,
 } from 'lucide-react';
 import {
-  useBar, saldoComanda, somaItens, esperadoNoCaixa, recebidoNoCaixa, recebidoPokerNoCaixa, ehFiado, BarRegraError,
+  useBar, saldoComanda, somaItens, esperadoNoCaixa, recebidoNoCaixa, recebidoPokerNoCaixa, ehFiado, aReceberDaComanda, BarRegraError,
+  FORMAS_ABATIMENTO, ehAbatimento,
 } from '../context/BarContext';
 import { useRanking } from '../context/RankingContext';
 import { BarComanda, BarFormaPagamento, BarProduto } from '../types';
@@ -113,6 +114,10 @@ const BarPDV: React.FC = () => {
   const [parcelas, setParcelas] = useState<{ id: string; forma: BarFormaPagamento; valor: number }[]>([]);
   const [valor, setValor] = useState<number | undefined>(undefined);
   const [recebidoDinheiro, setRecebidoDinheiro] = useState<number | undefined>(undefined);
+  // Desconto no acerto: prêmio ganho no jogo ou crédito na casa, digitado.
+  const [descontoAberto, setDescontoAberto] = useState(false);
+  const [descontoTipo, setDescontoTipo] = useState<BarFormaPagamento>('Prêmio do jogo');
+  const [descontoValor, setDescontoValor] = useState<number | undefined>(undefined);
   const [mostrarHistorico, setMostrarHistorico] = useState(false);
   const [incluirPoker, setIncluirPoker] = useState(true);
 
@@ -169,12 +174,12 @@ const BarPDV: React.FC = () => {
       abertas: comandas.filter(c => c.status === 'aberta' && filtra(c))
         .sort((a, b) => (a.numero || 0) - (b.numero || 0)),
       // Inclui fiado de caixas anteriores: dívida não some quando o dia acaba.
-      receber: comandas.filter(c => ehFiado(c) && filtra(c))
+      receber: comandas.filter(c => aReceberDaComanda(c, house.rankings, caixas) && filtra(c))
         .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()),
       encerradas: comandas.filter(c => (c.status === 'paga' || c.status === 'cancelada') && c.caixaId === caixaAberto?.id && filtra(c))
         .sort((a, b) => new Date(b.pagoEm || b.canceladaEm || b.data).getTime() - new Date(a.pagoEm || a.canceladaEm || a.data).getTime()),
     };
-  }, [comandas, buscaComanda, caixaAberto?.id]);
+  }, [comandas, buscaComanda, caixaAberto?.id, house.rankings, caixas]);
 
   // ── Poker do dia ──
   // O rascunho do lançamento muda em outra janela: o evento storage avisa.
@@ -204,13 +209,53 @@ const BarPDV: React.FC = () => {
     [selecionada, caixas, house.rankings, versaoRascunho]
   );
 
+  /**
+   * Poker do dia ainda não pago de uma comanda. Entra no valor da lista para
+   * ela mostrar o mesmo "Total a receber" do painel da comanda.
+   */
+  const pokerPendenteDe = (c: BarComanda): number => {
+    if (c.status === 'cancelada') return 0;
+    const gastos = caixaAberto && c.caixaId === caixaAberto.id
+      ? pokerDoCaixa
+      : gastosPokerNosDias(house.rankings, diasDaComanda(c));
+    const total = gastosDaPessoa(gastos, c.clienteNome, c.playerId)
+      .filter(g => !g.pago && g.total > 0)
+      .reduce((a, g) => a + g.total, 0);
+    return Math.round(total * 100) / 100;
+  };
+
+  /**
+   * Com o caixa aberto, todo jogador do poker do dia tem comanda, mesmo sem
+   * consumo: o acerto da noite fica todo no PDV. Quem entra no lançamento
+   * depois ganha a sua assim que aparece.
+   */
+  const abrindoComandas = useRef(false);
+  useEffect(() => {
+    if (!caixaAberto || loading || abrindoComandas.current) return;
+    // Inclui as canceladas: se o operador cancelou a comanda de alguém, ela não volta sozinha.
+    const doCaixa = comandas.filter(c => c.caixaId === caixaAberto.id);
+    const temComanda = (g: GastoPoker) => doCaixa.some(c =>
+      (g.jogadorId && c.playerId === g.jogadorId) || normalizar(c.clienteNome) === normalizar(g.nome));
+    const faltam = new Map<string, { nome: string; jogadorId?: string }>();
+    for (const g of pokerDoCaixa) {
+      if (!g.nome || g.nome === 'Jogador removido' || temComanda(g)) continue;
+      faltam.set(g.jogadorId || normalizar(g.nome), { nome: g.nome, jogadorId: g.jogadorId });
+    }
+    if (faltam.size === 0) return;
+    abrindoComandas.current = true;
+    bar.abrirComandasDoPoker([...faltam.values()])
+      .catch(e => setToast({ tipo: 'erro', texto: e instanceof BarRegraError ? e.message : 'Não foi possível abrir as comandas do poker.' }))
+      .finally(() => { abrindoComandas.current = false; });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [caixaAberto?.id, loading, comandas, pokerDoCaixa]);
+
   const resumoCaixa = useMemo(() => {
     if (!caixaAberto) return null;
     const doCaixa = comandas.filter(c => c.caixaId === caixaAberto.id && c.status !== 'cancelada');
     const vendido = doCaixa.reduce((acc, c) => acc + somaItens(c.itens), 0);
     let recebido = 0;
-    for (const c of comandas) for (const p of c.pagamentos || []) if (p.caixaId === caixaAberto.id && !p.estornado) recebido += p.valor;
-    recebido += Object.values(recebidoPokerNoCaixa(caixaAberto.id, comandas)).reduce((a, v) => a + v, 0);
+    for (const c of comandas) for (const p of c.pagamentos || []) if (p.caixaId === caixaAberto.id && !p.estornado && !ehAbatimento(p.forma)) recebido += p.valor;
+    recebido += Object.entries(recebidoPokerNoCaixa(caixaAberto.id, comandas)).filter(([f]) => !ehAbatimento(f)).reduce((a, [, v]) => a + v, 0);
     const esperado = esperadoNoCaixa(caixaAberto, comandas);
     return { vendido, recebido, dinheiro: esperado.Dinheiro || 0, esperado };
   }, [caixaAberto, comandas]);
@@ -229,6 +274,8 @@ const BarPDV: React.FC = () => {
   useEffect(() => {
     setValor(aReceber || undefined);
     setRecebidoDinheiro(undefined);
+    setDescontoAberto(false);
+    setDescontoValor(undefined);
     setParcelas([]);
   }, [selecionadaId, aReceber]);
 
@@ -338,6 +385,19 @@ const BarPDV: React.FC = () => {
     setRecebidoDinheiro(undefined);
   };
 
+  /** Abate da conta o prêmio ou crédito digitado; o resto segue para as formas normais. */
+  const aplicarDesconto = () => {
+    const v = Math.round((descontoValor || 0) * 100) / 100;
+    if (!(v > 0)) return avisar('erro', 'Digite o valor a descontar.');
+    if (v > restante + 0.009) return avisar('erro', `O desconto passa do que falta receber (${brl(restante)}).`);
+    const novoRestante = Math.round((restante - v) * 100) / 100;
+    setParcelas(p => [{ id: `d${Date.now()}`, forma: descontoTipo, valor: v }, ...p]);
+    setValor(novoRestante > 0 ? novoRestante : undefined);
+    setDescontoAberto(false);
+    setDescontoValor(undefined);
+  };
+  const totalDescontado = parcelas.filter(p => ehAbatimento(p.forma)).reduce((a, p) => a + p.valor, 0);
+
   const receber = async () => {
     if (!selecionada) return;
     if (forma === 'Dinheiro' && valorNum > 0 && recebidoDinheiro != null && recebidoNum < valorNum - 0.009) {
@@ -347,9 +407,12 @@ const BarPDV: React.FC = () => {
     const partes = [...parcelas.map(p => ({ valor: p.valor, forma: p.forma })), ...(valorNum > 0 ? [{ valor: valorNum, forma }] : [])];
     if (partes.length === 0) return avisar('erro', 'Informe o valor a receber.');
     const total = partes.reduce((acc, p) => acc + p.valor, 0);
-    const resumo = partes.length > 1
-      ? `${brl(total)} recebido em ${partes.length} formas`
-      : `${brl(total)} recebido em ${partes[0].forma}${troco > 0 ? ` · troco ${brl(troco)}` : ''}`;
+    const descontado = partes.filter(p => ehAbatimento(p.forma)).reduce((a, p) => a + p.valor, 0);
+    const resumo = descontado > 0
+      ? `Conta acertada: ${brl(total - descontado)} recebido · ${brl(descontado)} descontado`
+      : partes.length > 1
+        ? `${brl(total)} recebido em ${partes.length} formas`
+        : `${brl(total)} recebido em ${partes[0].forma}${troco > 0 ? ` · troco ${brl(troco)}` : ''}`;
     const ok = await executar(() => bar.registrarPagamentos(selecionada.id, partes, pokerNoRecebimento ? pokerPendente : []), resumo);
     if (ok) setParcelas([]);
   };
@@ -482,6 +545,10 @@ const BarPDV: React.FC = () => {
               const saldo = saldoComanda(c);
               const ativa = c.id === selecionadaId;
               const deOutroCaixa = c.caixaId !== caixaAberto.id;
+              // Mesmo número do "Total a receber" do painel: o que falta do bar + o poker do dia.
+              const poker = pokerPendenteDe(c);
+              const emAberto = c.status === 'aberta' || c.status === 'fechada';
+              const valorLista = emAberto ? Math.round((saldo + poker) * 100) / 100 : c.status === 'paga' && poker > 0 ? poker : c.total;
               return (
                 <li key={c.id}>
                   <button onClick={() => { setSelecionadaId(c.id); setPainel(c.status === 'aberta' ? 'produtos' : 'conta'); }}
@@ -495,11 +562,20 @@ const BarPDV: React.FC = () => {
                         {deOutroCaixa ? `desde ${dataHora(c.data)}` : `aberta ${hora(c.data)}`}
                         {c.status === 'cancelada' && ' · cancelada'}
                       </span>
+                      {poker > 0 && (
+                        <span className="block text-[11px] font-semibold tabular-nums text-gray-500 truncate">
+                          <span className="text-emerald-400">{emAberto ? '+ poker' : 'poker a pagar'} {brl(poker)}</span>
+                        </span>
+                      )}
                     </span>
                     <span className="text-right shrink-0">
-                      <span className={`block text-sm font-semibold tabular-nums ${c.status === 'paga' ? 'text-green-400' : c.status === 'cancelada' ? 'text-gray-600 line-through' : saldo > 0 && c.status === 'fechada' ? 'text-amber-500' : 'text-white'}`}>
-                        {brl(c.status === 'fechada' ? saldo : c.total)}
+                      <span className={`block text-sm font-semibold tabular-nums ${
+                        c.status === 'cancelada' ? 'text-gray-600 line-through'
+                          : poker > 0 || (saldo > 0 && c.status === 'fechada') ? 'text-amber-500'
+                          : c.status === 'paga' ? 'text-green-400' : 'text-white'}`}>
+                        {brl(valorLista)}
                       </span>
+
                     </span>
                   </button>
                 </li>
@@ -598,7 +674,7 @@ const BarPDV: React.FC = () => {
                     selecionada.status === 'paga' ? 'bg-green-400' : selecionada.status === 'fechada' ? 'bg-amber-500' : selecionada.status === 'cancelada' ? 'bg-red-400' : 'bg-gray-400'
                   }`} title={STATUS_ROTULO[selecionada.status].texto} />
                   <span className="text-xs font-semibold tabular-nums text-amber-500 [writing-mode:vertical-rl] rotate-180 shrink-0">
-                    {brl(selecionada.status === 'aberta' ? selecionada.total : saldoComanda(selecionada))}
+                    {brl(Math.round((saldoBar + totalPokerPendente) * 100) / 100)}
                   </span>
                 </button>
               ) : (
@@ -703,7 +779,7 @@ const BarPDV: React.FC = () => {
                 {/* Ações por estado: cada estado só oferece o que é permitido nele. */}
                 {selecionada.status === 'aberta' && (
                   <button onClick={() => executar(() => bar.fecharConta(selecionada.id), 'Conta fechada')}
-                          disabled={selecionada.total <= 0}
+                          disabled={selecionada.total <= 0 && pokerDaSelecionada.length === 0}
                           className="w-full py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white disabled:opacity-40 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
                     <Lock size={14} /> Fechar conta
                   </button>
@@ -726,10 +802,12 @@ const BarPDV: React.FC = () => {
                     {parcelas.length > 0 && (
                       <ul className="space-y-1">
                         {parcelas.map(p => (
-                          <li key={p.id} className="flex items-center justify-between gap-2 rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2">
-                            <span className="text-xs font-semibold text-gray-300">{p.forma}</span>
+                          <li key={p.id} className={`flex items-center justify-between gap-2 rounded-lg border px-3 py-2 ${ehAbatimento(p.forma) ? 'bg-violet-500/[0.06] border-violet-500/30' : 'bg-white/[0.04] border-white/10'}`}>
+                            <span className={`text-xs font-semibold ${ehAbatimento(p.forma) ? 'text-violet-200' : 'text-gray-300'}`}>
+                              {ehAbatimento(p.forma) ? <>Desconto · {p.forma}</> : p.forma}
+                            </span>
                             <span className="flex items-center gap-2">
-                              <span className="text-xs font-semibold tabular-nums">{brl(p.valor)}</span>
+                              <span className={`text-xs font-semibold tabular-nums ${ehAbatimento(p.forma) ? 'text-violet-200' : ''}`}>{ehAbatimento(p.forma) ? '− ' : ''}{brl(p.valor)}</span>
                               <button onClick={() => {
                                         setParcelas(ps => ps.filter(x => x.id !== p.id));
                                         setValor(Math.round(((valor || 0) + p.valor) * 100) / 100);
@@ -753,6 +831,42 @@ const BarPDV: React.FC = () => {
                       <p className="text-xs text-gray-500 leading-snug">
                         O poker é quitado inteiro primeiro e marcado como pago no lançamento; o restante vai para o bar.
                       </p>
+                    )}
+
+                    {descontoAberto ? (
+                      <div className="rounded-lg border border-violet-500/30 bg-violet-500/[0.05] p-2.5 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-violet-200">Descontar da conta</p>
+                          <button onClick={() => { setDescontoAberto(false); setDescontoValor(undefined); }} title="Cancelar desconto"
+                                  className="text-gray-500 hover:text-white"><X size={13} /></button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1">
+                          {FORMAS_ABATIMENTO.map(t => (
+                            <button key={t} onClick={() => setDescontoTipo(t)}
+                                    className={`py-1.5 rounded-lg text-xs font-semibold transition-all ${descontoTipo === t ? 'bg-violet-500/20 text-violet-100 ring-1 ring-inset ring-violet-500/40' : 'bg-white/5 text-gray-400 hover:text-white'}`}>
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex gap-2">
+                          <InputMoeda className="flex-1 text-white" value={descontoValor} onChange={setDescontoValor} onEnter={aplicarDesconto}
+                                      ariaLabel={`Valor do desconto (${descontoTipo})`} />
+                          <button onClick={aplicarDesconto} disabled={!((descontoValor || 0) > 0)}
+                                  className="shrink-0 rounded-xl px-3 text-xs font-semibold bg-violet-500/15 text-violet-100 ring-1 ring-inset ring-violet-500/30 hover:bg-violet-500/25 disabled:opacity-30">
+                            Descontar
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 leading-snug">
+                          {descontoTipo === 'Prêmio do jogo'
+                            ? 'O que o jogador ganhou no torneio abate a conta. Não entra como dinheiro no caixa.'
+                            : 'Crédito que o jogador tem no clube abate a conta. Não entra como dinheiro no caixa.'}
+                        </p>
+                      </div>
+                    ) : (
+                      <button onClick={() => setDescontoAberto(true)} disabled={!(restante > 0)}
+                              className="w-full rounded-lg border border-dashed border-white/15 py-2 text-xs font-semibold text-gray-400 hover:text-white hover:border-violet-500/40 disabled:opacity-30 flex items-center justify-center gap-1.5 transition-all">
+                        <Gift size={13} /> Descontar prêmio do jogo ou crédito na casa
+                      </button>
                     )}
 
                     <div className="grid grid-cols-4 gap-1">
@@ -784,9 +898,17 @@ const BarPDV: React.FC = () => {
                     <button onClick={receber} disabled={!(totalAReceber > 0)}
                             className="w-full py-3 rounded-xl bg-emerald-500/15 text-emerald-200 ring-1 ring-inset ring-emerald-500/30 hover:bg-emerald-500/25 disabled:opacity-40 text-xs font-semibold flex items-center justify-center gap-2 transition-all">
                       <Wallet size={14} />
-                      Receber {brl(totalAReceber)}
-                      {parcelas.length > 0 && valorNum > 0 && <span className="opacity-70 normal-case font-bold">· {parcelas.length + 1} formas</span>}
-                      {parcelas.length > 0 && !(valorNum > 0) && <span className="opacity-70 normal-case font-bold">· {parcelas.length} {parcelas.length > 1 ? 'formas' : 'forma'}</span>}
+                      {totalDescontado > 0 ? (
+                        totalAReceber - totalDescontado > 0.004
+                          ? <>Receber {brl(totalAReceber - totalDescontado)} <span className="opacity-70 font-bold">· {brl(totalDescontado)} descontado</span></>
+                          : <>Quitar com desconto de {brl(totalDescontado)}</>
+                      ) : (
+                        <>
+                          Receber {brl(totalAReceber)}
+                          {parcelas.length > 0 && valorNum > 0 && <span className="opacity-70 normal-case font-bold">· {parcelas.length + 1} formas</span>}
+                          {parcelas.length > 0 && !(valorNum > 0) && <span className="opacity-70 normal-case font-bold">· {parcelas.length} {parcelas.length > 1 ? 'formas' : 'forma'}</span>}
+                        </>
+                      )}
                     </button>
                   </div>
                 )}

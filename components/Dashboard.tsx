@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRanking } from '../context/RankingContext';
-import { UserPlus, Search, PlayCircle, ChevronDown, ChevronUp, UserCheck, UserMinus, ListOrdered } from 'lucide-react';
+import { UserPlus, Search, PlayCircle, ChevronDown, ChevronUp, UserCheck, UserMinus, ListOrdered, Download } from 'lucide-react';
+import { exportarRanking } from '../services/exportarRanking';
 import AddResultModal from './AddResultModal';
 import ConfirmationModal from './ConfirmationModal';
 import StageValuesModal from './StageValuesModal';
@@ -59,7 +60,7 @@ const EditableCell: React.FC<EditableCellProps> = ({ value, onSave, className, i
 };
 
 const Dashboard: React.FC = () => {
-  const { activeRanking, addPlayer, updatePlayer } = useRanking();
+  const { activeRanking, addPlayer, updatePlayer, house } = useRanking();
   const [newPlayerName, setNewPlayerName] = useState('');
   const [showExtraFields, setShowExtraFields] = useState(false);
   const [extraData, setExtraData] = useState({ phone: '', birthDate: '', favoriteTeam: '' });
@@ -179,6 +180,14 @@ const Dashboard: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+
+          <button
+            onClick={() => exportarRanking(activeRanking, house.name)}
+            title="Baixar o ranking em planilha (Excel): classificação, pontos por etapa e etapas"
+            className="px-4 py-3.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 border border-gray-800 text-gray-300 hover:text-white hover:border-gray-700 transition-all shrink-0"
+          >
+            <Download size={15} /> Exportar
+          </button>
 
           <button 
             onClick={() => setIsAddModalOpen(true)}

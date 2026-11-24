@@ -166,6 +166,8 @@ export const resumoBar = (comandas: BarComanda[], i: Intervalo): ResumoBar => {
     }
     for (const p of c.pagamentos || []) {
       if (p.estornado || !dentro(p.em, i)) continue;
+      // Prêmio do jogo e crédito na casa abatem a conta, mas não são dinheiro entrando.
+      if (p.forma === 'Prêmio do jogo' || p.forma === 'Crédito na casa') continue;
       recebido += p.valor;
       const forma = p.forma || 'Não informado';
       formas.set(forma, (formas.get(forma) || 0) + p.valor);
@@ -201,7 +203,9 @@ export const seriePorDia = (
   i: Intervalo,
   etapas: EtapaFinanceira[],
   comandas: BarComanda[],
-  metrica: Metrica
+  metrica: Metrica,
+  /** Parte de cada item que vai para parceiros: na receita, ela não é da casa. */
+  repasseDoItem?: (item: BarComanda['itens'][number]) => number,
 ): PontoDia[] => {
   const pontos = new Map<string, PontoDia>();
   for (let d = new Date(i.inicio); d < i.fim; d = somarDias(d, 1)) {
@@ -217,7 +221,7 @@ export const seriePorDia = (
     for (const item of c.itens || []) {
       if (item.cancelado || !dentro(item.lancadoEm, i)) continue;
       const p = pontos.get(chaveDia(new Date(item.lancadoEm)));
-      if (p) p.bar += item.precoUnitario * item.quantidade;
+      if (p) p.bar += item.precoUnitario * item.quantidade - (metrica === 'receita' && repasseDoItem ? repasseDoItem(item) : 0);
     }
   }
   return [...pontos.values()];

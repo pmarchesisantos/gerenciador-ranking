@@ -219,8 +219,20 @@ export interface BarProduto {
   ncm?: string;
   /** Produto fora de linha fica oculto no PDV. Ausente significa ativo. */
   ativo?: boolean;
+  /**
+   * Produto de parceiro (ex.: cozinha terceirizada): parte de cada venda é
+   * repassada a ele. O percentual incide sobre o valor vendido.
+   */
+  repasse?: RegraRepasse;
   criadoEm: string;
   atualizadoEm?: string;
+}
+
+export interface RegraRepasse {
+  /** Nome do parceiro, como aparece no relatório (ex.: "Cozinha do Zé"). */
+  parceiro: string;
+  /** Percentual do valor vendido que vai para o parceiro (0 a 100). */
+  percentual: number;
 }
 
 export interface BarComandaItem {
@@ -233,6 +245,9 @@ export interface BarComandaItem {
   custoUnitario?: number;
   quantidade: number;
   lancadoEm: string;
+  /** Repasse congelado na venda: mudar a regra do produto depois não reescreve o passado. */
+  repasseParceiro?: string;
+  repassePercentual?: number;
   /** Item cancelado continua na comanda, riscado, com motivo — nunca é apagado. */
   cancelado?: boolean;
   canceladoEm?: string;
@@ -301,7 +316,12 @@ export interface BarPagamentoPoker {
   motivoEstorno?: string;
 }
 
-export type BarFormaPagamento = 'Dinheiro' | 'Pix' | 'Débito' | 'Crédito';
+/**
+ * 'Prêmio do jogo' e 'Crédito na casa' são abatimentos: o jogador acerta a conta
+ * com o que ganhou no torneio ou com um crédito que tem no clube. Abatem a
+ * conta, mas não são dinheiro entrando (não contam no recebido nem na gaveta).
+ */
+export type BarFormaPagamento = 'Dinheiro' | 'Pix' | 'Débito' | 'Crédito' | 'Prêmio do jogo' | 'Crédito na casa';
 
 export interface BarPagamento {
   id?: string;
@@ -354,4 +374,4 @@ export interface BarCaixa {
   motivoCancelamento?: string;
 }
 
-export type View = 'dashboard' | 'settings' | 'history' | 'profile' | 'player-data' | 'poker-clock' | 'poker-clock-settings' | 'bar-produtos' | 'bar-caixa' | 'financeiro' | 'assinatura';
+export type View = 'dashboard' | 'settings' | 'history' | 'profile' | 'player-data' | 'poker-clock' | 'poker-clock-settings' | 'bar-produtos' | 'bar-caixa' | 'bar-vendas' | 'financeiro' | 'assinatura';

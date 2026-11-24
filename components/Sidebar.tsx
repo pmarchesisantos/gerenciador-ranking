@@ -301,6 +301,15 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                     <Package size={14} />
                     Produtos
                   </button>
+                  <button
+                    onClick={() => { setCurrentView('bar-vendas'); if (onClose) onClose(); }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-3 transition-all ${
+                      currentView === 'bar-vendas' ? 'text-emerald-400 bg-emerald-400/5' : 'text-gray-500 hover:text-gray-200'
+                    }`}
+                  >
+                    <BarChart3 size={14} />
+                    Vendas e repasses
+                  </button>
                 </div>
               )}
             </div>
